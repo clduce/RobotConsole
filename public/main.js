@@ -13,8 +13,10 @@ var thisScreen = 1;
 var keys = {};
 var oldKeys = {};
 var time = new Date();
+let sounds = ['success.wav','message.wav','error.wav','fail.wav'];//change only this to add or remove sounds
+
 //use same IP to connect to socket server as to connect to express
-socket = io(window.location.hostname);
+socket = io(window.location.hostname + ':' + window.location.port);
 
 //get all config from server
 socket.on('settings',function(data){
@@ -22,11 +24,14 @@ socket.on('settings',function(data){
 		socket.emit('setScreen1','');
 		console.log(data);
 		widgetArray = data['widgets'];
+		document.getElementById('consoleName').innerText = data.config['consoleName'];
+		document.getElementById('title').innerText = data.config['consoleName'];
 		updateIndexMap();
 		for (let a of widgetArray){
 			//generate HTML element for each widget
 			if(a.screen == thisScreen) widgetFromJson(a);
 		}
+		if(!data.config['loadInEditMode']) toggleDriveMode();
 		loadedElements = true;
 	}else{
 		console.log('already loaded elements');
@@ -73,6 +78,8 @@ socket.on('telem',function(data){
 	}else if(widgetArray[data.id].type == '_light'){
 		console.log(data.msg.data);
 		we.querySelector('#color_ap').style.backgroundColor = data.msg.data?'#32cd32':'#cd3f32';
+	}else if(widgetArray[data.id].type == '_audio'){
+		playSound(data.msg.data);
 	}
   }
 });
@@ -135,6 +142,10 @@ function dragElement(elmnt) {
   function scaleMouseDown(e) {
     e = e || window.event;
     e.preventDefault();
+    
+    elmnt.style.top = (window.innerHeight-parseInt(elmnt.style.height)-parseInt(elmnt.style.bottom)) + 'px';
+	elmnt.style.left = (window.innerWidth-parseInt(elmnt.style.width)-parseInt(elmnt.style.right)) + 'px';
+    
     pos3S = e.clientX-parseInt(elmnt.style.width);
     pos4S = e.clientY-parseInt(elmnt.style.height);
     document.onmouseup = closeScaleElement;
@@ -156,10 +167,13 @@ function dragElement(elmnt) {
     e.preventDefault();
     pos1S = pos3S - e.clientX;
     pos2S = pos4S - e.clientY;
+    
     if(pos1S > -100) pos1S = -100;
     if(pos2S > -45) pos2S = -45;
-    elmnt.style.height = -pos2S + "px";
-    elmnt.style.width = -pos1S + "px";
+    
+    let newHeight = -pos2S + "px";
+    let newWidth = -pos1S + "px";
+    
     if(elmnt.querySelector('#canvas_ap')){
       var canvas = elmnt.querySelector('#canvas_ap');
       canvas.height = -pos2S-20;
@@ -171,6 +185,19 @@ function dragElement(elmnt) {
       canvas.width = -pos1S;
       drawGauge(canvas);
     }
+    else if(elmnt.querySelector('#slider_ap')){
+      var slider = elmnt.querySelector('#slider_ap');
+      if(slider.className.includes('vertical')){
+		  slider.style.width = (-pos2S-27) + 'px';
+		  newWidth = '35px';
+	  }
+	  else{
+		  newHeight = '49px';
+	  }
+    }
+    
+    elmnt.style.height = newHeight;
+    elmnt.style.width = newWidth;
   }
   function closeDragElement() {
     document.onmouseup = null;
@@ -182,10 +209,13 @@ function dragElement(elmnt) {
     else{
       moveWidget({id:elmnt.id,x:elmnt.style.left,y:elmnt.style.top});
     }
+    autoLink(elmnt);
+    sendWidgetsArray();
   }
   function closeScaleElement() {
     document.onmouseup = null;
     document.onmousemove = null;
+    autoLink(elmnt);
     resizeWidget({id:elmnt.id,x:elmnt.style.width,y:elmnt.style.height});
   }
 }
@@ -244,9 +274,35 @@ function sourceElement(elmnt) {
       addWidget(makeUnique(elmnt.id,newElement));
       editing = false;
     }
+    autoLink(newElement);
   }
 }
-
+//determines wether element should be linked to any particular side of screen
+function autoLink(elmnt){
+	let WA = widgetArray[indexMap[elmnt.id]];
+    let waRight = window.innerWidth-parseInt(elmnt.style.width)-parseInt(elmnt.style.left);
+    let waBottom = window.innerHeight-parseInt(elmnt.style.height)-parseInt(elmnt.style.top);
+    WA['right'] = waRight + 'px';
+    WA['bottom'] = waBottom + 'px';
+    WA['useTop'] = parseInt(WA['top'])<waBottom;
+    WA['useLeft'] = parseInt(WA['left'])<waRight;
+    convertToDynamicPosition(elmnt);
+}
+function convertToDynamicPosition(elmnt){
+	let WA = widgetArray[indexMap[elmnt.id]];
+	if(WA['useTop']){
+		elmnt.style.bottom = '';
+	}else{
+		elmnt.style.top = '';
+		elmnt.style.bottom = WA['bottom'];
+	}
+	if(WA['useLeft']){
+		elmnt.style.right = '';
+	}else{
+		elmnt.style.left = '';
+		elmnt.style.right = WA['right'];
+	}
+}
 
 
 //WIDGET CONFIGURATION PANEL
@@ -287,13 +343,16 @@ function openConfig(e){
     case '_checkbox':
       createconfigInput('Label', 'Label', widgetArray[currentIndex]['label']);
       createCheckbox('Initial State', 'initialState', widgetArray[currentIndex]['initial']);
-      createCheckbox('Latching', 'latching', widgetArray[currentIndex]['latching']);
+      createCheckbox('ROS Latching', 'latching', widgetArray[currentIndex]['latching']);
       createconfiglinkGamepadButton(widgetArray[currentIndex]);
       createconfiglinkKeys(widgetArray[currentIndex],['hotkey']);
     break;
     case '_slider':
 	  createconfigInput('Widget Name', 'name', widgetArray[currentIndex]['name']);
 	  createRange(widgetArray[currentIndex]);
+	  createCheckbox('Orient Vertical', 'vertical', widgetArray[currentIndex]['vertical']);
+	  createCheckbox('ROS Latching', 'latching', widgetArray[currentIndex]['latching']);
+	  createconfigInput('Default/initial value', 'default', widgetArray[currentIndex]['default']);
     break;
     case '_inputbox':
 	  createSelect('Message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
@@ -311,9 +370,17 @@ function openConfig(e){
 		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
 		createGraph(widgetArray[currentIndex]);
     break;
+    case '_audio':
+    	createCheckbox('Hide this widget in drive mode', 'hideondrive', widgetArray[currentIndex]['hideondrive']);
+    	createText('Subscribes to an Int16');
+    	createSoundsList();
+    break;
     case '_text':
 		createconfigInput('Text', 'text', widgetArray[currentIndex]['text']);
 		createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
+    break;
+    case '_box':
+		createColorSelect('Background Color','bkColor',widgetArray[currentIndex].bkColor);
     break;
   }
   mask.style.display='inline';
@@ -362,9 +429,30 @@ function applyConfigChanges(){
       WA['max'] = document.getElementById('max').value;
       WA['step'] = document.getElementById('step').value;
       WA['name'] = document.getElementById('name').value;
+      WA['latching'] = document.getElementById('latching').checked;
+      let oldVertical = WA['vertical'];
+      WA['vertical'] = document.getElementById('vertical').checked;
+      WA['default'] = document.getElementById('default').value;
       localWidget.querySelector('#slider_ap').min = WA['min'];
       localWidget.querySelector('#slider_ap').max = WA['max'];
       localWidget.querySelector('#slider_ap').step = WA['step'];
+      if(oldVertical != WA['vertical']){
+		if(WA['vertical'] == true){
+			localWidget.style.width = '35px';
+			localWidget.style.height = '200px';
+			WA['w'] = localWidget.style.width;
+			WA['h'] = localWidget.style.height;
+			localWidget.querySelector('#slider_ap').className += ' vertical';
+			localWidget.querySelector('#slider_ap').style.width =(parseInt(WA['h'])-27) + 'px';
+		}else{
+			localWidget.style.height = '50px';
+			localWidget.style.width = '200px';
+			WA['h'] = localWidget.style.height;
+			WA['w'] = localWidget.style.width;
+			localWidget.querySelector('#slider_ap').className = localWidget.querySelector('#slider_ap').className.replace(/ vertical/g,'');
+			localWidget.querySelector('#slider_ap').style.width = 'calc(100% - 5px)';
+		}
+	   }
       //if(lastChangedAxis != -1) WA['useAxis'] = lastChangedAxis;
     break;
     case '_inputbox':
@@ -380,6 +468,15 @@ function applyConfigChanges(){
     case '_light':
       WA['text'] = document.getElementById('text').value;
       localWidget.querySelector('#text_ap').innerText = WA['text'];
+    break;
+    case '_audio':
+		WA['hideondrive'] = document.getElementById('hideondrive').checked;
+		if(WA['hideondrive']){
+			localWidget.querySelector('#speaker_ap').className = '';
+		}
+		else{
+			localWidget.querySelector('#speaker_ap').className = 'showOnDrive';
+		}
     break;
     case '_gauge':
       WA['min'] = document.getElementById('min').value;
@@ -398,6 +495,10 @@ function applyConfigChanges(){
       localWidget.querySelector('#text_ap').style.color = WA['textColor'];
       localWidget.querySelector('#text_ap').innerText = WA['text'];
     break;
+    case '_box':
+      WA['bkColor'] = document.getElementById('bkColor').value;
+      localWidget.querySelector('#panel_ap').style.backgroundColor = WA['bkColor'];
+    break;
   }
   mask.style.display='none';
   configWindow.style.display='none';
@@ -409,6 +510,20 @@ function cleanTopicName(str){
 	return str;
 }
 //dynamically creates custom config settings. input is the content id ex _button.labelText
+function createSoundsList(){
+	let code = '';
+	for(let i = 0; i < sounds.length; i++){
+		code += ('<button class="specific soundbutton" onclick="playSound('+i+')">preview sound '+i+': "'+sounds[i]+'"</button>');
+	}
+	configWindow.insertAdjacentHTML('beforeend',code);
+}
+function createText(text){
+	var label = document.createElement("h1");
+  label.className = 'settingsLabel specific';
+  label.style.margin.top = '5px';
+  label.innerText = text;
+  configWindow.appendChild(label);
+}
 function createconfigInput(labelText, inputID, inputvalue){
   var label = document.createElement("h1");
   label.className = 'settingsLabel specific';
@@ -807,4 +922,7 @@ function closeInfo(){
 }
 function ping(){
 	socket.emit('pingS',Date.now());
+}
+function playSound(s){
+	if(sounds[s]) new Audio(sounds[s]).play();
 }

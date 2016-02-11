@@ -10,10 +10,28 @@ function widgetFromJson(json){
   tile.id = json['id'];
   tile.style.zIndex = 20;
   if(type == '_box') tile.style.zIndex = 5;
-  tile.style.left = json['left'];
-  tile.style.top = json['top'];
-  tile.style.width = json['w'];
-  tile.style.height = json['h'];
+  
+    if(json['useTop']){
+		 tile.style.top = json['top'];
+		 tile.style.bottom = '';
+	}else{
+		tile.style.top = '';
+		tile.style.bottom = json['bottom'];
+	}
+	if(json['useLeft']){
+		tile.style.right = '';
+		tile.style.left = json['left'];
+	}else{
+		tile.style.left = '';
+		tile.style.right = json['right'];
+	}
+	
+	tile.style.width = json['w'];
+	tile.style.height = json['h'];
+	
+	console.log(json['left'],json['right'],json['top'],json['bottom']);
+	console.log(json['useLeft'],json['useTop']);
+  
   switch (type) {
     case '_button':
       tile.querySelector('#button_ap').innerText = json['label'];
@@ -43,6 +61,9 @@ function widgetFromJson(json){
 	case '_light':
 		tile.querySelector('#text_ap').innerText=json['text'];
 	break;
+	case '_audio':
+		tile.querySelector('#speaker_ap').className = json['hideondrive']?'':'showOnDrive';
+	break;
 	case '_gauge':
       var canvas = tile.querySelector('#gauge_ap');
       canvas.height = parseInt(json['h'])-20;
@@ -53,6 +74,9 @@ function widgetFromJson(json){
     case '_text':
 		tile.querySelector('#text_ap').innerText=json['text'];
 		tile.querySelector('#text_ap').style.color = json['textColor'];
+	break;
+	case '_box':
+		tile.querySelector('#panel_ap').style.backgroundColor = json['bkColor'];
 	break;
   }
 
@@ -72,6 +96,10 @@ function makeUnique(type,newWidget){
   if(type == '_box') newWidget.style.zIndex = 5;
   thisWidget['left'] = newWidget.style.left;
   thisWidget['top'] = newWidget.style.top;
+  thisWidget['useLeft'] = true;
+  thisWidget['useTop'] = true;
+  thisWidget['right'] = '';
+  thisWidget['bottom'] = '';
   thisWidget['w'] = newWidget.style.width;
   thisWidget['h'] = newWidget.style.height;
   thisWidget['topic'] = newWidget.querySelector('#header').childNodes[0].data;
@@ -113,6 +141,8 @@ function makeUnique(type,newWidget){
       thisWidget["smalltick"] = 4;
     break;
     case '_box':
+		thisWidget['useTop'] = true;
+		thisWidget['useLeft'] = true;
     case '_text':
 		thisWidget['useROS'] = false;
     break;
@@ -145,10 +175,19 @@ function initFunctionality(type, newWidget,thisID){
     break;
     case '_slider':
       //setup brodcast functionality for element
-      newWidget.querySelector('#slider_ap').oninput = function(e){
-        let jsw = widgetArray[indexMap[thisID]];
-        sendToRos(jsw['topic'],{value:e.target.value},jsw['type']);
-      };
+       let jsw = widgetArray[indexMap[thisID]];
+       if(jsw){
+		   if(jsw['vertical']){
+				newWidget.querySelector('#slider_ap').className += ' vertical';
+				newWidget.querySelector('#slider_ap').style.width =(parseInt(jsw['h'])-27) + 'px';
+				console.log('all good');
+			}
+			newWidget.querySelector('#slider_ap').value = parseFloat(jsw['default']);
+			sendToRos(jsw['topic'],{value:parseFloat(jsw['default'])},jsw['type']);
+			newWidget.querySelector('#slider_ap').oninput = function(e){
+				sendToRos(jsw['topic'],{value:e.target.value},jsw['type']);
+			};
+		}
     break;
     case '_inputbox':
       //setup brodcast functionality for element
@@ -233,7 +272,7 @@ function moveWidget(data){
       break;
     }
   }
-  sendWidgetsArray();
+  //sendWidgetsArray();
 }
 function resizeWidget(data){
   //data is an object of the element's position

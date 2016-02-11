@@ -14,14 +14,15 @@ var rosready = false;
 var nh, rospublishers={}, rossubscribers={};
 var cameraReciever;//socket id of the client displaying the camera stream
 var socketsOpen = 0;
-var camArray = [];
+var camArray = [],camJSON=[{width:320,height:240,quality:100,fps:30}];
+let mainCamFPS = 1000/30;
 var camindex = 0;
 app.use(express.static(__dirname + '/public'));
 console.log("server running on port "+ PORT);
 console.log("looking for cameras...");
 let index = 0;
 
-for(let i = 0; i < 15; i++){
+for(let i = 0; i < 10; i++){
 	try{
 		camArray[index] = new cv.VideoCapture(i);
 		camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,320);
@@ -37,6 +38,7 @@ console.log('total of ' + camArray.length + ' cameras found');
 
 var socket = require('socket.io');
 var io = socket(server);
+io.set('origins','*:*');
 
 
 function joinRosTopics(){
@@ -64,7 +66,7 @@ function joinRosTopics(){
 						rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
 					break;
 					case '_slider':
-						rospublishers[topic] = nh.advertise(topic, 'std_msgs/Float64');
+						rospublishers[topic] = nh.advertise(topic, 'std_msgs/Float64',{latching:latch});
 					break;
 					case '_inputbox':
 						let msgType = widgets[i]['msgType'];
@@ -82,6 +84,12 @@ function joinRosTopics(){
 					case '_light':
 						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 						rossubscribers[topic] = nh.subscribe(topic, 'std_msgs/Bool', (msg) => {
+							io.emit('telem',{id:i,msg:msg});
+						});
+					break;
+					case '_audio':
+						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+						rossubscribers[topic] = nh.subscribe(topic, 'std_msgs/Int16', (msg) => {
 							io.emit('telem',{id:i,msg:msg});
 						});
 					break;
@@ -116,6 +124,10 @@ io.sockets.on('connection', function(socket){
   fs.readFile(SETTINGS_PATH, (err, data) => {
     if (err) throw err;
     settingsObject = JSON.parse(data);
+    camJSON = settingsObject.config.cams;
+    let fps = 30;
+    let newFPS = fps<0.5?0.5:(fps>60?60:fps);
+    mainCamFPS = 1000/newFPS;
     socket.emit('settings',settingsObject);
     socket.emit('makeThumbs',camArray.length);
     console.log('current settings on server: ' + JSON.stringify(settingsObject));
@@ -140,6 +152,14 @@ io.sockets.on('connection', function(socket){
       fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settingsObject));
 	  console.log('recieved updated config settings from client');
 	  //do stuff with your new settings here (camera resolution, running cmds etc.)
+	  camJSON = data.cams;
+	  for(let i = 0; i < camArray.length; i++){
+		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camJSON[i].width));
+		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camJSON[i].height));
+	  }
+	  let fps = parseFloat(camJSON[camindex]['fps']);
+		let newFPS = fps<0.5?0.5:(fps>60?60:fps);
+		mainCamFPS = 1000/newFPS;
     }
     catch(e){
       console.log(e);
@@ -174,6 +194,9 @@ io.sockets.on('connection', function(socket){
   });
   socket.on('setCam', function(data){
     camindex = data;
+    let fps = 30;
+    let newFPS = fps<0.5?0.5:(fps>60?60:fps);
+    mainCamFPS = 1000/newFPS;
     console.log(`Change Camera to ${data}`);
   });
   socket.on('setScreen1', function(data){
@@ -187,36 +210,42 @@ io.sockets.on('connection', function(socket){
 
 //send thumbs (small camera previews)
 let thumbindex = 0;
+let FPS = 200;
 let getThumb = function(){
 	try{
 		let frame = camArray[thumbindex].read();
-		let image = cv.imencode('.jpg',frame).toString('base64');
-		io.emit('thumb',{img:image,index:thumbindex});
+		//let image = cv.imencode('.jpg',frame,[1,20]).toString('base64');
+		//io.emit('thumb',{img:image,index:thumbindex});
+		cv.imencodeAsync('.jpg',frame,[1,10]).then(function(result){
+			io.emit('thumb',{img:result.toString('base64'),index:thumbindex});
+			thumbindex++;
+			if(thumbindex == camArray.length) thumbindex = 0;
+			setTimeout(getThumb,FPS);
+		}).catch(function(e){console.log(e);});
 	}
 	catch{
 		console.log('error sending main cam');
-	}
-	thumbindex++;
-	if(thumbindex == camArray.length) thumbindex = 0;
+	};
 }
 setTimeout(getThumb,0);
 
 //send main camera stream
-let FPS = 1000/25;
-let fc = 0;
 let getCam = function(){
 	//send main camera stream
 	try{
-		let frame = camArray[camindex].read();
-		let image = cv.imencode('.jpg',frame).toString('base64');
-		io.emit('image',image);
+		//let frame = camArray[camindex].read();
+		let qual = 100;
+		if(camJSON[camindex]) qual = parseInt(camJSON[camindex].quality);
+		//let image = cv.imencode('.jpg',frame,[1,90]).toString('base64');
+		//io.emit('image',image);
+		cv.imencodeAsync('.jpg',camArray[camindex].read(),[1,qual]).then(function(result){
+			io.emit('image',result.toString('base64'));
+		}).catch(function(e){console.log(e);});
+		setTimeout(getCam,30);
 	}
 	catch{
 		console.log('error sending main cam');
 	}
-
-	if(fc == 20) fc = 0;
-	setTimeout(getCam,FPS);
 }
 setTimeout(getCam,0);
 

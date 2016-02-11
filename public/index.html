@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Robot Console</title>
+  <title id='title'>Robot Console</title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="joystick.js" charset="utf-8"></script>
 </head>
@@ -196,7 +196,13 @@ button:focus {outline:0;}
   -webkit-transition: .2s; /* 0.2 seconds transition on hover */
   transition: opacity .2s;
 }
-
+.vertical{
+	position:absolute;
+	transform-origin:0 0;
+	transform: rotate(90deg);
+	left:25px;
+	width:100px;
+}
 /* Mouse-over effects */
 .slider:hover {
   opacity: 1; /* Fully shown on mouse-over */
@@ -218,6 +224,8 @@ button:focus {outline:0;}
   background: #4CAF50; /* Green background */
   cursor: pointer; /* Cursor on hover */
 }
+
+
 .imageTile{
 	position:absolute;
 	left:500px;
@@ -227,6 +235,8 @@ button:focus {outline:0;}
 	border: solid;
 	border-color: yellow;
 	cursor: pointer;
+	transition-property: all;
+	transition-duration:0.7s;
 }
 .infoIcon{
 	position:absolute;
@@ -280,12 +290,26 @@ button:focus {outline:0;}
 	border:1px;
 	padding-left:5px;
 }
+.soundbutton{
+	display: block;
+	margin: auto auto 5px;
+	background-color: #fff;
+	border-width: thin;
+	border-radius: 5px;
+	width:300px;
+	height:30px;
+	border-color:#000;
+	cursor:pointer;
+}
+.soundbutton:hover{
+	filter:brightness(85%);
+}
 </style>
 
 <body id='body' oncontextmenu="return false;">
 <!-- top nav bar -->
 <div class='navBar' id='navBar'>
-  <h1 class="label" style="color: #FFF;margin:5px 40px 5px 10px;">Robot Control</h1>
+  <h1 class="label" style="color: #FFF;margin:5px 40px 5px 10px;"id='consoleName'>Robot Control</h1>
   <button class="navBarButton" id='driveMode' onclick="toggleDriveMode();">Drive Mode</button>
   <select hidden id='screenSelect' class='navBarButton' onchange="changeScreen(this);">
     <option value='1'>Screen 1</option>
@@ -354,6 +378,12 @@ button:focus {outline:0;}
     <img src="resize.png" id="resize"></img>
   </div>
   
+  <div class="panel source" id="_audio" style="width:200px;height:70px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <div id="header">Audio Indicator<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <image id='speaker_ap' class='showOnDrive' src='speaker.svg' style='height:40px;position:absolute:left:0px;top:26px'></image>
+    <img src="resize.png" id="resize"></img>
+  </div>
+  
   <h1 class="label" style="text-align:center">Non ROS</h1>
   
   <div class="panel source" id="_text" style="width:200px;height:50px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
@@ -364,7 +394,7 @@ button:focus {outline:0;}
   
   <div class="panel source" id="_box" style="z-index:2;width:200px;height:100px;background:rgba(0,0,0,0)">
     <div id="header">Panel<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <div class='showOnDrive' style="position:absolute;left:0px;top:22px;width:100%;height:calc(100% - 22px);background-color:rgba(255,255,255,0.5)"></div>
+    <div id='panel_ap' class='showOnDrive' style="opacity:0.5; position:absolute;left:0px;top:22px;width:100%;height:calc(100% - 22px);background-color:#DDD"></div>
     <img src="resize.png" id="resize"></img>
   </div>
 </div>

@@ -1,1 +1,1 @@
-{"widgets":[],"config":{"wifilist":[{"ssid":"test","password":""},{"ssid":"","password":""},{"ssid":"hello","password":""},{"ssid":"","password":""},{"ssid":"","password":""}],"hotspot":{"ssid":"","password":"","ipaddress":""}}}
+{"widgets":[],"config":{"wifilist":[{"ssid":"","password":""},{"ssid":"","password":""},{"ssid":"","password":""},{"ssid":"","password":""},{"ssid":"","password":""}],"hotspot":{"ssid":"","password":"","ipaddress":""},"cams":[{"width":"640","height":"480","quality":"25"}],"consoleName":"Mark's Robot","loadInEditMode":true}}

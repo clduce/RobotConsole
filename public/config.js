@@ -1,15 +1,30 @@
-socket = io(window.location.hostname);
+socket = io(window.location.hostname + ':' + window.location.port);
 let settings = {};
-
+let camcount = 1;
+let gotSettings = false, gotThumbs = false;
 socket.on('settings', (data) => {
-	settings = data;
-	populateConfig(data['config']);
+	if(!gotSettings){
+		settings = data;
+		gotSettings = true;
+	}
 });
-
+//recieve camera count
+socket.on('makeThumbs',(data) => {
+	if(!gotThumbs){
+		camcount = data;
+		document.getElementById('camcount').innerText = 'Cameras ('+camcount+' detected)';
+		gotThumbs = true;
+		addCams(data);
+		populateConfig(settings['config']);
+	}
+	document.getElementById('header').innerText = 'Robot Settings';
+});
 
 //fills in the config fields with JSON object data
 /*
  * {
+ * 		"consoleName":"Robot Console",
+ * 		"loadInEditMode":true,
  * 		"wifilist":[
  * 			{
  * 				"ssid":"ssid",
@@ -36,7 +51,15 @@ socket.on('settings', (data) => {
  * 			"ssid":"ssid",
  *  		"password":"password",
  *  		"ipaddress":"ipaddress"
- * 		}
+ * 		},
+ * 		"cams":[
+ * 			{
+ * 				"width":"320",
+ * 				"height":"240",
+ * 				"quality":100,
+ * 				"fps":30
+ * 			}
+ * 		]
  * }
 */
 function populateConfig(data){
@@ -47,6 +70,16 @@ function populateConfig(data){
 	document.getElementsByClassName('hotspot_ssid')[0].value = data['hotspot']['ssid'];
 	document.getElementsByClassName('hotspot_password')[0].value = data['hotspot']['password'];
 	document.getElementsByClassName('hotspot_ip')[0].value = data['hotspot']['ipaddress'];
+	if(!data['cams']) data['cams'] = [];
+	for(let i = 0; i < document.getElementsByClassName('cams_width').length; i++){
+		if(!data['cams'][i]) data['cams'][i] = {width:320,height:240,quality:95,fps:30};
+		document.getElementsByClassName('cams_width')[i].value = data['cams'][i]['width'];
+		document.getElementsByClassName('cams_height')[i].value = data['cams'][i]['height'];
+		document.getElementsByClassName('cams_quality')[i].value = data['cams'][i]['quality'];
+		//document.getElementsByClassName('cams_fps')[i].value = data['cams'][i]['fps'];
+	}
+	document.getElementsByClassName('consoleName')[0].value = data['consoleName'];
+	document.getElementsByClassName('loadInEditMode')[0].checked = data['loadInEditMode'];
 	console.log('done loading settings');
 }
 function generateConfig(){
@@ -61,7 +94,30 @@ function generateConfig(){
 	data['hotspot']['ssid'] = document.getElementsByClassName('hotspot_ssid')[0].value;
 	data['hotspot']['password'] = document.getElementsByClassName('hotspot_password')[0].value;
 	data['hotspot']['ipaddress'] = document.getElementsByClassName('hotspot_ip')[0].value;
+	data['cams'] = [];
+	for(let i = 0; i < document.getElementsByClassName('cams_width').length; i++){
+		data['cams'][i] = {};
+		data['cams'][i]['width'] = document.getElementsByClassName('cams_width')[i].value;
+		data['cams'][i]['height'] = document.getElementsByClassName('cams_height')[i].value;
+		data['cams'][i]['quality'] = document.getElementsByClassName('cams_quality')[i].value;
+		//data['cams'][i]['fps'] = document.getElementsByClassName('cams_fps')[i].value;
+	}
+	data['consoleName'] = document.getElementsByClassName('consoleName')[0].value;
+	data['loadInEditMode'] = document.getElementsByClassName('loadInEditMode')[0].checked;
 	return data;
+}
+function addCams(c){
+	for(let i = 0; i < c; i++){
+		let html = "<p class='inputLabel'>Width (px)</p>"+
+		"<input class='cams_width'></input>"+
+		"<p class='inputLabel'>Height (px)</p>"+
+		"<input class='cams_height'></input>"+
+		"<p class='inputLabel'>JPEG Quality (0 - 100)</p>"+
+		"<input class='cams_quality'></input>"+
+		//"<p class='inputLabel'>FPS (0.5 - 60)</p>"+
+		"<br>";
+		document.getElementById('cams').insertAdjacentHTML('beforeend',html);
+	}
 }
 function sendToServer(){
 	let data = generateConfig();
