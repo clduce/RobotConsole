@@ -66,7 +66,7 @@ body{
   width: 260px;
   height: calc(100% - 50px);
   background-color: #e3e3e3;
-  overflow-y: auto;
+  overflow-y: scroll;
   z-index: 40;
   transition: all 0.6s;
 }
@@ -218,6 +218,68 @@ button:focus {outline:0;}
   background: #4CAF50; /* Green background */
   cursor: pointer; /* Cursor on hover */
 }
+.imageTile{
+	position:absolute;
+	left:500px;
+	top:55px;
+	border-radius: 10px;
+	width:100px;
+	border: solid;
+	border-color: yellow;
+	cursor: pointer;
+}
+.infoIcon{
+	position:absolute;
+	right:5px;
+	top:5px;
+	width:40px;
+	height:40px;
+	cursor:pointer;
+}
+.infoIcon:hover{
+	filter:brightness(85%)
+}
+#infoPanel{
+	position:absolute;
+	width:300px;
+	height:400px;
+	background-color:#172a4a;
+	top:50px;
+	right:0px;
+	border-radius:0px 0px 0px 10px;
+	visibility:hidden;
+}
+#color_ap{
+	background-color:#32cd32;
+	width:100%;
+	left:0px;
+}
+#inputboxbutton{
+	position:absolute;
+	right:5px;
+	top:27px;
+	width:60px;
+	height:25px;
+	background-color:#FFF;
+	border-radius:5px;
+	border:1px;
+	border-color:#000;
+	cursor:pointer;
+}
+#inputboxbutton:hover{
+	filter:brightness(85%);
+}
+#input_ap{
+	position:absolute;
+	left:5px;
+	top:27px;
+	width:calc(100% - 80px);
+	height:23px;
+	background-color:#FFF;
+	border-radius:5px;
+	border:1px;
+	padding-left:5px;
+}
 </style>
 
 <body id='body' oncontextmenu="return false;">
@@ -230,52 +292,63 @@ button:focus {outline:0;}
     <option value='2'>Screen 2</option>
   </select>
   <button class="navBarButton" onclick="window.location.href += 'config.html'">Config Settings</button>
-  <h1 class="label" style="color: #FFF;margin:5px 10px 5px 10px;right:0px; position:absolute"id='instanceCount'>waiting...</h1>
+  <image class='infoIcon' src='info.png' onclick='toggleInfo()'></image>
+  <div id='infoPanel'>
+	    <h1 class="label" style="color: #FFF;margin:5px 10px 5px 10px;right:0px;"id='instanceCount'>waiting...</h1>
+		<h1 class="label" style="color: #FFF;margin:5px 10px 5px 10px;right:100px;"id='ping'>waiting on ping...</h1>
+  </div>
 </div>
-<image class='image'></image>
-<!-- <select onchange="camSelect(this);"style='position: absolute; left:500px; top:500px; z-index:102' id='camSelect'>
-  <option value='0'>cam 1</option>
-  <option value='1'>cam 2</option>
-  <option value='2'>cam 3</option>
-</select> -->
+<image class='image' id='mainImage'></image>
 <!-- inside this widget holder is the definitions of each widget -->
 <button class='toggleWidgetHolder' onclick="toggleWidgetHolder()">Hide</button>
 <div class='widgetHolder' id='widgetHolder'>
   <h1 class="label" style="text-align:center">Inputs</h1>
 
-  <div class="panel source" id="_button" style="width:200px;height:80px;">
+  <div class="panel source" id="_button" style="width:200px;height:80px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Button<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <button id='button_ap' class="button_ap showOnDrive" type="button">Example Button</button>
     <img src="resize.png" id="resize"></img>
   </div>
   
-  <div class="panel source" id="_checkbox" style="width:200px;height:70px;">
+  <div class="panel source" id="_checkbox" style="width:200px;height:52px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Checkbox<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <input id='checkbox_ap' class='checkbox showOnDrive' type='checkbox'><span id='checkbox_text_ap' class='checkboxLabel showOnDrive'>Label</span></input>
     <img src="resize.png" id="resize"></img>
   </div>
 
-  <div class="panel source" id="_joystick" style="width:200px;height:150px;">
+  <div class="panel source" id="_joystick" style="width:200px;height:150px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Joystick<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <canvas class='joystickCanvas showOnDrive' id='canvas_ap' width="100px" height="100px"></canvas>
     <img src="resize.png" id="resize"></img>
   </div>
   
-  <div class="panel source" id="_slider" style="width:200px;height:70px;">
+  <div class="panel source" id="_slider" style="width:200px;height:52px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Slider<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <input min="0" max="100" step="1" id='slider_ap' type='range' class='slider showOnDrive'></input>
+    <img src="resize.png" id="resize"></img>
+  </div>
+  
+  <div class="panel source" id="_inputbox" style="width:200px;height:57px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <div id="header">Input Box<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <input placeholder='type something...' id='input_ap' class='showOnDrive'></input><button id='inputboxbutton' class='showOnDrive'>Send</button>
     <img src="resize.png" id="resize"></img>
   </div>
 
   <h1 class="label" style="text-align:center">Outputs</h1>
 
-  <div class="panel source" id="_value" style="width:200px;height:70px;">
+  <div class="panel source" id="_value" style="width:200px;height:50px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Value<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <h1 id='text_ap' class='textDisplay showOnDrive' style="margin:0px;padding:0px;font-size:20px">ex. 14cm</h1>
     <img src="resize.png" id="resize"></img>
   </div>
   
-  <div class="panel source" id="_gauge" style="width:200px;height:200px;">
+  <div class="panel source" id="_light" style="width:200px;height:45px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <div id="header">Indicator<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <div class='showOnDrive' id='color_ap'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:20px">label</h1></div>
+    <img src="resize.png" id="resize"></img>
+  </div>
+  
+  <div class="panel source" id="_gauge" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Gauge<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <canvas class='canvas showOnDrive' id='gauge_ap' width="200px" height="180px" data-config='{"min":0,"max":100,"bigtick":20,"smalltick":4,"title":"CPU temp"}'></canvas>
     <img src="resize.png" id="resize"></img>
@@ -283,25 +356,24 @@ button:focus {outline:0;}
   
   <h1 class="label" style="text-align:center">Non ROS</h1>
   
-  <div class="panel source" id="_text" style="width:200px;height:70px;">
+  <div class="panel source" id="_text" style="width:200px;height:50px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Text<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <h1 id='text_ap' class='textDisplay showOnDrive' style="margin:0px;padding:0px;font-size:20px">some text</h1>
     <img src="resize.png" id="resize"></img>
   </div>
   
-  <div class="panel source" id="_box" style="z-index:2;width:200px;height:200px;background:rgba(0,0,0,0)">
+  <div class="panel source" id="_box" style="z-index:2;width:200px;height:100px;background:rgba(0,0,0,0)">
     <div id="header">Panel<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <div class='showOnDrive' style="position:absolute;left:0px;top:20px;width:100%;height:calc(100% - 20px);background-color:rgba(255,255,255,0.5)"></div>
+    <div class='showOnDrive' style="position:absolute;left:0px;top:22px;width:100%;height:calc(100% - 22px);background-color:rgba(255,255,255,0.5)"></div>
     <img src="resize.png" id="resize"></img>
   </div>
 </div>
-
 <!-- mask that blocks interaction, for the config settings panel etc. -->
 <div id='mask' style="display: none; position: absolute; z-index: 120; background-color:rgba(0, 0, 0, 0.6); width:100%; height:100%; top:0px; left:0px;"></div>
 
 <!-- config settins panel -->
 <div id='configWindow' class="panel" style="display: none;z-index: 121;width:50%; height:70%; left:25%; top:15%; overflow-y:auto">
-  <h1 class='settingsLabel' style="margin-top: 20px;">ROS Topic Name</h1>
+  <h1 class='settingsLabel' id='topiclabel' style="margin-top: 20px;">ROS Topic Name</h1>
   <input class="settingInput" id='topicTitle'></input>
   <button onclick="applyConfigChanges();removeWidgetFromScreen(elementOpenInConfig);" class="label darken" style="font-size: 20px;background-color:#fc9d9d; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;left:10px;">Delete</button>
   <button onclick="applyConfigChanges();" class="label darken" style="font-size: 20px;background-color:#9de7fc; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:10px;">Done</button>

@@ -56,8 +56,14 @@ body{
   display: inline-block;
   margin: 5px;
 }
-input{
+.input{
   height:20px;
+  border-radius: 5px;
+  border-width: 1px;
+  padding-left: 5px;
+}
+.input[type=file]{
+  height:30px;
   border-radius: 5px;
   border-width: 1px;
   padding-left: 5px;
@@ -65,43 +71,50 @@ input{
 </style>
 
 <body id='body'>
-<!-- top nav bar -->
 <div class='navBar' id='navBar'>
   <h1 class="label" style="color: #FFF;margin:5px 40px 5px 10px;">Robot Settings</h1>
-  <!-- <button class="navBarButton" id='driveMode' onclick="toggleDriveMode();">Drive Mode</button> -->
   <button class="navBarButton" onclick="window.location.href = window.location.href.replace('/config.html','')">Back to Driving Console</button>
 </div>
 <div class='settings'>
-  <h1 class='cat'>Some category</h1>
-  <p class="inputLabel">some input</p>
-  <input class='inputFL'></input>
+	<button onclick='sendToServer()'>Apply</button>
+	<button onclick='exportFile()'>Export</button>
+	<input type='file' accept='.json' onchange='loadJsonFile(this)'></input>
+  <h1 class='cat'>Wifi List</h1>
+  <p class="inputLabel">SSID</p>
+  <input class='wifilist_ssid'></input>
+  <p class="inputLabel">Password</p>
+  <input class='wifilist_password'></input>
   <br>
-  <p class="inputLabel">some input</p>
-  <input class='inputFL'></input>
+  <p class="inputLabel">SSID</p>
+  <input class='wifilist_ssid'></input>
+  <p class="inputLabel">Password</p>
+  <input class='wifilist_password'></input>
   <br>
-  <p class="inputLabel">some input</p>
-  <input class='inputFL'></input>
+  <p class="inputLabel">SSID</p>
+  <input class='wifilist_ssid'></input>
+  <p class="inputLabel">Password</p>
+  <input class='wifilist_password'></input>
   <br>
-  <h1 class='cat'>Some category</h1>
-  <p class="inputLabel">some input</p>
-  <input class='inputFL'></input>
+  <p class="inputLabel">SSID</p>
+  <input class='wifilist_ssid'></input>
+  <p class="inputLabel">Password</p>
+  <input class='wifilist_password'></input>
   <br>
-  <p class="inputLabel">some input</p>
-  <input class='inputFL'></input>
+  <p class="inputLabel">SSID</p>
+  <input class='wifilist_ssid'></input>
+  <p class="inputLabel">Password</p>
+  <input class='wifilist_password'></input>
   <br>
-  <p class="inputLabel">some input</p>
-  <input class='inputFL'></input>
-  <br>
-  <h1 class='cat'>Some category</h1>
-  <p class="inputLabel">some input</p>
-  <input class='inputFL'></input>
-  <br>
-  <p class="inputLabel">some input</p>
-  <input class='inputFL'></input>
-  <br>
-  <p class="inputLabel">some input</p>
-  <input class='inputFL'></input>
+  
+  <h1 class='cat'>Hotspot</h1>
+  <p class="inputLabel">SSID</p>
+  <input class='hotspot_ssid'></input>
+  <p class="inputLabel">Password</p>
+  <input class='hotspot_password'></input>
+  <p class="inputLabel">IP address</p>
+  <input class='hotspot_ip'></input>
   <br>
 </div>
+<script src='config.js'></script>
 </body>
 </html>

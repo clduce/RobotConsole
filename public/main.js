@@ -7,13 +7,14 @@ var currentID, currentIndex;
 var widgetArray = JSON.parse('{}');
 var socket;
 var loadedElements = false;//flag to check if elements have been constructed from json sent from server
+var madeThumbs = false;
 var readGamepadInterval={},currentGamepad,oldGamepad,lastChangedAxis;
 var thisScreen = 1;
 var keys = {};
 var oldKeys = {};
-
+var time = new Date();
 //use same IP to connect to socket server as to connect to express
-socket = io(window.location.href);
+socket = io(window.location.hostname);
 
 //get all config from server
 socket.on('settings',function(data){
@@ -33,15 +34,33 @@ socket.on('settings',function(data){
 });
 
 //on video feed recieve
-var videoElements = document.getElementsByClassName('image');
-socket.on('image',function(data){
-  for(let i = 0; i < videoElements.length; i++){
-    //videoElements[i].src = data;
-    videoElements[i].src = `data:image/jpeg;base64,${data}`;
-  }
+socket.on('image',function(data){document.getElementById('mainImage').src=`data:image/jpeg;base64,${data}`;});
+socket.on('thumb',function(data){
+	if(document.getElementsByClassName('imageTile')[data.index])
+    document.getElementsByClassName('imageTile')[data.index].src=`data:image/jpeg;base64,${data.img}`;
+});
+socket.on('makeThumbs',function(data){
+	if(!madeThumbs){
+		let tiles = document.getElementsByClassName('imageTile');
+		for(let i = 0; i < tiles.length; i++) tiles[i].remove();
+		for(let i = 0; i < data; i++){
+			let img = document.createElement('img');
+			img.className = 'imageTile';
+			img.value = i;
+			img.setAttribute('src',' ');
+			img.onclick = function(){
+				console.log('selecting camera '+ this.value);
+				camSelect(this.value);
+			}
+			body.appendChild(img);
+		}
+		setTimeout(()=>{repositionThumbs()},300);//wait a bit so the main image can load in
+		madeThumbs = true;
+	}
 });
 // updateTopicMapIndex();
 socket.on('telem',function(data){
+	console.log(data);
   let we = document.getElementById(widgetArray[data.id].id);
   if(we){
 	 if(widgetArray[data.id].type == '_value'){
@@ -51,11 +70,17 @@ socket.on('telem',function(data){
 	}else if(widgetArray[data.id].type == '_gauge'){
 		console.log(data.msg.data);
 		drawGauge(we.querySelector('#gauge_ap'),data.msg.data);
+	}else if(widgetArray[data.id].type == '_light'){
+		console.log(data.msg.data);
+		we.querySelector('#color_ap').style.backgroundColor = data.msg.data?'#32cd32':'#cd3f32';
 	}
   }
 });
 socket.on('instanceCount',function(data){
 	if(document.getElementById('instanceCount')) document.getElementById('instanceCount').innerText = 'clients: ' + data;
+});
+socket.on('pingR',function(data){
+	document.getElementById('ping').innerText = 'ping '+(Date.now()-data)+'ms';
 });
 
 //initalize all graphical Widgets in source bar
@@ -84,6 +109,13 @@ function initWidgetElements(){
 
 
 //WIDGET BOX INTERACTION
+function mouseEnterWidget(ele){
+	ele.style.zIndex = 100;
+}
+function mouseLeaveWidget(ele){
+	ele.style.zIndex = 10;
+}
+
 function dragElement(elmnt) {
   var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
   var pos1S = 0, pos2S = 0, pos3S = 0, pos4S = 0;
@@ -125,7 +157,7 @@ function dragElement(elmnt) {
     pos1S = pos3S - e.clientX;
     pos2S = pos4S - e.clientY;
     if(pos1S > -100) pos1S = -100;
-    if(pos2S > -60) pos2S = -60;
+    if(pos2S > -45) pos2S = -45;
     elmnt.style.height = -pos2S + "px";
     elmnt.style.width = -pos1S + "px";
     if(elmnt.querySelector('#canvas_ap')){
@@ -155,7 +187,6 @@ function dragElement(elmnt) {
     document.onmouseup = null;
     document.onmousemove = null;
     resizeWidget({id:elmnt.id,x:elmnt.style.width,y:elmnt.style.height});
-    // TODO: send to server
   }
 }
 function removeWidgetFromScreen(elmnt){
@@ -229,7 +260,17 @@ function openConfig(e){
   lastChangedButton = -1;
   var type = widgetArray[currentIndex].type;
   //pull generic data from widget array into the settings
-  document.getElementById('topicTitle').value = widgetArray[currentIndex]['topic'];
+  //non ros elements are exempt
+  let topicInput = document.getElementById('topicTitle');
+  if(widgetArray[currentIndex].useROS) {
+	  topicInput.style.display = 'inline-block';
+	  document.getElementById('topiclabel').style.display = 'block';
+  }
+  else{
+	  topicInput.style.display = 'none';
+	  document.getElementById('topiclabel').style.display = 'none';
+  }
+  topicInput.value = widgetArray[currentIndex]['topic'];
   //delete all the auto generated elements
   var paras = document.getElementsByClassName('specific')
   while(paras[0]) paras[0].parentNode.removeChild(paras[0]);
@@ -246,6 +287,7 @@ function openConfig(e){
     case '_checkbox':
       createconfigInput('Label', 'Label', widgetArray[currentIndex]['label']);
       createCheckbox('Initial State', 'initialState', widgetArray[currentIndex]['initial']);
+      createCheckbox('Latching', 'latching', widgetArray[currentIndex]['latching']);
       createconfiglinkGamepadButton(widgetArray[currentIndex]);
       createconfiglinkKeys(widgetArray[currentIndex],['hotkey']);
     break;
@@ -253,15 +295,25 @@ function openConfig(e){
 	  createconfigInput('Widget Name', 'name', widgetArray[currentIndex]['name']);
 	  createRange(widgetArray[currentIndex]);
     break;
+    case '_inputbox':
+	  createSelect('Message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
+    break;
     case '_value':
       createconfigDataWrapper(widgetArray[currentIndex]);
       createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
 	  createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
     break;
+    case '_light':
+    	createconfigInput('Label', 'text', widgetArray[currentIndex]['text']);
+    break;
     case '_gauge':
 		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
 		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
 		createGraph(widgetArray[currentIndex]);
+    break;
+    case '_text':
+		createconfigInput('Text', 'text', widgetArray[currentIndex]['text']);
+		createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
     break;
   }
   mask.style.display='inline';
@@ -288,6 +340,7 @@ function applyConfigChanges(){
     case '_checkbox':
       WA['label'] = document.getElementById('Label').value;
       WA['initial'] = document.getElementById('initialState').checked;
+      WA['latching'] = document.getElementById('latching').checked;
       localWidget.querySelector('#checkbox_text_ap').innerText = WA['label'];
       WA['useGamepad'] = document.getElementById('useGamepad').checked;
       WA['useKeys'] = document.getElementById('useKeys').checked;
@@ -314,12 +367,19 @@ function applyConfigChanges(){
       localWidget.querySelector('#slider_ap').step = WA['step'];
       //if(lastChangedAxis != -1) WA['useAxis'] = lastChangedAxis;
     break;
+    case '_inputbox':
+      WA['msgType'] = document.getElementById('msgType').value;
+    break;
     case '_value':
       WA['prefix'] = document.getElementById('textInput1').value;
       WA['postfix'] = document.getElementById('textInput2').value;
       WA['msgType'] = document.getElementById('msgType').value;
       WA['textColor'] = document.getElementById('textColor').value;
       localWidget.querySelector('#text_ap').style.color = WA['textColor'];
+    break;
+    case '_light':
+      WA['text'] = document.getElementById('text').value;
+      localWidget.querySelector('#text_ap').innerText = WA['text'];
     break;
     case '_gauge':
       WA['min'] = document.getElementById('min').value;
@@ -331,6 +391,12 @@ function applyConfigChanges(){
       let obj = JSON.stringify({min:WA.min,max:WA.max,bigtick:WA.bigtick,smalltick:WA.smalltick, title:WA.label});
       localWidget.querySelector('#gauge_ap').setAttribute("data-config",obj);
       drawGauge(localWidget.querySelector('#gauge_ap'),WA.min);
+    break;
+    case '_text':
+      WA['text'] = document.getElementById('text').value;
+      WA['textColor'] = document.getElementById('textColor').value;
+      localWidget.querySelector('#text_ap').style.color = WA['textColor'];
+      localWidget.querySelector('#text_ap').innerText = WA['text'];
     break;
   }
   mask.style.display='none';
@@ -502,6 +568,9 @@ document.addEventListener('keyup', (e) => {
 		oldKeys = {...keys};
 		keys[e.key] = false;
 		getKeyboardUpdates();
+	}
+	else{
+		if(e.key == 'Enter') applyConfigChanges();
 	}
 });
 function keysChanged(k){
@@ -705,5 +774,37 @@ function changeScreen(me){
   showWidgetHolder();
 }
 function camSelect(me){
-  socket.emit('setCam',me.value);
+  socket.emit('setCam',me);
+}
+//align small previews of image to left side of main image
+function repositionThumbs(){
+	let tileArray = document.getElementsByClassName('imageTile');
+	let x = document.getElementById('mainImage').getBoundingClientRect().x;
+	for(let i =0; i< tileArray.length; i++){
+		tileArray[i].style.left = parseInt(x + i*110+5) + 'px';
+	}
+}
+window.onresize = function(){
+	repositionThumbs();
+}
+
+
+let pingInterval;
+let infoIsOpen = false;
+function toggleInfo(){
+	if(infoIsOpen) closeInfo();
+	else openInfo();
+}
+function openInfo(){
+	pingInterval = setInterval(ping,200);
+	document.getElementById('infoPanel').style.visibility = 'visible';
+	infoIsOpen = true;
+}
+function closeInfo(){
+	clearInterval(pingInterval);
+	document.getElementById('infoPanel').style.visibility = 'hidden';
+	infoIsOpen = false;
+}
+function ping(){
+	socket.emit('pingS',Date.now());
 }

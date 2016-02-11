@@ -2,7 +2,8 @@
 
 var express = require('express');
 const rosnodejs = require('rosnodejs');
-const raspberryPiCamera = require('raspberry-pi-camera-native');
+//const raspberryPiCamera = require('raspberry-pi-camera-native');
+const cv = require('opencv4nodejs');
 const fs = require('fs');
 var app = express();
 var PORT = 3000;
@@ -13,8 +14,26 @@ var rosready = false;
 var nh, rospublishers={}, rossubscribers={};
 var cameraReciever;//socket id of the client displaying the camera stream
 var socketsOpen = 0;
+var camArray = [];
+var camindex = 0;
 app.use(express.static(__dirname + '/public'));
-console.log("server running on port 80 and " + PORT)
+console.log("server running on port "+ PORT);
+console.log("looking for cameras...");
+let index = 0;
+
+for(let i = 0; i < 15; i++){
+	try{
+		camArray[index] = new cv.VideoCapture(i);
+		camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,320);
+		camArray[index].set(cv.CAP_PROP_FRAME_HEIGHT,240);
+		//camArray[index].set(cv.CAP_PROP_BUFFER_SIZE,3);
+		index++;
+		console.log('camera found at index '+i);
+	}
+	catch{
+	}
+}
+console.log('total of ' + camArray.length + ' cameras found');
 
 var socket = require('socket.io');
 var io = socket(server);
@@ -32,10 +51,14 @@ function joinRosTopics(){
 			let topic = widgets[i].topic;
 			if(topic != '' && topic != '/'){
 				console.log(widgets[i].type + ' connecting to   '+widgets[i].topic);
+				
+				let latch;
+				if(widgets[i].latching) latch = widgets[i].latching;
+				else latch = false;
 				switch(widgets[i].type){
 					case '_button':
 					case '_checkbox':
-						rospublishers[topic] = nh.advertise(topic, 'std_msgs/Bool');
+						rospublishers[topic] = nh.advertise(topic, 'std_msgs/Bool',{latching:latch});
 					break;
 					case '_joystick':
 						rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
@@ -43,10 +66,22 @@ function joinRosTopics(){
 					case '_slider':
 						rospublishers[topic] = nh.advertise(topic, 'std_msgs/Float64');
 					break;
+					case '_inputbox':
+						let msgType = widgets[i]['msgType'];
+						if(msgType == undefined) msgType = 'std_msgs/String';
+						if(rospublishers[topic]) rospublishers[topic].shutdown();
+						rospublishers[topic] = nh.advertise(topic, msgType);
+					break;
 					case '_value':
 						if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
 						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 						rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
+							io.emit('telem',{id:i,msg:msg});
+						});
+					break;
+					case '_light':
+						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+						rossubscribers[topic] = nh.subscribe(topic, 'std_msgs/Bool', (msg) => {
 							io.emit('telem',{id:i,msg:msg});
 						});
 					break;
@@ -76,11 +111,13 @@ io.sockets.on('connection', function(socket){
 	socketsOpen++;
 	io.emit('instanceCount',socketsOpen);
   console.log('made connection');
+  
   //get settings from json and send to client
   fs.readFile(SETTINGS_PATH, (err, data) => {
     if (err) throw err;
     settingsObject = JSON.parse(data);
     socket.emit('settings',settingsObject);
+    socket.emit('makeThumbs',camArray.length);
     console.log('current settings on server: ' + JSON.stringify(settingsObject));
   });
 
@@ -89,14 +126,28 @@ io.sockets.on('connection', function(socket){
     try{
       settingsObject['widgets'] = data;
       fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settingsObject));
-		console.log('recieved updated settings from client');
+		console.log('recieved updated widget settings from client');
 		joinRosTopics();
     }
     catch(e){
       console.log(e);
     }
   });
-
+  //config settings client to server
+  socket.on('configSettings', function(data){
+    try{
+      settingsObject['config'] = data;
+      fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settingsObject));
+	  console.log('recieved updated config settings from client');
+	  //do stuff with your new settings here (camera resolution, running cmds etc.)
+    }
+    catch(e){
+      console.log(e);
+    }
+  });
+  socket.on('pingS', function(data){
+    socket.emit('pingR',data);
+  });
   //ROS client to server
   socket.on('ROSCTS', function(data){
     settingsObject['widgets'] = data;
@@ -106,6 +157,7 @@ io.sockets.on('connection', function(socket){
 		case '_checkbox':
 			rospublishers[topic].publish({ data:data.pressed});
 		break;
+		case '_inputbox':
 		case '_slider':
 			rospublishers[topic].publish({ data:data.value});
 		break;
@@ -133,17 +185,52 @@ io.sockets.on('connection', function(socket){
   });
 });
 
+//send thumbs (small camera previews)
+let thumbindex = 0;
+let getThumb = function(){
+	try{
+		let frame = camArray[thumbindex].read();
+		let image = cv.imencode('.jpg',frame).toString('base64');
+		io.emit('thumb',{img:image,index:thumbindex});
+	}
+	catch{
+		console.log('error sending main cam');
+	}
+	thumbindex++;
+	if(thumbindex == camArray.length) thumbindex = 0;
+}
+setTimeout(getThumb,0);
 
-//READ CAM STREAM FROM PICAM
- let opts = {//bring these in from config?
-	 width:300,
-	 height:300,
-	 fps:10,
-	 encoding: 'JPEG',
-	 quality:10
- };
-raspberryPiCamera.on('frame', (frameData) => {
-	if(cameraReciever) cameraReciever.emit('image',frameData.toString('base64'));
-});
-// start capture
-raspberryPiCamera.start(opts);
+//send main camera stream
+let FPS = 1000/25;
+let fc = 0;
+let getCam = function(){
+	//send main camera stream
+	try{
+		let frame = camArray[camindex].read();
+		let image = cv.imencode('.jpg',frame).toString('base64');
+		io.emit('image',image);
+	}
+	catch{
+		console.log('error sending main cam');
+	}
+
+	if(fc == 20) fc = 0;
+	setTimeout(getCam,FPS);
+}
+setTimeout(getCam,0);
+
+
+////READ CAM STREAM FROM PICAM
+ //let opts = {//bring these in from config?
+	 //width:300,
+	 //height:300,
+	 //fps:10,
+	 //encoding: 'JPEG',
+	 //quality:10
+ //};
+//raspberryPiCamera.on('frame', (frameData) => {
+	//if(cameraReciever) cameraReciever.emit('image',frameData.toString('base64'));
+//});
+//// start capture
+//raspberryPiCamera.start(opts);

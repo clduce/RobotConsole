@@ -21,6 +21,7 @@ function widgetFromJson(json){
     case '_checkbox':
       tile.querySelector('#checkbox_text_ap').innerText = json['label'];
       tile.querySelector('#checkbox_ap').checked = json['initial'];
+      if(json['latching']) sendToRos(json['topic'],{pressed:json['initial']},'_checkbox');
     break;
     case '_joystick':
       var canvas = tile.querySelector('#canvas_ap');
@@ -39,6 +40,9 @@ function widgetFromJson(json){
 		tile.querySelector('#text_ap').innerText='Waiting for ROS...';
 		tile.querySelector('#text_ap').style.color = json['textColor'];
 	break;
+	case '_light':
+		tile.querySelector('#text_ap').innerText=json['text'];
+	break;
 	case '_gauge':
       var canvas = tile.querySelector('#gauge_ap');
       canvas.height = parseInt(json['h'])-20;
@@ -46,6 +50,10 @@ function widgetFromJson(json){
       canvas.setAttribute("data-config",JSON.stringify({min:json.min,max:json.max,bigtick:json.bigtick,smalltick:json.smalltick, title:json.label}));
       drawGauge(canvas,json.min);
     break;
+    case '_text':
+		tile.querySelector('#text_ap').innerText=json['text'];
+		tile.querySelector('#text_ap').style.color = json['textColor'];
+	break;
   }
 
   initFunctionality(json['type'],tile,tile.id);
@@ -68,6 +76,7 @@ function makeUnique(type,newWidget){
   thisWidget['h'] = newWidget.style.height;
   thisWidget['topic'] = newWidget.querySelector('#header').childNodes[0].data;
   thisWidget['screen'] = document.getElementById('screenSelect').value;
+  thisWidget['useROS'] = true;
 
   switch (type) {
     case '_button':
@@ -92,12 +101,20 @@ function makeUnique(type,newWidget){
     case '_value':
 		thisWidget['msgType'] = 'std_msgs/String';
 	break;
+	case '_light':
+		thisWidget['msgType'] = 'std_msgs/Bool';
+		thisWidget['text'] = 'label';
+	break;
 	case '_gauge':
       thisWidget['label'] = 'Example';
       thisWidget['min'] = 0;
       thisWidget["max"] = 100;
       thisWidget["bigtick"] = 20;
       thisWidget["smalltick"] = 4;
+    break;
+    case '_box':
+    case '_text':
+		thisWidget['useROS'] = false;
     break;
     default:
 
@@ -131,6 +148,13 @@ function initFunctionality(type, newWidget,thisID){
       newWidget.querySelector('#slider_ap').oninput = function(e){
         let jsw = widgetArray[indexMap[thisID]];
         sendToRos(jsw['topic'],{value:e.target.value},jsw['type']);
+      };
+    break;
+    case '_inputbox':
+      //setup brodcast functionality for element
+      newWidget.querySelector('#inputboxbutton').onmousedown = function(e){
+        let jsw = widgetArray[indexMap[thisID]];
+        sendToRos(jsw['topic'],{value:newWidget.querySelector('#input_ap').value},jsw['type']);
       };
     break;
   }
