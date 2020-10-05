@@ -27,6 +27,10 @@ function widgetFromJson(json){
       canvas.width = parseInt(json['w']);
       drawJoystick(canvas,0,0);
     break;
+    case '_value':
+		tile.querySelector('#text_ap').innerText='Waiting for ROS...';
+		tile.querySelector('#text_ap').style.color = json['textColor'];
+	break;
   }
 
   initFunctionality(json['type'],tile,tile.id);

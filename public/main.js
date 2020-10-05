@@ -41,7 +41,6 @@ socket.on('image',function(data){
 });
 // updateTopicMapIndex();
 socket.on('telem',function(data){
-  console.log(widgetArray[data.id].id);
   const ele = document.getElementById(widgetArray[data.id].id).querySelector('#text_ap');
   let prefix = widgetArray[data.id].prefix;
   let postfix = widgetArray[data.id].postfix;
@@ -141,8 +140,9 @@ function dragElement(elmnt) {
   }
 }
 function removeWidgetFromScreen(elmnt){
-  elmnt.remove();
-  deleteWidget(elmnt.id);
+	socket.emit('shutROS',widgetArray[indexMap[elmnt.id]].topic);
+	elmnt.remove();
+	deleteWidget(elmnt.id);
 }
 //turn element into source:
 //the _type convention is used to determime
@@ -233,6 +233,7 @@ function openConfig(e){
     case '_value':
       createconfigDataWrapper(widgetArray[currentIndex]);
       createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
+	  createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
     break;
   }
   mask.style.display='inline';
@@ -277,6 +278,8 @@ function applyConfigChanges(){
       widgetArray[currentIndex]['prefix'] = document.getElementById('textInput1').value;
       widgetArray[currentIndex]['postfix'] = document.getElementById('textInput2').value;
       widgetArray[currentIndex]['msgType'] = document.getElementById('msgType').value;
+      widgetArray[currentIndex]['textColor'] = document.getElementById('textColor').value;
+      localWidget.querySelector('#text_ap').style.color = widgetArray[currentIndex]['textColor'];
     break;
   }
   mask.style.display='none';
@@ -314,7 +317,6 @@ function createCheckbox(labelText, inputID, inputvalue){
 function createSelect(labelText, inputID, inputvalue, opts){
   var label = document.createElement("h1");
   label.className = 'settingsLabel specific';
-  label.style.margin.top = '20px';
   label.innerHTML = labelText;
   configWindow.appendChild(label);
   var content = document.createElement("select");
@@ -323,8 +325,23 @@ function createSelect(labelText, inputID, inputvalue, opts){
   for(let i = 0; i < opts.length; i++){
 	content.innerHTML += "<option value='"+opts[i]+"'>"+opts[i]+"</option>";
   }
+  content.style.marginBottom = '20px';
   configWindow.appendChild(content);
   if(inputvalue != undefined && inputvalue != '') document.getElementById(inputID).value = inputvalue;
+}
+function createColorSelect(labelText, inputID, inputvalue){
+	if(inputvalue == undefined) inputValue = '#000';
+  var label = document.createElement("h1");
+  label.className = 'settingsLabel specific';
+  label.style.margin.top = '20px';
+  label.innerHTML = labelText;
+  configWindow.appendChild(label);
+  var content = document.createElement("input");
+  content.type = 'color';
+  content.className = 'specific';
+  content.id=inputID;
+  content.value = inputvalue;
+  configWindow.appendChild(content);
 }
 function createconfiglinkGamepadAxis(array){
   var label = document.createElement("h1");
@@ -385,6 +402,7 @@ function createconfigDataWrapper(array){
   if(prefix == undefined) prefix = '';
   if(postfix == undefined) postfix = '';
   let p = document.createElement('p');
+  p.style.marginBottom = '20px';
   p.className = 'specific';
   p.innerHTML = "Prefix: <input id='textInput1'value='"+prefix+"'></input> Postfix: <input id='textInput2'value='"+postfix+"'></input>";
   configWindow.appendChild(p);

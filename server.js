@@ -25,6 +25,8 @@ function joinRosTopics(){
 		settingsObject = JSON.parse(data);
    
 		let widgets = settingsObject['widgets'];
+		
+		//attatch ROS publishers and listeners
 		for(let i = 0; i < widgets.length; i++){
 			let topic = widgets[i].topic;
 			if(topic != '' && topic != '/'){
@@ -39,7 +41,6 @@ function joinRosTopics(){
 					break;
 					
 					case '_value':
-					
 					if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
 						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 						rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
@@ -98,6 +99,11 @@ io.sockets.on('connection', function(socket){
 		break;
 	}
     console.log('Publish Ros ' + JSON.stringify(data));
+  });
+  //remove all subscribers/publishers from topic
+  socket.on('shutROS', function(data){
+	  if(rossubscribers[data]) rossubscribers[data].shutdown();
+	  if(rospublishers[data]) rospublishers[data].shutdown();
   });
   socket.on('setCam', function(data){
     camindex = data;
