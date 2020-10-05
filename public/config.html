@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Config Settings</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<style>
+body{
+  /* overflow: hidden; */
+}
+.label{
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: normal;
+}
+.widgetHolder{
+  position: absolute;
+  left: 0px;
+  top: 50px;
+  width: 260px;
+  height: calc(100% - 50px);
+  background-color: #e3e3e3;
+  overflow-y: auto;
+}
+.navBarButton{
+  margin-top:10px;
+  height:30px;
+  margin-right: 5px;
+  background-color: #74bad6;
+  border-radius: 5px;
+  border: 0px;
+  cursor: pointer;
+}
+.navBarButton:hover{
+  filter:brightness(90%);
+}
+button:focus {outline:0;}
+.navBar{
+  width: 100%;
+  height: 50px;
+  top: 0px;
+  left: 0px;
+  background-color: #548499;
+  display: inline-flex;
+}
+body{
+  margin: 0px;
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: normal;
+}
+.settings{
+  margin:20px;
+}
+.inputLabel{
+  display: inline-block;
+  margin: 5px;
+}
+input{
+  height:20px;
+  border-radius: 5px;
+  border-width: 1px;
+  padding-left: 5px;
+}
+</style>
+
+<body id='body'>
+<!-- top nav bar -->
+<div class='navBar' id='navBar'>
+  <h1 class="label" style="color: #FFF;margin:5px 40px 5px 10px;">Robot Settings</h1>
+  <!-- <button class="navBarButton" id='driveMode' onclick="toggleDriveMode();">Drive Mode</button> -->
+  <button class="navBarButton" onclick="window.location.href = window.location.href.replace('/config.html','')">Back to Driving Console</button>
+</div>
+<div class='settings'>
+  <h1 class='cat'>Some category</h1>
+  <p class="inputLabel">some input</p>
+  <input class='inputFL'></input>
+  <br>
+  <p class="inputLabel">some input</p>
+  <input class='inputFL'></input>
+  <br>
+  <p class="inputLabel">some input</p>
+  <input class='inputFL'></input>
+  <br>
+  <h1 class='cat'>Some category</h1>
+  <p class="inputLabel">some input</p>
+  <input class='inputFL'></input>
+  <br>
+  <p class="inputLabel">some input</p>
+  <input class='inputFL'></input>
+  <br>
+  <p class="inputLabel">some input</p>
+  <input class='inputFL'></input>
+  <br>
+  <h1 class='cat'>Some category</h1>
+  <p class="inputLabel">some input</p>
+  <input class='inputFL'></input>
+  <br>
+  <p class="inputLabel">some input</p>
+  <input class='inputFL'></input>
+  <br>
+  <p class="inputLabel">some input</p>
+  <input class='inputFL'></input>
+  <br>
+</div>
+</body>
+</html>

@@ -1,0 +1,86 @@
+//camera server idea:
+//https://www.youtube.com/watch?v=qexy4Ph66JE
+
+var express = require('express');//host public site files
+const fs = require('fs');//used for reading files
+const cv = require('opencv4nodejs');
+var app = express();
+var PORT = 3000;
+var server = app.listen(PORT);
+var settingsObject;
+var cams = [];
+var camindex = 0;
+
+for(let i = 0; i < 25; i++){
+  try{
+    let wCap = new cv.VideoCapture(i);
+    console.log('Yes! camera found at ' + i);
+    wCap.set(cv.CAP_PROP_FRAME_WIDTH,400);
+    wCap.set(cv.CAP_PROP_FRAME_HEIGHT,400);
+    wCap.set(cv.CAP_PROP_BUFFERSIZE, 4);
+    cams.push(wCap);
+  }
+  catch{
+    // console.log('camera not found at ' + i);
+  }
+}
+console.log(cams.length);
+app.use(express.static('public'));
+
+console.log("server running on port: " + PORT)
+
+var socket = require('socket.io');
+var io = socket(server);
+
+io.sockets.on('connection', function(socket){
+  console.log('made connection');
+  //get settings from json and send to client
+  fs.readFile('settings.json', (err, data) => {
+    if (err) throw err;
+    settingsObject = JSON.parse(data);
+    socket.emit('settings',settingsObject);
+    console.log('current settings on server: ' + JSON.stringify(settingsObject));
+  });
+
+  //widgets client to server
+  socket.on('WCTS', function(data){
+    try{
+      settingsObject['widgets'] = data;
+    }
+    catch(e){
+      console.log(e);
+    }
+    fs.writeFileSync('settings.json', JSON.stringify(settingsObject));
+    console.log('recieved updated settings from client');
+  });
+
+  //ROS client to server
+  socket.on('ROSCTS', function(data){
+    settingsObject['widgets'] = data;
+    var topic = data.topic;
+    delete data.topic;
+    console.log('Publish Ros Message on topic ' + topic + ', data = ' + JSON.stringify(data))
+  });
+  socket.on('setCam', function(data){
+    camindex = data;
+    console.log(`Change Camera to ${data}`);
+  });
+});
+
+//video server
+// var counter = 0;
+let frame, image;
+function sendCamStream(){
+  try{
+    frame = cams[camindex].read();
+    image = cv.imencode('.jpg',frame).toString('base64');
+    io.emit('image',image);
+  }
+  catch(e){
+      console.log(e);
+  }
+  // io.emit('telem',counter);
+  // counter++[];
+  setTimeout(sendCamStream,70);
+}
+sendCamStream();

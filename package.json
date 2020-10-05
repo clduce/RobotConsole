@@ -1,0 +1,22 @@
+{
+  "name": "robotconsole",
+  "version": "1.0.0",
+  "description": "A custom widget-based web interface for robotics",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Mark Skinner",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "node-gyp": "^7.1.0",
+    "raspberry-pi-camera-native": "0.0.0",
+    "rosnodejs": "^3.0.2",
+    "socket.io": "^2.3.0"
+  },
+  "repository": {
+    "private": true
+  }
+}
