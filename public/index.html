@@ -19,6 +19,7 @@ body{
   left: 50%;
   transform: translateX(-50%);
   height:calc(100% - 40px);
+  z-index:0;
 }
 .label{
   font-weight: normal;
@@ -40,7 +41,7 @@ body{
   margin-bottom: 20px;
   box-shadow:1px 1px 10px grey;
 }
-.joystickCanvas{
+.canvas{
   position: absolute;
   left:0px;
   top:20px;
@@ -89,6 +90,17 @@ body{
 .settingInput{
   width: calc(100% - 50px);
   height: 30px;
+  border-radius: 5px;
+  border-width: 1px;
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: normal;
+  font-size:17px;
+  padding-left: 5px;
+}
+.miniInput{
+  width: 80px;
+  height: 30px;
+  margin:5px;
   border-radius: 5px;
   border-width: 1px;
   font-family: Tahoma, Geneva, sans-serif;
@@ -213,11 +225,12 @@ button:focus {outline:0;}
 <div class='navBar' id='navBar'>
   <h1 class="label" style="color: #FFF;margin:5px 40px 5px 10px;">Robot Control</h1>
   <button class="navBarButton" id='driveMode' onclick="toggleDriveMode();">Drive Mode</button>
-  <select id='screenSelect' class='navBarButton' onchange="changeScreen(this);">
+  <select hidden id='screenSelect' class='navBarButton' onchange="changeScreen(this);">
     <option value='1'>Screen 1</option>
     <option value='2'>Screen 2</option>
   </select>
   <button class="navBarButton" onclick="window.location.href += 'config.html'">Config Settings</button>
+  <h1 class="label" style="color: #FFF;margin:5px 10px 5px 10px;right:0px; position:absolute"id='instanceCount'>waiting...</h1>
 </div>
 <image class='image'></image>
 <!-- <select onchange="camSelect(this);"style='position: absolute; left:500px; top:500px; z-index:102' id='camSelect'>
@@ -250,7 +263,7 @@ button:focus {outline:0;}
   
   <div class="panel source" id="_slider" style="width:200px;height:70px;">
     <div id="header">Slider<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <input id='slider_ap' type='range' class='slider showOnDrive'></input>
+    <input min="0" max="100" step="1" id='slider_ap' type='range' class='slider showOnDrive'></input>
     <img src="resize.png" id="resize"></img>
   </div>
 
@@ -261,14 +274,24 @@ button:focus {outline:0;}
     <h1 id='text_ap' class='textDisplay showOnDrive' style="margin:0px;padding:0px;font-size:20px">ex. 14cm</h1>
     <img src="resize.png" id="resize"></img>
   </div>
-
-  <div class="panel source" id="_bargraph" style="width:200px;height:150px;">
-    <div id="header">Bar Graph<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+  
+  <div class="panel source" id="_gauge" style="width:200px;height:200px;">
+    <div id="header">Gauge<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <canvas class='canvas showOnDrive' id='gauge_ap' width="200px" height="180px" data-config='{"min":0,"max":100,"bigtick":20,"smalltick":4,"title":"CPU temp"}'></canvas>
     <img src="resize.png" id="resize"></img>
   </div>
   
-  <div class="panel source" id="_guage" style="width:200px;height:150px;">
-    <div id="header">Guage<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+  <h1 class="label" style="text-align:center">Non ROS</h1>
+  
+  <div class="panel source" id="_text" style="width:200px;height:70px;">
+    <div id="header">Text<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <h1 id='text_ap' class='textDisplay showOnDrive' style="margin:0px;padding:0px;font-size:20px">some text</h1>
+    <img src="resize.png" id="resize"></img>
+  </div>
+  
+  <div class="panel source" id="_box" style="z-index:2;width:200px;height:200px;background:rgba(0,0,0,0)">
+    <div id="header">Panel<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <div class='showOnDrive' style="position:absolute;left:0px;top:20px;width:100%;height:calc(100% - 20px);background-color:rgba(255,255,255,0.5)"></div>
     <img src="resize.png" id="resize"></img>
   </div>
 </div>

@@ -9,6 +9,7 @@ function widgetFromJson(json){
   var tile = widgetFromId(type);
   tile.id = json['id'];
   tile.style.zIndex = 20;
+  if(type == '_box') tile.style.zIndex = 5;
   tile.style.left = json['left'];
   tile.style.top = json['top'];
   tile.style.width = json['w'];
@@ -27,10 +28,24 @@ function widgetFromJson(json){
       canvas.width = parseInt(json['w']);
       drawJoystick(canvas,0,0);
     break;
+    case '_slider':
+      tile.querySelector('#slider_ap').min = json['min'];
+      tile.querySelector('#slider_ap').max = json['max'];
+      tile.querySelector('#slider_ap').value= (parseInt(json['min']) + parseInt(json['max'])
+      )/2;
+      tile.querySelector('#slider_ap').step = json['step'];
+    break;
     case '_value':
 		tile.querySelector('#text_ap').innerText='Waiting for ROS...';
 		tile.querySelector('#text_ap').style.color = json['textColor'];
 	break;
+	case '_gauge':
+      var canvas = tile.querySelector('#gauge_ap');
+      canvas.height = parseInt(json['h'])-20;
+      canvas.width = parseInt(json['w']);
+      canvas.setAttribute("data-config",JSON.stringify({min:json.min,max:json.max,bigtick:json.bigtick,smalltick:json.smalltick, title:json.label}));
+      drawGauge(canvas,json.min);
+    break;
   }
 
   initFunctionality(json['type'],tile,tile.id);
@@ -46,6 +61,7 @@ function makeUnique(type,newWidget){
   thisWidget['id'] = thisID;
   newWidget.id = thisID;
   newWidget.style.zIndex = 30;
+  if(type == '_box') newWidget.style.zIndex = 5;
   thisWidget['left'] = newWidget.style.left;
   thisWidget['top'] = newWidget.style.top;
   thisWidget['w'] = newWidget.style.width;
@@ -76,6 +92,13 @@ function makeUnique(type,newWidget){
     case '_value':
 		thisWidget['msgType'] = 'std_msgs/String';
 	break;
+	case '_gauge':
+      thisWidget['label'] = 'Example';
+      thisWidget['min'] = 0;
+      thisWidget["max"] = 100;
+      thisWidget["bigtick"] = 20;
+      thisWidget["smalltick"] = 4;
+    break;
     default:
 
   }
@@ -100,11 +123,15 @@ function initFunctionality(type, newWidget,thisID){
       //setup brodcast functionality for element
       newWidget.querySelector('#checkbox_ap').onchange = function(e){
         let jsw = widgetArray[indexMap[thisID]];
-        console.log(e.target.checked);
         sendToRos(jsw['topic'],{pressed:e.target.checked},jsw['type']);
       };
     break;
-    default:
+    case '_slider':
+      //setup brodcast functionality for element
+      newWidget.querySelector('#slider_ap').oninput = function(e){
+        let jsw = widgetArray[indexMap[thisID]];
+        sendToRos(jsw['topic'],{value:e.target.value},jsw['type']);
+      };
     break;
   }
 }
@@ -114,6 +141,7 @@ function widgetFromId(id){
   let cln = itm.cloneNode(true);
   cln.className = 'panel dragable';
   cln.style.zIndex=60;
+  if(id == '_box') cln.style.zIndex = 5;
   cln.querySelector('#header').style ='padding:11px;';
   cln.querySelector('#header').childNodes[0].data = '';
   cln.id='';
@@ -124,6 +152,10 @@ function widgetFromId(id){
   if(canvas){
     initJoystick(canvas);
     drawJoystick(canvas,0,0,false);
+  }
+  canvas = cln.querySelector('#gauge_ap');
+  if(canvas){
+    drawGauge(canvas,0,{min:0,max:100,bigtick:20,smalltick:4,title:'CPU temp'});
   }
   dragElement(cln);
   document.getElementById("body").appendChild(cln);

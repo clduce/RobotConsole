@@ -7,7 +7,7 @@ var currentID, currentIndex;
 var widgetArray = JSON.parse('{}');
 var socket;
 var loadedElements = false;//flag to check if elements have been constructed from json sent from server
-var readGamepadInterval,currentGamepad,oldGamepad,lastChangedAxis;
+var readGamepadInterval={},currentGamepad,oldGamepad,lastChangedAxis;
 var thisScreen = 1;
 var keys = {};
 var oldKeys = {};
@@ -17,18 +17,19 @@ socket = io(window.location.href);
 
 //get all config from server
 socket.on('settings',function(data){
-  if(!loadedElements){
-  console.log(data);
-  widgetArray = data['widgets'];
-  updateIndexMap();
-  for (let a of widgetArray){
-   //generate HTML element for each widget
-   if(a.screen == thisScreen) widgetFromJson(a);
-  }
-  loadedElements = true;
-}else{
-  console.log('already loaded elements');
-}
+	if(!loadedElements){
+		socket.emit('setScreen1','');
+		console.log(data);
+		widgetArray = data['widgets'];
+		updateIndexMap();
+		for (let a of widgetArray){
+			//generate HTML element for each widget
+			if(a.screen == thisScreen) widgetFromJson(a);
+		}
+		loadedElements = true;
+	}else{
+		console.log('already loaded elements');
+	}
 });
 
 //on video feed recieve
@@ -41,16 +42,29 @@ socket.on('image',function(data){
 });
 // updateTopicMapIndex();
 socket.on('telem',function(data){
-  const ele = document.getElementById(widgetArray[data.id].id).querySelector('#text_ap');
-  let prefix = widgetArray[data.id].prefix;
-  let postfix = widgetArray[data.id].postfix;
-  ele.innerText = prefix + data.msg.data + postfix;
+  let we = document.getElementById(widgetArray[data.id].id);
+  if(we){
+	 if(widgetArray[data.id].type == '_value'){
+		let prefix = widgetArray[data.id].prefix;
+		let postfix = widgetArray[data.id].postfix;
+		we.querySelector('#text_ap').innerText = prefix + data.msg.data + postfix;
+	}else if(widgetArray[data.id].type == '_gauge'){
+		console.log(data.msg.data);
+		drawGauge(we.querySelector('#gauge_ap'),data.msg.data);
+	}
+  }
+});
+socket.on('instanceCount',function(data){
+	if(document.getElementById('instanceCount')) document.getElementById('instanceCount').innerText = 'clients: ' + data;
 });
 
 //initalize all graphical Widgets in source bar
 var canvas = document.getElementById('_joystick').querySelector('#canvas_ap');
 initJoystick(canvas, true);
 drawJoystick(canvas,0,0);
+
+canvas = document.getElementById('_gauge').querySelector('#gauge_ap');
+drawGauge(canvas,0);
 
 //initalize javascript for all source elements:
 var tempList = document.getElementsByClassName('source');
@@ -119,6 +133,11 @@ function dragElement(elmnt) {
       canvas.height = -pos2S-20;
       canvas.width = -pos1S;
       canvas.dispatchEvent(redrawEvent);
+    }else if(elmnt.querySelector('#gauge_ap')){
+      var canvas = elmnt.querySelector('#gauge_ap');
+      canvas.height = -pos2S-20;
+      canvas.width = -pos1S;
+      drawGauge(canvas);
     }
   }
   function closeDragElement() {
@@ -230,10 +249,19 @@ function openConfig(e){
       createconfiglinkGamepadButton(widgetArray[currentIndex]);
       createconfiglinkKeys(widgetArray[currentIndex],['hotkey']);
     break;
+    case '_slider':
+	  createconfigInput('Widget Name', 'name', widgetArray[currentIndex]['name']);
+	  createRange(widgetArray[currentIndex]);
+    break;
     case '_value':
       createconfigDataWrapper(widgetArray[currentIndex]);
       createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
 	  createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
+    break;
+    case '_gauge':
+		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
+		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
+		createGraph(widgetArray[currentIndex]);
     break;
   }
   mask.style.display='inline';
@@ -245,41 +273,64 @@ function applyConfigChanges(){
   var localWidget = document.getElementById(currentID);
   var topic = cleanTopicName(document.getElementById('topicTitle').value);
   widgetArray[currentIndex].topic = topic;
-  var type = widgetArray[currentIndex].type;
+  var WA = widgetArray[currentIndex];
+  var type = WA.type;
 
   switch(type){
     case '_button':
-      widgetArray[currentIndex]['label'] = document.getElementById('_button-labelText').value;
-      localWidget.querySelector('#button_ap').innerText = widgetArray[currentIndex]['label'];
-      widgetArray[currentIndex]['useGamepad'] = document.getElementById('useGamepad').checked;
-      widgetArray[currentIndex]['useKeys'] = document.getElementById('useKeys').checked;
-      widgetArray[currentIndex]['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
-      if(lastChangedButton != -1) widgetArray[currentIndex]['useButton'] = lastChangedButton;
+      WA['label'] = document.getElementById('_button-labelText').value;
+      localWidget.querySelector('#button_ap').innerText = WA['label'];
+      WA['useGamepad'] = document.getElementById('useGamepad').checked;
+      WA['useKeys'] = document.getElementById('useKeys').checked;
+      WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
+      if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
     break;
     case '_checkbox':
-      widgetArray[currentIndex]['label'] = document.getElementById('Label').value;
-      widgetArray[currentIndex]['initial'] = document.getElementById('initialState').checked;
-      localWidget.querySelector('#checkbox_text_ap').innerText = widgetArray[currentIndex]['label'];
-      widgetArray[currentIndex]['useGamepad'] = document.getElementById('useGamepad').checked;
-      widgetArray[currentIndex]['useKeys'] = document.getElementById('useKeys').checked;
-      widgetArray[currentIndex]['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
-      if(lastChangedButton != -1) widgetArray[currentIndex]['useButton'] = lastChangedButton;
+      WA['label'] = document.getElementById('Label').value;
+      WA['initial'] = document.getElementById('initialState').checked;
+      localWidget.querySelector('#checkbox_text_ap').innerText = WA['label'];
+      WA['useGamepad'] = document.getElementById('useGamepad').checked;
+      WA['useKeys'] = document.getElementById('useKeys').checked;
+      WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
+      if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
     break;
     case '_joystick':
-      widgetArray[currentIndex]['useGamepad'] = document.getElementById('useGamepad').checked;
-      widgetArray[currentIndex]['useKeys'] = document.getElementById('useKeys').checked;
-      widgetArray[currentIndex]['usekey_up'] = document.getElementById('usekey_up').value;
-      widgetArray[currentIndex]['usekey_left'] = document.getElementById('usekey_left').value;
-      widgetArray[currentIndex]['usekey_down'] = document.getElementById('usekey_down').value;
-      widgetArray[currentIndex]['usekey_right'] = document.getElementById('usekey_right').value;
-      if(lastChangedAxis != -1) widgetArray[currentIndex]['useAxis'] = lastChangedAxis;
+      WA['useGamepad'] = document.getElementById('useGamepad').checked;
+      WA['useKeys'] = document.getElementById('useKeys').checked;
+      WA['usekey_up'] = document.getElementById('usekey_up').value;
+      WA['usekey_left'] = document.getElementById('usekey_left').value;
+      WA['usekey_down'] = document.getElementById('usekey_down').value;
+      WA['usekey_right'] = document.getElementById('usekey_right').value;
+      if(lastChangedAxis != -1) WA['useAxis'] = lastChangedAxis;
+    break;
+    case '_slider':
+      //WA['useGamepad'] = document.getElementById('useGamepad').checked;
+      WA['min'] = document.getElementById('min').value;
+      WA['max'] = document.getElementById('max').value;
+      WA['step'] = document.getElementById('step').value;
+      WA['name'] = document.getElementById('name').value;
+      localWidget.querySelector('#slider_ap').min = WA['min'];
+      localWidget.querySelector('#slider_ap').max = WA['max'];
+      localWidget.querySelector('#slider_ap').step = WA['step'];
+      //if(lastChangedAxis != -1) WA['useAxis'] = lastChangedAxis;
     break;
     case '_value':
-      widgetArray[currentIndex]['prefix'] = document.getElementById('textInput1').value;
-      widgetArray[currentIndex]['postfix'] = document.getElementById('textInput2').value;
-      widgetArray[currentIndex]['msgType'] = document.getElementById('msgType').value;
-      widgetArray[currentIndex]['textColor'] = document.getElementById('textColor').value;
-      localWidget.querySelector('#text_ap').style.color = widgetArray[currentIndex]['textColor'];
+      WA['prefix'] = document.getElementById('textInput1').value;
+      WA['postfix'] = document.getElementById('textInput2').value;
+      WA['msgType'] = document.getElementById('msgType').value;
+      WA['textColor'] = document.getElementById('textColor').value;
+      localWidget.querySelector('#text_ap').style.color = WA['textColor'];
+    break;
+    case '_gauge':
+      WA['min'] = document.getElementById('min').value;
+      WA['max'] = document.getElementById('max').value;
+      WA['bigtick'] = document.getElementById('bigtick').value;
+      WA['smalltick'] = document.getElementById('smalltick').value;
+      WA['label'] = document.getElementById('label').value;
+      WA['msgType'] = document.getElementById('msgType').value;
+      let obj = JSON.stringify({min:WA.min,max:WA.max,bigtick:WA.bigtick,smalltick:WA.smalltick, title:WA.label});
+      localWidget.querySelector('#gauge_ap').setAttribute("data-config",obj);
+      drawGauge(localWidget.querySelector('#gauge_ap'),WA.min);
     break;
   }
   mask.style.display='none';
@@ -407,17 +458,51 @@ function createconfigDataWrapper(array){
   p.innerHTML = "Prefix: <input id='textInput1'value='"+prefix+"'></input> Postfix: <input id='textInput2'value='"+postfix+"'></input>";
   configWindow.appendChild(p);
 }
+function createGraph(array){
+  let label = array.label;
+  let min = array.min;
+  let max = array.max;
+  let bigtick = array.bigtick;
+  let smalltick = array.smalltick;
+  if(min == undefined) min = 0;
+  if(max == undefined) max = 100;
+  if(bigtick == undefined) bigtick = 20;
+  if(smalltick == undefined) smalltick = 4;
+  if(label == undefined) label = '';
+  let p = document.createElement('p');
+  p.style.marginBottom = '20px';
+  p.className = 'specific';
+  p.innerHTML = "Min: <input class='miniInput' id='min'value='"+min+"'></input><br> Max: <input class='miniInput' id='max'value='"+max+"'></input><br> Big Tick Interval: <input class='miniInput' id='bigtick'value='"+bigtick+"'></input><br> Subdivisions: <input class='miniInput' id='smalltick'value='"+smalltick+"'></input>";
+  configWindow.appendChild(p);
+}
+function createRange(array){
+  let min = array.min;
+  let max = array.max;
+  let step = array.step;
+  if(min == undefined) min = '0';
+  if(max == undefined) max = '100';
+  if(step == undefined) step = '1';
+  let p = document.createElement('p');
+  p.style.marginBottom = '20px';
+  p.className = 'specific';
+  p.innerHTML = "Min: <input id='min'value='"+min+"'></input> Max: <input id='max'value='"+max+"'></input> Step: <input id='step'value='"+step+"'></input>";
+  configWindow.appendChild(p);
+}
 
 //KEYBOARD INTERFACING
 document.addEventListener('keydown', (e) => {
-  oldKeys = {...keys};
-  keys[e.key] = true;
-  getKeyboardUpdates();
+	if(!configIsOpen){
+		oldKeys = {...keys};
+		keys[e.key] = true;
+		getKeyboardUpdates();
+	}
 });
 document.addEventListener('keyup', (e) => {
-  oldKeys = {...keys};
-  keys[e.key] = false;
-  getKeyboardUpdates();
+	if(!configIsOpen){
+		oldKeys = {...keys};
+		keys[e.key] = false;
+		getKeyboardUpdates();
+	}
 });
 function keysChanged(k){
   for(let i = 0; i < k.length; i++){
@@ -467,8 +552,6 @@ function getKeyboardUpdates(){
   }
 }
 
-
-
 //GAMEPAD INTERFACING
 window.addEventListener("gamepadconnected", function(e) {
   console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
@@ -476,13 +559,13 @@ window.addEventListener("gamepadconnected", function(e) {
     e.gamepad.buttons.length, e.gamepad.axes.length);
     currentGamepad = navigator.getGamepads()[0];
     oldGamepad = currentGamepad;
-    readGamepadInterval = setInterval(readGamepadLoop,30);
+    readGamepadInterval[e.gamepad.id] = setInterval(() => {readGamepadLoop(e.gamepad.id)},30);
 });
 
 window.addEventListener("gamepaddisconnected", function(e) {
   console.log("Gamepad disconnected from index %d: %s",
     e.gamepad.index, e.gamepad.id);
-    clearInterval(readGamepadInterval);
+    clearInterval(readGamepadInterval[e.gamepad.id]);
 });
 
 function readGamepadLoop(){
@@ -602,22 +685,24 @@ function changeScreen(me){
     }
   }
   if(thisScreen == 1) {
-	try{
+	  socket.emit('setScreen1',true);
 	  camStream = document.getElementsByClassName('imageHidden')[0];
-	  camStream.style.visibility = 'visible';
-	  camStream.className = 'image';
-	}
-	catch(e){
-	  console.log(e);
-	}
+	  if(camStream){
+		camStream.style.visibility = 'visible';
+		camStream.className = 'image';
+	  }
   }
   else{
+	  //socket.emit('setScreen1',false);
 	  camStream = document.getElementsByClassName('image')[0];
+	  if(camStream){
 	  camStream.style.visibility = 'hidden';
 	  camStream.className = 'imageHidden';
+	  }
   }
   toggleDriveMode();
   toggleDriveMode();
+  showWidgetHolder();
 }
 function camSelect(me){
   socket.emit('setCam',me.value);

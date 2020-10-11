@@ -11,9 +11,10 @@ var server = app.listen(PORT);
 var settingsObject;
 var rosready = false;
 var nh, rospublishers={}, rossubscribers={};
-
+var cameraReciever;//socket id of the client displaying the camera stream
+var socketsOpen = 0;
 app.use(express.static(__dirname + '/public'));
-console.log("server running on port: " + PORT)
+console.log("server running on port 80 and " + PORT)
 
 var socket = require('socket.io');
 var io = socket(server);
@@ -39,9 +40,18 @@ function joinRosTopics(){
 					case '_joystick':
 						rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
 					break;
-					
+					case '_slider':
+						rospublishers[topic] = nh.advertise(topic, 'std_msgs/Float64');
+					break;
 					case '_value':
-					if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
+						if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
+						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+						rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
+							io.emit('telem',{id:i,msg:msg});
+						});
+					break;
+					case '_gauge':
+						if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Float64';
 						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 						rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
 							io.emit('telem',{id:i,msg:msg});
@@ -63,6 +73,8 @@ rosnodejs.initNode('/webserver').then(() => {
 
 
 io.sockets.on('connection', function(socket){
+	socketsOpen++;
+	io.emit('instanceCount',socketsOpen);
   console.log('made connection');
   //get settings from json and send to client
   fs.readFile(SETTINGS_PATH, (err, data) => {
@@ -94,6 +106,9 @@ io.sockets.on('connection', function(socket){
 		case '_checkbox':
 			rospublishers[topic].publish({ data:data.pressed});
 		break;
+		case '_slider':
+			rospublishers[topic].publish({ data:data.value});
+		break;
 		case '_joystick':
 			rospublishers[topic].publish({ x:data.x,y:data.y,z:0});
 		break;
@@ -109,19 +124,26 @@ io.sockets.on('connection', function(socket){
     camindex = data;
     console.log(`Change Camera to ${data}`);
   });
+  socket.on('setScreen1', function(data){
+    cameraReciever = socket;
+  });
+  socket.on('disconnect', function(data){
+    socketsOpen--;
+    io.emit('instanceCount',socketsOpen);
+  });
 });
 
 
 //READ CAM STREAM FROM PICAM
  let opts = {//bring these in from config?
-	 width:200,
-	 height:200,
-	 fps:20,
+	 width:300,
+	 height:300,
+	 fps:10,
 	 encoding: 'JPEG',
-	 quality:25
+	 quality:10
  };
 raspberryPiCamera.on('frame', (frameData) => {
-	io.emit('image',frameData.toString('base64'));
+	if(cameraReciever) cameraReciever.emit('image',frameData.toString('base64'));
 });
 // start capture
 raspberryPiCamera.start(opts);

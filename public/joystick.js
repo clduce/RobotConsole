@@ -49,7 +49,6 @@ function initJoystick(c,nel = false){
 }
 //type true if using mouse screen coords, false if using -1,1
 function drawJoystick(c,x,y,type=true){
-	console.log(editing);
   if(!editing){
   var parent = c.parentNode;
   var myTopic;
@@ -95,6 +94,7 @@ function drawJoystick(c,x,y,type=true){
   ctx.arc(mid.x+x, mid.y+y, smallestRadius/4, 0, 2 * Math.PI);
   ctx.fillStyle = "#4d4d4d";
   ctx.fill();
+  normalPos.y *= -1;
   sendToRos(myTopic,normalPos,'_joystick');
   // if(Math.abs(normalPos.x - oldNormalPos.x) > 0.02 || Math.abs(normalPos.y - oldNormalPos.y) > 0.02){
   //   normalPos.y *= -1;
@@ -102,3 +102,95 @@ function drawJoystick(c,x,y,type=true){
   // }
   }
 }
+
+//gauge widget
+//let opts= {min:-50,max:50,bigtick:10,smalltick:5, title:'CPU temp'};
+//drawGuage(document.getElementById("guageWidget"),0,opts);
+function drawGauge(c,v){
+	opts = JSON.parse(c.getAttribute("data-config"));
+	opts.min=Number(opts.min);
+	opts.max=Number(opts.max);
+	opts.bigtick=Number(opts.bigtick);
+	opts.smalltick=Number(opts.smalltick);
+	v=v|opts.min;
+    y=c.height/2;
+    x=c.width/2;
+    r=Math.min(x,y)-10;
+    ctx = c.getContext("2d");
+	
+	ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.fillStyle = '#FFF';
+    ctx.fill();
+    
+    //outline
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, r-r*0.05, 0, 2 * Math.PI);
+    ctx.lineWidth = r*0.1;
+    ctx.strokeStyle = '#b8b8b8';
+    ctx.stroke();
+
+    let h = -Math.PI*1.4;
+    let ofst = + Math.PI*0.8
+    let vr = opts.max-opts.min;//value range
+    let nt = (vr/opts.bigtick) * (opts.smalltick)  //number of ticks
+    let sth = h/nt; //small tick height
+    let std = vr/nt;//small tick delta
+    let zpos = y-(-opts.min/std)*sth;//pixel y where the scale is zero
+    let cbh = zpos-(y-(v/std-opts.min/std)*sth);//calculated bar height
+    let or = r*0.15;
+    let ir = r*0.3;
+
+    ctx.lineCap = 'round';
+    ctx.font = (r*0.1+10)+"px Arial";
+    ctx.fillStyle = "#5c5c5c";
+    ctx.textAlign = 'center';
+
+    for(let i = 0; i <= nt; i++){
+      ctx.beginPath();
+      if(i%(opts.smalltick) == 0){
+        ctx.moveTo(x+Math.cos(-i*sth+ofst)*(r-or),y+Math.sin(-i*sth+ofst)*(r-or));
+        ctx.lineTo(x+Math.cos(-i*sth+ofst)*(r-ir),y+Math.sin(-i*sth+ofst)*(r-ir));
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#5c5c5c";
+        ctx.fillText(Math.round( (i*std+opts.min) * 100 + Number.EPSILON ) / 100,x+Math.cos(-i*sth+ofst)*(r*0.9-ir),y+Math.sin(-i*sth+ofst)*(r*0.9-ir)+5);
+      }
+      else{
+        ctx.moveTo(x+Math.cos(-i*sth+ofst)*(r-or),y+Math.sin(-i*sth+ofst)*(r-or));
+        ctx.lineTo(x+Math.cos(-i*sth+ofst)*(r-ir*0.8),y+Math.sin(-i*sth+ofst)*(r-ir*0.8));
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#b8b8b8";
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle= '#000';
+    ctx.font = (r*0.3)+"px Arial";'px Arial';
+    ctx.fillText(v,x,y+r*0.7);
+    ctx.fillStyle= '#666';
+    ctx.font = (r*0.15)+"px Arial";'px Arial';
+    ctx.fillText(opts.title,x,y-r*0.3);
+
+    let a = ((v-opts.min)/(opts.max-opts.min)) * -h + ofst;
+    console.log(a);
+    let tw = r*0.04;
+    ctx.beginPath();
+    ctx.moveTo(x+Math.cos(a-3.14/2)*tw,y+Math.sin(a-3.14/2)*tw);
+    ctx.lineTo(x+Math.cos(a)*r*0.8,y+Math.sin(a)*r*0.8);
+    ctx.lineTo(x+Math.cos(a+3.14/2)*tw,y+Math.sin(a+3.14/2)*tw);
+    ctx.fillStyle = 'rgba(255, 0, 0,0.4)';
+    ctx.strokeStyle = 'rgb(255, 0, 0,0.5)'
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, r*0.15, 0, 2 * Math.PI);
+    ctx.lineWidth = 2;
+    ctx.fillStyle = '#548aff';
+    ctx.fill();
+    ctx.strokeStyle = '#AAA';
+    ctx.stroke();
+  }
