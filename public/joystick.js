@@ -106,30 +106,37 @@ function drawJoystick(c,x,y,type=true){
 //gauge widget
 //let opts= {min:-50,max:50,bigtick:10,smalltick:5, title:'CPU temp'};
 //drawGuage(document.getElementById("guageWidget"),0,opts);
-function drawGauge(c,v){
+function drawGauge(c,v,format){
+	if(!format) format = {};
 	opts = JSON.parse(c.getAttribute("data-config"));
 	opts.min=Number(opts.min);
 	opts.max=Number(opts.max);
 	opts.bigtick=Number(opts.bigtick);
 	opts.smalltick=Number(opts.smalltick);
-	v=v|opts.min;
+	console.log(v);
+	//v=v|opts.min;
+	if(v == undefined) v = opts.min;
     y=c.height/2;
     x=c.width/2;
     r=Math.min(x,y)-10;
     ctx = c.getContext("2d");
 	
+	ctx.clearRect(0,0,2*x,2*y);
 	ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
     ctx.fillStyle = '#FFF';
     ctx.fill();
     
     //outline
+    ctx.strokeStyle = '#000';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.closePath();
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(x, y, r-r*0.05, 0, 2 * Math.PI);
+    ctx.closePath();
     ctx.lineWidth = r*0.1;
     ctx.strokeStyle = '#b8b8b8';
     ctx.stroke();
@@ -169,20 +176,19 @@ function drawGauge(c,v){
     }
     ctx.fillStyle= '#000';
     ctx.font = (r*0.3)+"px Arial";'px Arial';
-    ctx.fillText(v,x,y+r*0.7);
+    ctx.fillText(formatNumber(v,format),x,y+r*0.7);
     ctx.fillStyle= '#666';
     ctx.font = (r*0.15)+"px Arial";'px Arial';
     ctx.fillText(opts.title,x,y-r*0.3);
 
     let a = ((v-opts.min)/(opts.max-opts.min)) * -h + ofst;
-    console.log(a);
     let tw = r*0.04;
     ctx.beginPath();
     ctx.moveTo(x+Math.cos(a-3.14/2)*tw,y+Math.sin(a-3.14/2)*tw);
     ctx.lineTo(x+Math.cos(a)*r*0.8,y+Math.sin(a)*r*0.8);
     ctx.lineTo(x+Math.cos(a+3.14/2)*tw,y+Math.sin(a+3.14/2)*tw);
     ctx.fillStyle = 'rgba(255, 0, 0,0.4)';
-    ctx.strokeStyle = 'rgb(255, 0, 0,0.5)'
+    ctx.strokeStyle = 'rgb(255, 0, 0,0.5)';
     ctx.fill();
     ctx.stroke();
 

@@ -11,20 +11,7 @@ function widgetFromJson(json){
   tile.style.zIndex = 20;
   if(type == '_box') tile.style.zIndex = 5;
   
-    if(json['useTop']){
-		 tile.style.top = json['top'];
-		 tile.style.bottom = '';
-	}else{
-		tile.style.top = '';
-		tile.style.bottom = json['bottom'];
-	}
-	if(json['useLeft']){
-		tile.style.right = '';
-		tile.style.left = json['left'];
-	}else{
-		tile.style.left = '';
-		tile.style.right = json['right'];
-	}
+  set4style(tile,json);
 	
 	tile.style.width = json['w'];
 	tile.style.height = json['h'];
@@ -39,6 +26,7 @@ function widgetFromJson(json){
     case '_checkbox':
       tile.querySelector('#checkbox_text_ap').innerText = json['label'];
       tile.querySelector('#checkbox_ap').checked = json['initial'];
+      tile.querySelector('#checkbox_text_ap').style.color = json['textColor'];
       if(json['latching']) sendToRos(json['topic'],{pressed:json['initial']},'_checkbox');
     break;
     case '_joystick':
@@ -69,7 +57,7 @@ function widgetFromJson(json){
       canvas.height = parseInt(json['h'])-20;
       canvas.width = parseInt(json['w']);
       canvas.setAttribute("data-config",JSON.stringify({min:json.min,max:json.max,bigtick:json.bigtick,smalltick:json.smalltick, title:json.label}));
-      drawGauge(canvas,json.min);
+      drawGauge(canvas,json.min,json);
     break;
     case '_text':
 		tile.querySelector('#text_ap').innerText=json['text'];
@@ -82,7 +70,55 @@ function widgetFromJson(json){
 
   initFunctionality(json['type'],tile,tile.id);
 }
-
+//json is the widget array for the tile widget
+function set4style(tile,json){
+	if(!json) json=widgetArray[indexMap[tile.id]];
+	if(json['useTop']){
+		 tile.style.top = json['top'];
+		 tile.style.bottom = '';
+	}else{
+		tile.style.top = '';
+		tile.style.bottom = json['bottom'];
+	}
+	if(json['useLeft']){
+		tile.style.right = '';
+		tile.style.left = json['left'];
+	}else{
+		tile.style.left = '';
+		tile.style.right = json['right'];
+	}
+}
+function get4position(tile){
+	let index = indexMap[tile.id];
+	if(widgetArray[index]['useTop']){
+		 widgetArray[index].top = parseInt(tile.style.top) + 'px';
+		 widgetArray[index].bottom = (window.innerHeight - parseInt(tile.style.height) - parseInt(tile.style.top)) + 'px';
+	}else{
+		widgetArray[index].bottom = parseInt(tile.style.bottom) + 'px';
+		widgetArray[index].top = (window.innerHeight - parseInt(tile.style.height) - parseInt(tile.style.bottom)) + 'px';
+	}
+	if(widgetArray[index]['useLeft']){
+		 widgetArray[index].left = parseInt(tile.style.left) + 'px';
+		 widgetArray[index].right = (window.innerWidth - parseInt(tile.style.width) - parseInt(tile.style.left)) + 'px';
+	}else{
+		widgetArray[index].right = parseInt(tile.style.right) + 'px';
+		widgetArray[index].left = (window.innerWidth - parseInt(tile.style.width) - parseInt(tile.style.right)) + 'px';
+	}
+}
+function useClosest(tile){
+	let index = indexMap[tile.id];
+	if(parseInt(widgetArray[index].left) < parseInt(widgetArray[index].right)) widgetArray[index].useLeft = true;
+	else widgetArray[index].useLeft = false;
+	if(parseInt(widgetArray[index].top) < parseInt(widgetArray[index].bottom)) widgetArray[index].useTop = true;
+	else widgetArray[index].useTop = false;
+}
+function useSide(tile,uleft,utop){
+	let index = indexMap[tile.id];
+	if(uleft) widgetArray[index].useLeft = true;
+	else widgetArray[index].useLeft = false;
+	if(utop) widgetArray[index].useTop = true;
+	else widgetArray[index].useTop = false;
+}
 //returns json from widget
 //assigns the newWidget an id and functionality
 function makeUnique(type,newWidget){
@@ -218,7 +254,7 @@ function widgetFromId(id){
   }
   canvas = cln.querySelector('#gauge_ap');
   if(canvas){
-    drawGauge(canvas,0,{min:0,max:100,bigtick:20,smalltick:4,title:'CPU temp'});
+    drawGauge(canvas,0);
   }
   dragElement(cln);
   document.getElementById("body").appendChild(cln);

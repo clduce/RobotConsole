@@ -44,66 +44,70 @@ io.set('origins','*:*');
 function joinRosTopics(){
 	fs.readFile(SETTINGS_PATH, (err, data) => {
 		if (err) throw err;
-		settingsObject = JSON.parse(data);
-   
-		let widgets = settingsObject['widgets'];
-		
-		//attatch ROS publishers and listeners
-		for(let i = 0; i < widgets.length; i++){
-			let topic = widgets[i].topic;
-			if(topic != '' && topic != '/'){
-				console.log(widgets[i].type + ' connecting to   '+widgets[i].topic);
-				
-				let latch;
-				if(widgets[i].latching) latch = widgets[i].latching;
-				else latch = false;
-				switch(widgets[i].type){
-					case '_button':
-					case '_checkbox':
-						rospublishers[topic] = nh.advertise(topic, 'std_msgs/Bool',{latching:latch});
-					break;
-					case '_joystick':
-						rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
-					break;
-					case '_slider':
-						rospublishers[topic] = nh.advertise(topic, 'std_msgs/Float64',{latching:latch});
-					break;
-					case '_inputbox':
-						let msgType = widgets[i]['msgType'];
-						if(msgType == undefined) msgType = 'std_msgs/String';
-						if(rospublishers[topic]) rospublishers[topic].shutdown();
-						rospublishers[topic] = nh.advertise(topic, msgType);
-					break;
-					case '_value':
-						if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
-						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
-						rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
-							io.emit('telem',{id:i,msg:msg});
-						});
-					break;
-					case '_light':
-						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
-						rossubscribers[topic] = nh.subscribe(topic, 'std_msgs/Bool', (msg) => {
-							io.emit('telem',{id:i,msg:msg});
-						});
-					break;
-					case '_audio':
-						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
-						rossubscribers[topic] = nh.subscribe(topic, 'std_msgs/Int16', (msg) => {
-							io.emit('telem',{id:i,msg:msg});
-						});
-					break;
-					case '_gauge':
-						if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Float64';
-						if(rossubscribers[topic]) rossubscribers[topic].shutdown();
-						rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
-							io.emit('telem',{id:i,msg:msg});
-						});
-					break;
+		let settingsObject;
+		try{
+			settingsObject = JSON.parse(data);
+		}catch(e){console.log(e);}
+		if(settingsObject){
+			let widgets = settingsObject['widgets'];
+			
+			//attatch ROS publishers and listeners
+			for(let i = 0; i < widgets.length; i++){
+				let topic = widgets[i].topic;
+				if(topic != '' && topic != '/'){
+					console.log(widgets[i].type + ' connecting to   '+widgets[i].topic);
+					
+					let latch;
+					if(widgets[i].latching) latch = widgets[i].latching;
+					else latch = false;
+					switch(widgets[i].type){
+						case '_button':
+						case '_checkbox':
+							rospublishers[topic] = nh.advertise(topic, 'std_msgs/Bool',{latching:latch});
+						break;
+						case '_joystick':
+							rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
+						break;
+						case '_slider':
+							rospublishers[topic] = nh.advertise(topic, 'std_msgs/Float64',{latching:latch});
+						break;
+						case '_inputbox':
+							let msgType = widgets[i]['msgType'];
+							if(msgType == undefined) msgType = 'std_msgs/String';
+							if(rospublishers[topic]) rospublishers[topic].shutdown();
+							rospublishers[topic] = nh.advertise(topic, msgType);
+						break;
+						case '_value':
+							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
+							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
+								io.emit('telem',{topic:topic,id:i,msg:msg});
+							});
+						break;
+						case '_light':
+							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+							rossubscribers[topic] = nh.subscribe(topic, 'std_msgs/Bool', (msg) => {
+								io.emit('telem',{topic:topic,id:i,msg:msg});
+							});
+						break;
+						case '_audio':
+							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+							rossubscribers[topic] = nh.subscribe(topic, 'std_msgs/Int16', (msg) => {
+								io.emit('telem',{topic:topic,id:i,msg:msg});
+							});
+						break;
+						case '_gauge':
+							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Float64';
+							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
+								io.emit('telem',{topic:topic,id:i,msg:msg});
+							});
+						break;
+					}
 				}
 			}
+			rosready = true;
 		}
-		rosready = true;
 	});
 }
   
@@ -128,6 +132,13 @@ io.sockets.on('connection', function(socket){
     let fps = 30;
     let newFPS = fps<0.5?0.5:(fps>60?60:fps);
     mainCamFPS = 1000/newFPS;
+    
+    //set initial resolutions for cameras
+    for(let i = 0; i < Math.min(camArray.length,camJSON.length); i++){
+		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camJSON[i].width));
+		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camJSON[i].height));
+	}
+    
     socket.emit('settings',settingsObject);
     socket.emit('makeThumbs',camArray.length);
     console.log('current settings on server: ' + JSON.stringify(settingsObject));

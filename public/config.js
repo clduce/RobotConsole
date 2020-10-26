@@ -25,6 +25,8 @@ socket.on('makeThumbs',(data) => {
  * {
  * 		"consoleName":"Robot Console",
  * 		"loadInEditMode":true,
+ * 		"background":"#000",
+ * 		"snaptogrid":false,
  * 		"wifilist":[
  * 			{
  * 				"ssid":"ssid",
@@ -80,6 +82,8 @@ function populateConfig(data){
 	}
 	document.getElementsByClassName('consoleName')[0].value = data['consoleName'];
 	document.getElementsByClassName('loadInEditMode')[0].checked = data['loadInEditMode'];
+	document.getElementsByClassName('background')[0].value = data['background'];
+	document.getElementsByClassName('snaptogrid')[0].checked = data['snaptogrid'];
 	console.log('done loading settings');
 }
 function generateConfig(){
@@ -104,6 +108,8 @@ function generateConfig(){
 	}
 	data['consoleName'] = document.getElementsByClassName('consoleName')[0].value;
 	data['loadInEditMode'] = document.getElementsByClassName('loadInEditMode')[0].checked;
+	data['background'] = document.getElementsByClassName('background')[0].value
+	data['snaptogrid'] = document.getElementsByClassName('snaptogrid')[0].checked;
 	return data;
 }
 function addCams(c){

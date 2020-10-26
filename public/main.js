@@ -5,6 +5,7 @@ var configIsOpen = false,elementOpenInConfig;
 var driveMode = false, widgetHolderOpen = true;
 var currentID, currentIndex;
 var widgetArray = JSON.parse('{}');
+var snapWidgets = false;
 var socket;
 var loadedElements = false;//flag to check if elements have been constructed from json sent from server
 var madeThumbs = false;
@@ -26,6 +27,8 @@ socket.on('settings',function(data){
 		widgetArray = data['widgets'];
 		document.getElementById('consoleName').innerText = data.config['consoleName'];
 		document.getElementById('title').innerText = data.config['consoleName'];
+		body.style.backgroundColor = data.config.background;
+		snapWidgets = data.config.snaptogrid;
 		updateIndexMap();
 		for (let a of widgetArray){
 			//generate HTML element for each widget
@@ -65,22 +68,25 @@ socket.on('makeThumbs',function(data){
 });
 // updateTopicMapIndex();
 socket.on('telem',function(data){
-	console.log(data);
-  let we = document.getElementById(widgetArray[data.id].id);
-  if(we){
-	 if(widgetArray[data.id].type == '_value'){
-		let prefix = widgetArray[data.id].prefix;
-		let postfix = widgetArray[data.id].postfix;
-		we.querySelector('#text_ap').innerText = prefix + data.msg.data + postfix;
-	}else if(widgetArray[data.id].type == '_gauge'){
-		console.log(data.msg.data);
-		drawGauge(we.querySelector('#gauge_ap'),data.msg.data);
-	}else if(widgetArray[data.id].type == '_light'){
-		console.log(data.msg.data);
-		we.querySelector('#color_ap').style.backgroundColor = data.msg.data?'#32cd32':'#cd3f32';
-	}else if(widgetArray[data.id].type == '_audio'){
-		playSound(data.msg.data);
-	}
+	for(let i = widgetArray.length-1; i >= 0; i--){
+		if(widgetArray[i].topic == data.topic){
+			let c = widgetArray[i];
+			let we = document.getElementById(c.id);
+			switch(c.type){
+				case '_value':
+					we.querySelector('#text_ap').innerText = c.prefix + formatNumber(data.msg.data,c) + c.postfix;
+				break;
+				case '_gauge':
+					drawGauge(we.querySelector('#gauge_ap'),data.msg.data,c);
+				break;
+				case '_light':
+					console.log(data.msg.data);
+					we.querySelector('#color_ap').style.backgroundColor = data.msg.data?'#32cd32':'#cd3f32';
+				case '_audio':
+					playSound(data.msg.data);
+				break;
+			}
+		}
   }
 });
 socket.on('instanceCount',function(data){
@@ -126,6 +132,7 @@ function mouseLeaveWidget(ele){
 function dragElement(elmnt) {
   var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
   var pos1S = 0, pos2S = 0, pos3S = 0, pos4S = 0;
+  let WA;
   //use header as draggable hold if it exists, otherwise just use the whole div
   if (elmnt.querySelector("#header")) elmnt.querySelector("#header").onmousedown = dragMouseDown;
   if (elmnt.querySelector("#resize")) elmnt.querySelector("#resize").onmousedown = scaleMouseDown;
@@ -136,31 +143,71 @@ function dragElement(elmnt) {
     pos3 = e.clientX;
     pos4 = e.clientY;
     editing = true;
+    WA = widgetArray[indexMap[elmnt.id]];
+    
+	get4position(elmnt);
+	useSide(elmnt,true,true);
+	set4style(elmnt);
+    
     document.onmouseup = closeDragElement;
     document.onmousemove = elementDrag;
-  }
-  function scaleMouseDown(e) {
-    e = e || window.event;
-    e.preventDefault();
-    
-    elmnt.style.top = (window.innerHeight-parseInt(elmnt.style.height)-parseInt(elmnt.style.bottom)) + 'px';
-	elmnt.style.left = (window.innerWidth-parseInt(elmnt.style.width)-parseInt(elmnt.style.right)) + 'px';
-    
-    pos3S = e.clientX-parseInt(elmnt.style.width);
-    pos4S = e.clientY-parseInt(elmnt.style.height);
-    document.onmouseup = closeScaleElement;
-    document.onmousemove = elementScale;
   }
   function elementDrag(e) {
     e = e || window.event;
     e.preventDefault();
     pos1 = pos3 - e.clientX;
     pos2 = pos4 - e.clientY;
-    pos3 = e.clientX;
-    pos4 = e.clientY;
+    
     if(elmnt.offsetTop - pos2 < 50) elmnt.style.top = '50px';
     else elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
     elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+	
+	if(WA.childids) for(let i = 0; i < WA.childids.length; i++){
+		let c = document.getElementById(WA.childids[i]);
+		get4position(c);
+		useSide(c,true,true);
+		set4style(c);
+		c.style.left = (parseInt(c.style.left) - pos1) + 'px';
+		c.style.top = (parseInt(c.style.top) - pos2) + 'px';
+	}
+	
+	pos3 = e.clientX;
+    pos4 = e.clientY;
+  }
+  function closeDragElement() {
+    document.onmouseup = null;
+    document.onmousemove = null;
+    editing = false;
+    if(parseInt(elmnt.style.left,10) < 245 && widgetHolderOpen){
+      removeWidgetFromScreen(elmnt);
+    }
+    else{
+		elmnt.style.left = snapX(parseInt(elmnt.style.left)) + 'px';
+		elmnt.style.top = snapY(parseInt(elmnt.style.top)) + 'px';
+		moveWidget({id:elmnt.id,x:elmnt.style.left,y:elmnt.style.top});
+		get4position(elmnt);
+		useClosest(elmnt);
+		set4style(elmnt);
+		
+		updatePanels(elmnt);
+    }
+    sendWidgetsArray();
+  }
+  
+  function scaleMouseDown(e) {
+    e = e || window.event;
+    e.preventDefault();
+    
+    WA = widgetArray[indexMap[elmnt.id]];
+    pos3S = e.clientX-parseInt(elmnt.style.width);
+    pos4S = e.clientY-parseInt(elmnt.style.height);
+    
+    get4position(elmnt);
+	useSide(elmnt,true,true);
+	set4style(elmnt);
+	
+    document.onmouseup = closeScaleElement;
+    document.onmousemove = elementScale;
   }
   function elementScale(e) {
     e = e || window.event;
@@ -171,8 +218,8 @@ function dragElement(elmnt) {
     if(pos1S > -100) pos1S = -100;
     if(pos2S > -45) pos2S = -45;
     
-    let newHeight = -pos2S + "px";
-    let newWidth = -pos1S + "px";
+    let newHeight = snapY(-pos2S) + "px";
+    let newWidth = snapX(-pos1S) + "px";
     
     if(elmnt.querySelector('#canvas_ap')){
       var canvas = elmnt.querySelector('#canvas_ap');
@@ -199,30 +246,36 @@ function dragElement(elmnt) {
     elmnt.style.height = newHeight;
     elmnt.style.width = newWidth;
   }
-  function closeDragElement() {
-    document.onmouseup = null;
-    document.onmousemove = null;
-    editing = false;
-    if(parseInt(elmnt.style.left,10) < 245 && widgetHolderOpen){
-      removeWidgetFromScreen(elmnt);
-    }
-    else{
-      moveWidget({id:elmnt.id,x:elmnt.style.left,y:elmnt.style.top});
-    }
-    autoLink(elmnt);
-    sendWidgetsArray();
-  }
   function closeScaleElement() {
     document.onmouseup = null;
     document.onmousemove = null;
-    autoLink(elmnt);
     resizeWidget({id:elmnt.id,x:elmnt.style.width,y:elmnt.style.height});
+    get4position(elmnt);
+	useClosest(elmnt);
+	set4style(elmnt);
+	updatePanels(elmnt);
+	sendWidgetsArray();
   }
 }
 function removeWidgetFromScreen(elmnt){
-	socket.emit('shutROS',widgetArray[indexMap[elmnt.id]].topic);
+	let deleteList = [];
+	let WA = widgetArray[indexMap[elmnt.id]];
+	socket.emit('shutROS',WA.topic);
+	if(WA.type == '_box' && WA.childids){
+		deleteList = WA.childids;
+	}
 	elmnt.remove();
 	deleteWidget(elmnt.id);
+	deleteFromPanel(elmnt.id);
+	
+	for(let i = 0;i < deleteList.length; i++){
+		elmnt = document.getElementById(deleteList[i]);
+		let WA = widgetArray[indexMap[elmnt.id]];
+		socket.emit('shutROS',WA.topic);
+		elmnt.remove();
+		deleteWidget(elmnt.id);
+		deleteFromPanel(elmnt.id);
+	}
 }
 //turn element into source:
 //the _type convention is used to determime
@@ -271,39 +324,93 @@ function sourceElement(elmnt) {
 	}
     else{
       //generate json, and give widget id
+      //it should be noted that elmnt.id is the type, the actual id is assigned by makeUnique()
       addWidget(makeUnique(elmnt.id,newElement));
       editing = false;
+      newElement.style.left = snapX(parseInt(newElement.style.left)) + 'px';
+      newElement.style.top = snapY(parseInt(newElement.style.top)) + 'px';
+      get4position(newElement);
+      useClosest(newElement);
+      set4style(newElement);
+      
+      updatePanels(newElement);
     }
-    autoLink(newElement);
+    sendWidgetsArray();
   }
 }
-//determines wether element should be linked to any particular side of screen
-function autoLink(elmnt){
-	let WA = widgetArray[indexMap[elmnt.id]];
-    let waRight = window.innerWidth-parseInt(elmnt.style.width)-parseInt(elmnt.style.left);
-    let waBottom = window.innerHeight-parseInt(elmnt.style.height)-parseInt(elmnt.style.top);
-    WA['right'] = waRight + 'px';
-    WA['bottom'] = waBottom + 'px';
-    WA['useTop'] = parseInt(WA['top'])<waBottom;
-    WA['useLeft'] = parseInt(WA['left'])<waRight;
-    convertToDynamicPosition(elmnt);
+//returns closest grid value
+function snapX(v){
+	if(snapWidgets) return Math.round(v/20)*20;
+	return v;
 }
-function convertToDynamicPosition(elmnt){
-	let WA = widgetArray[indexMap[elmnt.id]];
-	if(WA['useTop']){
-		elmnt.style.bottom = '';
-	}else{
-		elmnt.style.top = '';
-		elmnt.style.bottom = WA['bottom'];
-	}
-	if(WA['useLeft']){
-		elmnt.style.right = '';
-	}else{
-		elmnt.style.left = '';
-		elmnt.style.right = WA['right'];
+function snapY(v){
+	if(snapWidgets) return Math.round(v/20)*20;
+	return v;
+}
+//elmnt is the widget your finished dragging or scaling
+function updatePanels(elmnt){
+	let index = indexMap[elmnt.id];
+	let b = widgetArray[index];
+	for(let i = 0; i < widgetArray.length; i++){
+		if(widgetArray[i].type == '_box' && i != index){
+			let a = widgetArray[i];
+			if(overlaps(a.left,a.top,a.w,a.h,  b.left,b.top,b.w,b.h)){
+				if(!a.childids) a.childids = [];
+				if(!a.childids.includes(elmnt.id)) a.childids.push(elmnt.id);
+				console.log(JSON.stringify(a.childids));
+				
+				get4position(elmnt);
+				useSide(elmnt,a.useLeft,a.useTop);
+				set4style(elmnt);
+				
+				break;
+			}else{
+				if(a.childids && a.childids.includes(elmnt.id)){
+					a.childids.splice(a.childids.indexOf(elmnt.id),1);
+					console.log(JSON.stringify(a.childids));
+				}
+			}
+		}
+		else{
+			if(i == index){
+				let a = widgetArray[i];
+				if(a.childids) for(let k = 0; k < a.childids.length; k++){
+					let c = document.getElementById(a.childids[k]);
+					get4position(c);
+					useSide(c,a.useLeft,a.useTop);
+					set4style(c);
+				}
+			}
+		}
 	}
 }
-
+function deleteFromPanel(elmntid){
+	let index = indexMap[elmntid];
+	let b = widgetArray[index];
+	for(let i = 0; i < widgetArray.length; i++){
+	if(widgetArray[i].type == '_box' && i != index){
+		let a = widgetArray[i];
+			if(a.childids && a.childids.includes(elmntid)){
+				a.childids.splice(a.childids.indexOf(elmntid),1);
+				console.log(JSON.stringify(a.childids));
+			}
+		}
+	}
+}
+//from topleft overlap check rectangle
+function overlaps(x,y,w,h,  x2,y2,w2,h2){
+	x=parseInt(x);
+	x2=parseInt(x2);
+	y=parseInt(y);
+	y2=parseInt(y2);
+	w=parseInt(w);
+	w2=parseInt(w2);
+	h=parseInt(h);
+	h2=parseInt(h2);
+	console.log(x,y,w,h,x2,y2,w2,h2);
+	if(x+w>x2 && x<x2+w2   &&    y+h>y2 && y<y2+h2) return true;
+	return false;
+}
 
 //WIDGET CONFIGURATION PANEL
 //open configuration settings panel for each widget
@@ -346,6 +453,7 @@ function openConfig(e){
       createCheckbox('ROS Latching', 'latching', widgetArray[currentIndex]['latching']);
       createconfiglinkGamepadButton(widgetArray[currentIndex]);
       createconfiglinkKeys(widgetArray[currentIndex],['hotkey']);
+      createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
     break;
     case '_slider':
 	  createconfigInput('Widget Name', 'name', widgetArray[currentIndex]['name']);
@@ -353,14 +461,18 @@ function openConfig(e){
 	  createCheckbox('Orient Vertical', 'vertical', widgetArray[currentIndex]['vertical']);
 	  createCheckbox('ROS Latching', 'latching', widgetArray[currentIndex]['latching']);
 	  createconfigInput('Default/initial value', 'default', widgetArray[currentIndex]['default']);
+	  createconfiglinkKeys(widgetArray[currentIndex],['Decrease','Increase']);
+	  createconfiglinkGamepadButton(widgetArray[currentIndex],['Decrease','Increase']);
+	  createLittleInput('Repeat Delay (ms)', 'repeatdelay', widgetArray[currentIndex]['repeatdelay']);
     break;
     case '_inputbox':
-	  createSelect('Message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
+	  createSelect('Message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
     break;
     case '_value':
       createconfigDataWrapper(widgetArray[currentIndex]);
       createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
 	  createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
+	  createFormat(widgetArray[currentIndex]);
     break;
     case '_light':
     	createconfigInput('Label', 'text', widgetArray[currentIndex]['text']);
@@ -369,6 +481,7 @@ function openConfig(e){
 		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
 		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
 		createGraph(widgetArray[currentIndex]);
+		createFormat(widgetArray[currentIndex]);
     break;
     case '_audio':
     	createCheckbox('Hide this widget in drive mode', 'hideondrive', widgetArray[currentIndex]['hideondrive']);
@@ -408,11 +521,13 @@ function applyConfigChanges(){
       WA['label'] = document.getElementById('Label').value;
       WA['initial'] = document.getElementById('initialState').checked;
       WA['latching'] = document.getElementById('latching').checked;
+      WA['textColor'] = document.getElementById('textColor').value;
       localWidget.querySelector('#checkbox_text_ap').innerText = WA['label'];
       WA['useGamepad'] = document.getElementById('useGamepad').checked;
       WA['useKeys'] = document.getElementById('useKeys').checked;
       WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
       if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
+      localWidget.querySelector('#checkbox_text_ap').style.color = WA['textColor'];
     break;
     case '_joystick':
       WA['useGamepad'] = document.getElementById('useGamepad').checked;
@@ -424,7 +539,6 @@ function applyConfigChanges(){
       if(lastChangedAxis != -1) WA['useAxis'] = lastChangedAxis;
     break;
     case '_slider':
-      //WA['useGamepad'] = document.getElementById('useGamepad').checked;
       WA['min'] = document.getElementById('min').value;
       WA['max'] = document.getElementById('max').value;
       WA['step'] = document.getElementById('step').value;
@@ -453,7 +567,13 @@ function applyConfigChanges(){
 			localWidget.querySelector('#slider_ap').style.width = 'calc(100% - 5px)';
 		}
 	   }
-      //if(lastChangedAxis != -1) WA['useAxis'] = lastChangedAxis;
+	  WA['useGamepad'] = document.getElementById('useGamepad').checked;
+      WA['useKeys'] = document.getElementById('useKeys').checked;
+      WA['usekey_Increase'] = document.getElementById('usekey_Increase').value;
+      WA['usekey_Decrease'] = document.getElementById('usekey_Decrease').value;
+      WA['gp_Increase'] = document.getElementById('gp_Increase').value;
+      WA['gp_Decrease'] = document.getElementById('gp_Decrease').value;
+      WA['repeatdelay'] = document.getElementById('repeatdelay').value;
     break;
     case '_inputbox':
       WA['msgType'] = document.getElementById('msgType').value;
@@ -463,6 +583,8 @@ function applyConfigChanges(){
       WA['postfix'] = document.getElementById('textInput2').value;
       WA['msgType'] = document.getElementById('msgType').value;
       WA['textColor'] = document.getElementById('textColor').value;
+      WA['formatmode'] = document.getElementById('formatmode').value;
+      WA['formatvalue'] = document.getElementById('formatvalue').value;
       localWidget.querySelector('#text_ap').style.color = WA['textColor'];
     break;
     case '_light':
@@ -485,9 +607,11 @@ function applyConfigChanges(){
       WA['smalltick'] = document.getElementById('smalltick').value;
       WA['label'] = document.getElementById('label').value;
       WA['msgType'] = document.getElementById('msgType').value;
+      WA['formatmode'] = document.getElementById('formatmode').value;
+      WA['formatvalue'] = document.getElementById('formatvalue').value;
       let obj = JSON.stringify({min:WA.min,max:WA.max,bigtick:WA.bigtick,smalltick:WA.smalltick, title:WA.label});
       localWidget.querySelector('#gauge_ap').setAttribute("data-config",obj);
-      drawGauge(localWidget.querySelector('#gauge_ap'),WA.min);
+      drawGauge(localWidget.querySelector('#gauge_ap'),WA.min,WA);
     break;
     case '_text':
       WA['text'] = document.getElementById('text').value;
@@ -535,6 +659,9 @@ function createconfigInput(labelText, inputID, inputvalue){
   content.value = (inputvalue==undefined?'':inputvalue);
   configWindow.appendChild(label);
   configWindow.appendChild(content);
+}
+function createLittleInput(labelText, inputID, inputvalue){
+  configWindow.insertAdjacentHTML('beforeend',' <p class="specific" style="margin:10px 0px;display:inline-block"><b>'+labelText+'</p> <input value="'+(inputvalue==undefined?'':inputvalue)+'"class="specific" id='+inputID+' style="margin:0px; width:50px"></input>');
 }
 function createCheckbox(labelText, inputID, inputvalue){
   var label = document.createElement("h1");
@@ -591,20 +718,36 @@ function createconfiglinkGamepadAxis(array){
   configWindow.appendChild(axisText);
   document.getElementById('useGamepad').checked = array["useGamepad"];
 }
-function createconfiglinkGamepadButton(array){
+function createconfiglinkGamepadButton(array, opts){
   var label = document.createElement("h1");
   label.className = 'settingsLabel specific';
   label.style.margin = '20px 0px 0px 0px';
   label.innerHTML = 'Use Gamepad Input <input id="useGamepad" type="checkbox"></input>';
   label.style.margin.bottom = '0px';
-  var buttonText = document.createElement("p");
-  buttonText.className = 'specific';
-  buttonText.id='replaceWithCButton';
-  buttonText.style.margin = '0px';
-  if(array["useButton"] == -1) buttonText.innerHTML = 'Press a button on the gamepad to link...';
-  else buttonText.innerHTML = 'Paired to button: '+array['useButton'];
   configWindow.appendChild(label);
-  configWindow.appendChild(buttonText);
+  if(!opts){
+	var buttonText = document.createElement("p");
+	buttonText.className = 'specific';
+	buttonText.id='replaceWithCButton';
+	buttonText.style.margin = '0px';
+	if(array["useButton"] == -1) buttonText.innerHTML = 'Press a button on the gamepad to link...';
+	else buttonText.innerHTML = 'Paired to button: '+array['useButton'];
+	configWindow.appendChild(buttonText);
+  }else{
+	var buttonText = document.createElement("p");
+	buttonText.className = 'specific';
+	buttonText.id='replaceWithCButton';
+	buttonText.style.margin = '0px';
+	buttonText.style.display = 'none';
+	if(array["useButton"] == -1) buttonText.innerHTML = 'Press a button on the gamepad...';
+	else buttonText.innerHTML = 'Paired to button: '+array['useButton'];
+	configWindow.appendChild(buttonText);
+	configWindow.insertAdjacentHTML('beforeend','<p class="specific" style="margin:0px">click on input box below and press gamepad button</p>');
+	for(let i = 0; i <opts.length; i++){
+		 configWindow.insertAdjacentHTML('beforeend',' <p class="specific" style="margin:0px;display:inline-block">'+opts[i]+'</p> <input class="specific gamepad" id=gp_'+opts[i]+' style="margin:0px; width:50px"></input>');
+		 if(array['gp_'+opts[i]] != undefined) document.getElementById('gp_'+opts[i]).value = array['gp_'+opts[i]];
+	 }
+  }
   document.getElementById('useGamepad').checked = array["useGamepad"];
 }
 function createconfiglinkKeys(array,keylabels=['hotkey']){
@@ -635,9 +778,23 @@ function createconfigDataWrapper(array){
   if(postfix == undefined) postfix = '';
   let p = document.createElement('p');
   p.style.marginBottom = '20px';
-  p.className = 'specific';
+  p.className = 'specific settingsLabel';
   p.innerHTML = "Prefix: <input id='textInput1'value='"+prefix+"'></input> Postfix: <input id='textInput2'value='"+postfix+"'></input>";
   configWindow.appendChild(p);
+}
+function createFormat(array){
+	let formatmode = array.formatmode;
+	let formatvalue = array.formatvalue;
+  if(formatmode == undefined) formatmode = 0;
+  if(formatvalue == undefined) formatvalue = 2;
+  let code = 
+  '<h3 class="specific" style="margin:20px 0px 5px 0px">Number Formatting</h1><select id="formatmode" class="specific">'+
+  '<option value="0">Fixed decimal points</option>'+
+  '<option value="1">Precision (digits)</option>'+
+  '</select><input id="formatvalue" class="specific" style="width:50px; margin-left:5px"></input>';
+  configWindow.insertAdjacentHTML('beforeend',code);
+  document.getElementById('formatmode').value=formatmode;
+  document.getElementById('formatvalue').value=formatvalue;
 }
 function createGraph(array){
   let label = array.label;
@@ -671,6 +828,7 @@ function createRange(array){
 }
 
 //KEYBOARD INTERFACING
+var inc; //interval id. also used in gamepad loop
 document.addEventListener('keydown', (e) => {
 	if(!configIsOpen){
 		oldKeys = {...keys};
@@ -700,17 +858,16 @@ function getKeyboardUpdates(){
       let ck = [widgetArray[w].usekey_up,widgetArray[w].usekey_left,widgetArray[w].usekey_down,widgetArray[w].usekey_right];
       if(keysChanged(ck)){
         let dat = {x:0,y:0};
-        if(keys[ck[0]]) dat.y = -1;
-        if(keys[ck[1]]) dat.x = -1;
-        if(keys[ck[2]]) dat.y = 1;
-        if(keys[ck[3]]) dat.x = 1;
+        if(keys[ck[0]]) dat.y += -1;
+        if(keys[ck[1]]) dat.x += -1;
+        if(keys[ck[2]]) dat.y += 1;
+        if(keys[ck[3]]) dat.x += 1;
         drawJoystick(document.getElementById(widgetArray[w].id).querySelector('#canvas_ap'),dat.x,dat.y,false);
       }
     }
     if(widgetArray[w].type == '_button' && widgetArray[w].useKeys){
       let ck = [widgetArray[w].usekey_hotkey];
       if(keysChanged(ck)){
-        let dat = {x:0,y:0};
         let ele = document.getElementById(widgetArray[w].id).querySelector('#button_ap');
         if(keys[ck[0]]){
           triggerMouseEvent(ele,'mousedown');
@@ -725,12 +882,39 @@ function getKeyboardUpdates(){
     if(widgetArray[w].type == '_checkbox' && widgetArray[w].useKeys){
       let ck = [widgetArray[w].usekey_hotkey];
       if(keysChanged(ck)){
-        let dat = {x:0,y:0};
         let ele = document.getElementById(widgetArray[w].id).querySelector('#checkbox_ap');
         if(keys[ck[0]]){
           ele.checked = !ele.checked;
           sendToRos(widgetArray[w].topic,{pressed:ele.checked},widgetArray[w].type);
         }
+      }
+    }
+    if(widgetArray[w].type == '_slider' && widgetArray[w].useKeys){
+      let ck = [widgetArray[w].usekey_Increase,widgetArray[w].usekey_Decrease];
+      if(keysChanged(ck)){
+        let dat = 0;
+        //if(keys[ck[0]]) inc = setInterval(()=>{dat.v = -Number(widgetArray[w].step); updateSlider()},10);
+        //else if(keys[ck[1]]) inc = setInterval(()=>{dat.v = Number(widgetArray[w].step); updateSlider()},10);
+        //else inc = null;
+        if(keys[ck[0]]){
+			if(inc)clearInterval(inc);
+			inc = setInterval(move,parseInt(widgetArray[w].repeatdelay));
+			dat=Number(widgetArray[w].step);
+			move();
+		}
+        else if(keys[ck[1]]){
+			if(inc)clearInterval(inc);
+			inc = setInterval(move,parseInt(widgetArray[w].repeatdelay));
+			dat=-Number(widgetArray[w].step);
+			move();
+		}
+		else if(inc)clearInterval(inc);
+		function move(){
+			let v = Number(document.getElementById(widgetArray[w].id).querySelector('#slider_ap').value);
+			v += dat;
+			document.getElementById(widgetArray[w].id).querySelector('#slider_ap').value = v;
+			sendToRos(widgetArray[w]['topic'],{value:(v>widgetArray[w].max?widgetArray[w].max:(v<widgetArray[w].min?widgetArray[w].min:v))},widgetArray[w]['type']);
+		}
       }
     }
   }
@@ -773,7 +957,8 @@ function readGamepadLoop(){
     if(currentGamepad.buttons[i].pressed != oldGamepad.buttons[i].pressed){
       if(configIsOpen){
         lastChangedButton = i;
-        document.getElementById('replaceWithCButton').innerText = `Paired to button: ${lastChangedButton}`;
+        if(document.activeElement.className.includes('gamepad')) document.activeElement.value = lastChangedButton;
+        if(document.getElementById('replaceWithCButton')) document.getElementById('replaceWithCButton').innerText = `Paired to button: ${lastChangedButton}`;
       }
       for(let w = 0; w < widgetArray.length; w++){
         if(widgetArray[w].screen == thisScreen && widgetArray[w].type == '_button' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
@@ -794,6 +979,39 @@ function readGamepadLoop(){
             sendToRos(widgetArray[w].topic,{pressed:ele.checked},widgetArray[w].type);
           }
         }
+        let dat = 0;
+        if(widgetArray[w].screen == thisScreen && widgetArray[w].type == '_slider' && widgetArray[w].useGamepad && 'gp_Increase' in widgetArray[w] && widgetArray[w]['gp_Increase'] == i){
+          var ele = document.getElementById(widgetArray[w].id).querySelector('#slider_ap');
+          //check if the 'increase slider' button is pressed
+          if(currentGamepad.buttons[i].pressed){
+            if(inc)clearInterval(inc);
+			inc = setInterval(move,parseInt(widgetArray[w].repeatdelay));
+			dat=Number(widgetArray[w].step);
+			move();
+          }
+          else{
+            if(inc)clearInterval(inc);
+          } 
+        }
+        else if(widgetArray[w].screen == thisScreen && widgetArray[w].type == '_slider' && widgetArray[w].useGamepad && 'gp_Decrease' in widgetArray[w] && widgetArray[w]['gp_Decrease'] == i){
+          var ele = document.getElementById(widgetArray[w].id).querySelector('#slider_ap');
+          //check if the 'decrease slider' button is pressed
+          if(currentGamepad.buttons[i].pressed){
+            if(inc)clearInterval(inc);
+			inc = setInterval(move,parseInt(widgetArray[w].repeatdelay));
+			dat=-Number(widgetArray[w].step);
+			move();
+          }
+          else{
+            if(inc)clearInterval(inc);
+          }
+        }
+        function move(){
+			let v = Number(document.getElementById(widgetArray[w].id).querySelector('#slider_ap').value);
+			v += dat;
+			document.getElementById(widgetArray[w].id).querySelector('#slider_ap').value = v;
+			sendToRos(widgetArray[w]['topic'],{value:(v>widgetArray[w].max?widgetArray[w].max:(v<widgetArray[w].min?widgetArray[w].min:v))},widgetArray[w]['type']);
+		}
       }
     }
   }
@@ -895,6 +1113,7 @@ function camSelect(me){
 function repositionThumbs(){
 	let tileArray = document.getElementsByClassName('imageTile');
 	let x = document.getElementById('mainImage').getBoundingClientRect().x;
+	if(x < 0) x = 0;
 	for(let i =0; i< tileArray.length; i++){
 		tileArray[i].style.left = parseInt(x + i*110+5) + 'px';
 	}
@@ -925,4 +1144,11 @@ function ping(){
 }
 function playSound(s){
 	if(sounds[s]) new Audio(sounds[s]).play();
+}
+
+//opts = bool mode, value
+function formatNumber(data,opts){
+	if(opts.formatmode==0) return Number(data).toFixed(parseInt(opts.formatvalue));
+	if(opts.formatmode==1) return Number(data).toPrecision(parseInt(opts.formatvalue));
+	return data;
 }
