@@ -127,9 +127,14 @@ function addCams(c){
 }
 function sendToServer(){
 	let data = generateConfig();
-	socket.emit('configSettings',data);
-	socket.emit('WCTS',settings['widgets']);
-	console.log('sent to server');
+	document.getElementById('header').innerText = 'Sending...';
+	socket.emit('configSettings',data,(confirmation)=>{
+		socket.emit('WCTS',settings['widgets'],(confirmation)=>{
+			console.log('sent to server');
+			document.getElementById('header').innerText = 'Success';
+			return;
+		});
+	});
 }
 function exportFile(){
 	settings['config'] = generateConfig();
@@ -163,4 +168,8 @@ function loadJsonFile(me){
 		settings['widgets']= result['widgets'];
 	});
 	reader.readAsText(me.files[0]);
+}
+function backToConsole(){
+	if(gotSettings) sendToServer();
+	window.location.href = window.location.href.replace('/config.html','');
 }

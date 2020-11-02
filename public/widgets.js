@@ -22,6 +22,7 @@ function widgetFromJson(json){
   switch (type) {
     case '_button':
       tile.querySelector('#button_ap').innerText = json['label'];
+      if(json['fontsize']) localWidget.querySelector('#button_ap').style.fontSize = Number(WA['fontsize'])+'px';
     break;
     case '_checkbox':
       tile.querySelector('#checkbox_text_ap').innerText = json['label'];

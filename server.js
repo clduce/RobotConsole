@@ -4,6 +4,8 @@ var express = require('express');
 const rosnodejs = require('rosnodejs');
 //const raspberryPiCamera = require('raspberry-pi-camera-native');
 const cv = require('opencv4nodejs');
+const cp = require('child_process');
+var kill = require('tree-kill');
 const fs = require('fs');
 var app = express();
 var PORT = 3000;
@@ -21,6 +23,7 @@ app.use(express.static(__dirname + '/public'));
 console.log("server running on port "+ PORT);
 console.log("looking for cameras...");
 let index = 0;
+let cmds = {};
 
 for(let i = 0; i < 10; i++){
 	try{
@@ -37,7 +40,7 @@ for(let i = 0; i < 10; i++){
 console.log('total of ' + camArray.length + ' cameras found');
 
 var socket = require('socket.io');
-var io = socket(server);
+var io = socket(server, {pingInterval: 100});
 io.set('origins','*:*');
 
 
@@ -176,9 +179,32 @@ io.sockets.on('connection', function(socket){
       console.log(e);
     }
   });
-  socket.on('pingS', function(data){
-    socket.emit('pingR',data);
+  //socket.on('pingS', function(data){
+    //socket.emit('pingR',data);
+  //});
+  
+  //start a child process
+  socket.on('cmd', function(data){
+    cmds[data] = cp.spawn(data,[],{shell:true});
+    cmds[data].stdout.on('data', stdout => {
+		socket.emit('cmdOut',stdout.toString());
+		console.log(stdout.toString());
+	});
+	cmds[data].stderr.on('data', stderr => {
+		socket.emit('cmdOut',stderr.toString());
+		console.log(stderr.toString());
+	});
+	cmds[data].on('close', code => {
+		socket.emit('cmdOut','exit code: '+code+'\n');
+		socket.emit('removeCmd',data);
+		console.log(code);
+	});
   });
+  socket.on('stopcmd', function(data){
+		console.log('stopping '+data);
+		kill(cmds[data].pid);
+	});
+  
   //ROS client to server
   socket.on('ROSCTS', function(data){
     settingsObject['widgets'] = data;
@@ -213,7 +239,11 @@ io.sockets.on('connection', function(socket){
   socket.on('setScreen1', function(data){
     cameraReciever = socket;
   });
+  socket.on('closeOtherSockets', function(data){
+    socket.broadcast.emit('closeSocket','');
+  });
   socket.on('disconnect', function(data){
+	socket.disconnect();
     socketsOpen--;
     io.emit('instanceCount',socketsOpen);
   });
@@ -221,7 +251,6 @@ io.sockets.on('connection', function(socket){
 
 //send thumbs (small camera previews)
 let thumbindex = 0;
-let FPS = 200;
 let getThumb = function(){
 	try{
 		let frame = camArray[thumbindex].read();
@@ -231,7 +260,7 @@ let getThumb = function(){
 			io.emit('thumb',{img:result.toString('base64'),index:thumbindex});
 			thumbindex++;
 			if(thumbindex == camArray.length) thumbindex = 0;
-			setTimeout(getThumb,FPS);
+			setTimeout(getThumb,200);
 		}).catch(function(e){console.log(e);});
 	}
 	catch{
@@ -259,6 +288,7 @@ let getCam = function(){
 	}
 }
 setTimeout(getCam,0);
+
 
 
 ////READ CAM STREAM FROM PICAM

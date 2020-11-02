@@ -28,6 +28,7 @@ function initJoystick(c,nel = false){
 		document.onmousemove = null;
 	}
   });
+  
   function move(e){
 	mouse = getStick(e);
 	if(mouse.pressed){
@@ -113,7 +114,6 @@ function drawGauge(c,v,format){
 	opts.max=Number(opts.max);
 	opts.bigtick=Number(opts.bigtick);
 	opts.smalltick=Number(opts.smalltick);
-	console.log(v);
 	//v=v|opts.min;
 	if(v == undefined) v = opts.min;
     y=c.height/2;

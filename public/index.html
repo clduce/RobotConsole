@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <title id='title'>Robot Console</title>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="joystick.js" charset="utf-8"></script>
+  <script src="joystick.js" charset="utf-8"></script
+  
 </head>
 
 <style>
@@ -118,6 +119,7 @@ body{
   font-size:15px;
   margin-top:0px;
   width:100%;
+  padding:0px;
   height:calc(100% - 23px);
   background-color:internal-light-dark(rgb(239, 239, 239), rgb(74, 74, 74));
   cursor:pointer;
@@ -199,8 +201,9 @@ button:focus {outline:0;}
 .vertical{
 	position:absolute;
 	transform-origin:0 0;
-	transform: rotate(90deg);
-	left:25px;
+	transform: rotate(270deg);
+	left:2.5px;
+	bottom:-22px;
 	width:100px;
 }
 /* Mouse-over effects */
@@ -237,27 +240,6 @@ button:focus {outline:0;}
 	cursor: pointer;
 	transition-property: all;
 	transition-duration:0.7s;
-}
-.infoIcon{
-	position:absolute;
-	right:5px;
-	top:5px;
-	width:40px;
-	height:40px;
-	cursor:pointer;
-}
-.infoIcon:hover{
-	filter:brightness(85%)
-}
-#infoPanel{
-	position:absolute;
-	width:300px;
-	height:400px;
-	background-color:#172a4a;
-	top:50px;
-	right:0px;
-	border-radius:0px 0px 0px 10px;
-	visibility:hidden;
 }
 #color_ap{
 	background-color:#32cd32;
@@ -311,15 +293,17 @@ button:focus {outline:0;}
 <div class='navBar' id='navBar'>
   <h1 class="label" style="color: #FFF;margin:5px 40px 5px 10px;"id='consoleName'>Robot Control</h1>
   <button class="navBarButton" id='driveMode' onclick="toggleDriveMode();">Drive Mode</button>
+  <button class="navBarButton" onclick="toggleFullscreen()">Toggle Fullscreen</button>
   <select hidden id='screenSelect' class='navBarButton' onchange="changeScreen(this);">
     <option value='1'>Screen 1</option>
     <option value='2'>Screen 2</option>
   </select>
   <button class="navBarButton" onclick="window.location.href += 'config.html'">Config Settings</button>
-  <image class='infoIcon' src='info.png' onclick='toggleInfo()'></image>
+  <button class="navBarButton" onclick="openTerminal()">Terminal</button>
+  <button class="navBarButton" onclick="closeOtherSockets()">close other clients</button>
   <div id='infoPanel'>
-	    <h1 class="label" style="color: #FFF;margin:5px 10px 5px 10px;right:0px;"id='instanceCount'>waiting...</h1>
-		<h1 class="label" style="color: #FFF;margin:5px 10px 5px 10px;right:100px;"id='ping'>waiting on ping...</h1>
+	    <h1 class="label" style="color: #FFF;right:14px;position:absolute;margin:0px;top:6px"id='instanceCount'>waiting...</h1>
+		<h1 class="label" style="color: #FFF;right:153px;position:absolute;margin:0px;top:6px"id='ping'>waiting on ping...</h1>
   </div>
 </div>
 <image class='image' id='mainImage'></image>
@@ -400,7 +384,19 @@ button:focus {outline:0;}
 </div>
 <!-- mask that blocks interaction, for the config settings panel etc. -->
 <div id='mask' style="display: none; position: absolute; z-index: 120; background-color:rgba(0, 0, 0, 0.6); width:100%; height:100%; top:0px; left:0px;"></div>
-
+<div spellcheck="false" id='terminal' class="panel" style="display: none; z-index: 121;width:80%; height:80%; left:10%; top:10%; overflow-y:auto">
+	<div style="position:absolute;width:65%; height:100%; left:0%; top:0px; overflow-y:auto"id='terminalLeft'>
+		<h1>Terminal</h1>
+		<input id='cmdValue'style='width:calc(70% + 12px);height:40px; font-size:25px'></input><button onclick='runCmdFromInput()'style='margin:0px;margin-left:10px;height:46px; width:80px; transform:translateY(-3px)'>Run</button>
+		<textarea id='cmdOutput'style='resize:none;width:calc(70% + 105px);height:calc(100% - 230px); margin-top:10px'></textarea>
+	</div>
+	<div style="position:absolute;width:35%; height:100%; left:65%; top:0px; overflow-y:auto"id='terminalLeft'>
+		<h1>End Processes</h1>
+		<div id='processes' style='position:absolute; left:15%; width:70%; height:calc(100% - 173px); background-color:#FFF; border:1px solid #999;'>
+		</div>
+	</div>
+	<button onclick="closeTerminal();" class="label darken" style="font-size: 20px;background-color:#9de7fc; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:10px;">Exit</button>
+</div>
 <!-- config settins panel -->
 <div id='configWindow' class="panel" style="display: none;z-index: 121;width:50%; height:70%; left:25%; top:15%; overflow-y:auto">
   <h1 class='settingsLabel' id='topiclabel' style="margin-top: 20px;">ROS Topic Name</h1>

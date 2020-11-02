@@ -1,7 +1,9 @@
 var editing = false;//this is true when you drag elements
+var fullScreen=false;
 var mask = document.getElementById('mask');
 var configWindow = document.getElementById('configWindow');
-var configIsOpen = false,elementOpenInConfig;
+var terminal = document.getElementById('terminal');
+var configIsOpen = false,elementOpenInConfig, terminalIsOpen = false;
 var driveMode = false, widgetHolderOpen = true;
 var currentID, currentIndex;
 var widgetArray = JSON.parse('{}');
@@ -25,6 +27,10 @@ socket.on('settings',function(data){
 		socket.emit('setScreen1','');
 		console.log(data);
 		widgetArray = data['widgets'];
+		let allDynamicElements = document.getElementsByClassName('panel dragable');
+		for(let i = allDynamicElements.length-1; i>=0; i--){
+			allDynamicElements[i].remove();
+		}
 		document.getElementById('consoleName').innerText = data.config['consoleName'];
 		document.getElementById('title').innerText = data.config['consoleName'];
 		body.style.backgroundColor = data.config.background;
@@ -80,7 +86,6 @@ socket.on('telem',function(data){
 					drawGauge(we.querySelector('#gauge_ap'),data.msg.data,c);
 				break;
 				case '_light':
-					console.log(data.msg.data);
 					we.querySelector('#color_ap').style.backgroundColor = data.msg.data?'#32cd32':'#cd3f32';
 				case '_audio':
 					playSound(data.msg.data);
@@ -92,10 +97,19 @@ socket.on('telem',function(data){
 socket.on('instanceCount',function(data){
 	if(document.getElementById('instanceCount')) document.getElementById('instanceCount').innerText = 'clients: ' + data;
 });
-socket.on('pingR',function(data){
-	document.getElementById('ping').innerText = 'ping '+(Date.now()-data)+'ms';
+//socket.on('pingR',function(data){
+	//document.getElementById('ping').innerText = 'ping '+(Date.now()-data)+'ms';
+//});
+socket.on('pong',function(ms){
+	document.getElementById('ping').innerText = 'ping '+ms+'ms';
 });
-
+socket.on('closeSocket',function(data){
+	console.log('manual disconnect');
+	socket.disconnect();
+});
+function closeOtherSockets(){
+	socket.emit('closeOtherSockets');
+}
 //initalize all graphical Widgets in source bar
 var canvas = document.getElementById('_joystick').querySelector('#canvas_ap');
 initJoystick(canvas, true);
@@ -215,8 +229,8 @@ function dragElement(elmnt) {
     pos1S = pos3S - e.clientX;
     pos2S = pos4S - e.clientY;
     
-    if(pos1S > -100) pos1S = -100;
-    if(pos2S > -45) pos2S = -45;
+    if(pos1S > -76) pos1S = -76;
+    if(pos2S > -61) pos2S = -61;
     
     let newHeight = snapY(-pos2S) + "px";
     let newWidth = snapX(-pos1S) + "px";
@@ -412,6 +426,48 @@ function overlaps(x,y,w,h,  x2,y2,w2,h2){
 	return false;
 }
 
+//ONBOARD TERMINAL
+const outputele = document.getElementById('cmdOutput');
+socket.on('cmdOut',function(data){
+	outputele.value = outputele.value + data;
+	outputele.scrollTop = outputele.scrollHeight;
+});
+socket.on('removeCmd',function(data){
+	console.log('removing');
+	let p = document.getElementsByClassName('pbutton');
+	for(let i = 0; i < p.length; i++){
+		//console.log(p[i].value,data);
+		if(p[i].value == data) p[i].remove();
+	}
+});
+function openTerminal(){
+	terminalIsOpen = true;
+	mask.style.display = 'inline';
+	terminal.style.display = 'inline';
+}
+function closeTerminal(){
+	terminalIsOpen = false;
+	mask.style.display = 'none';
+	terminal.style.display = 'none';
+}
+function runCmdFromInput(){
+	let v = document.getElementById('cmdValue').value;
+	if(v){
+		socket.emit('cmd',v);
+		createStopButton(v);
+	}
+}
+function createStopButton(name){
+	let code = 
+	'<button class="pbutton"style="width:90%;height:40px;display:block;margin-left:5%;margin-top:5px;"onclick="stopCmd(this)"value="'+name+'">'+
+	name+'</button>';
+	document.getElementById('processes').insertAdjacentHTML('beforeend',code);
+}
+function stopCmd(e){
+	if(e.value) socket.emit('stopcmd',e.value);
+	e.remove();
+}
+
 //WIDGET CONFIGURATION PANEL
 //open configuration settings panel for each widget
 function openConfig(e){
@@ -440,6 +496,7 @@ function openConfig(e){
   switch(type){
     case '_button':
       createconfigInput('Button Label', '_button-labelText', widgetArray[currentIndex]['label']);
+      createLittleInput('Font Size (px)', 'fontsize', widgetArray[currentIndex]['fontsize'],16);
       createconfiglinkGamepadButton(widgetArray[currentIndex]);
       createconfiglinkKeys(widgetArray[currentIndex]);
     break;
@@ -463,7 +520,7 @@ function openConfig(e){
 	  createconfigInput('Default/initial value', 'default', widgetArray[currentIndex]['default']);
 	  createconfiglinkKeys(widgetArray[currentIndex],['Decrease','Increase']);
 	  createconfiglinkGamepadButton(widgetArray[currentIndex],['Decrease','Increase']);
-	  createLittleInput('Repeat Delay (ms)', 'repeatdelay', widgetArray[currentIndex]['repeatdelay']);
+	  createLittleInput('Repeat Delay (ms)', 'repeatdelay', widgetArray[currentIndex]['repeatdelay'],100);
     break;
     case '_inputbox':
 	  createSelect('Message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
@@ -515,6 +572,8 @@ function applyConfigChanges(){
       WA['useGamepad'] = document.getElementById('useGamepad').checked;
       WA['useKeys'] = document.getElementById('useKeys').checked;
       WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
+      WA['fontsize'] = document.getElementById('fontsize').value;
+      localWidget.querySelector('#button_ap').style.fontSize = (Number(WA['fontsize'])<4?4:Number(WA['fontsize']))+'px';
       if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
     break;
     case '_checkbox':
@@ -660,8 +719,9 @@ function createconfigInput(labelText, inputID, inputvalue){
   configWindow.appendChild(label);
   configWindow.appendChild(content);
 }
-function createLittleInput(labelText, inputID, inputvalue){
-  configWindow.insertAdjacentHTML('beforeend',' <p class="specific" style="margin:10px 0px;display:inline-block"><b>'+labelText+'</p> <input value="'+(inputvalue==undefined?'':inputvalue)+'"class="specific" id='+inputID+' style="margin:0px; width:50px"></input>');
+function createLittleInput(labelText, inputID, inputvalue,defaultvalue){
+	if(!defaultvalue) defaultvalue = '';
+  configWindow.insertAdjacentHTML('beforeend','<br class="specific"><p class="specific" style="margin:10px 0px;display:inline-block"><b>'+labelText+'</p> <input value="'+(inputvalue==undefined?defaultvalue:inputvalue)+'"class="specific" id='+inputID+' style="margin:0px; width:50px"></input>');
 }
 function createCheckbox(labelText, inputID, inputvalue){
   var label = document.createElement("h1");
@@ -837,13 +897,14 @@ document.addEventListener('keydown', (e) => {
 	}
 });
 document.addEventListener('keyup', (e) => {
-	if(!configIsOpen){
+	if(!configIsOpen && !terminalIsOpen){
 		oldKeys = {...keys};
 		keys[e.key] = false;
 		getKeyboardUpdates();
 	}
-	else{
-		if(e.key == 'Enter') applyConfigChanges();
+	if(e.key == 'Enter'){
+		if(terminalIsOpen)runCmdFromInput();
+		if(configIsOpen)applyConfigChanges();
 	}
 });
 function keysChanged(k){
@@ -1122,33 +1183,48 @@ window.onresize = function(){
 	repositionThumbs();
 }
 
-
-let pingInterval;
-let infoIsOpen = false;
-function toggleInfo(){
-	if(infoIsOpen) closeInfo();
-	else openInfo();
-}
-function openInfo(){
-	pingInterval = setInterval(ping,200);
-	document.getElementById('infoPanel').style.visibility = 'visible';
-	infoIsOpen = true;
-}
-function closeInfo(){
-	clearInterval(pingInterval);
-	document.getElementById('infoPanel').style.visibility = 'hidden';
-	infoIsOpen = false;
-}
-function ping(){
-	socket.emit('pingS',Date.now());
-}
 function playSound(s){
 	if(sounds[s]) new Audio(sounds[s]).play();
 }
-
 //opts = bool mode, value
 function formatNumber(data,opts){
 	if(opts.formatmode==0) return Number(data).toFixed(parseInt(opts.formatvalue));
 	if(opts.formatmode==1) return Number(data).toPrecision(parseInt(opts.formatvalue));
 	return data;
 }
+
+var elem = document.documentElement;
+/* View in fullscreen */
+function openFullscreen() {
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.webkitRequestFullscreen) { /* Safari */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE11 */
+    elem.msRequestFullscreen();
+  }
+}
+
+/* Close fullscreen */
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) { /* Safari */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) { /* IE11 */
+    document.msExitFullscreen();
+  }
+}
+
+function toggleFullscreen(){
+	if(fullScreen) closeFullscreen();
+	else openFullscreen();
+	fullScreen = !fullScreen; 
+}
+
+//mobile support
+function preventBehavior(e) {
+    e.preventDefault(); 
+};
+body.addEventListener("touchmove", preventBehavior, {passive: false});
+//body.addEventListener("touchstart", preventBehavior, {passive: false});
