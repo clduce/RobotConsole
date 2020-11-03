@@ -8,7 +8,7 @@ var driveMode = false, widgetHolderOpen = true;
 var currentID, currentIndex;
 var widgetArray = JSON.parse('{}');
 var snapWidgets = false;
-var socket;
+var socket, connected = false;
 var loadedElements = false;//flag to check if elements have been constructed from json sent from server
 var madeThumbs = false;
 var readGamepadInterval={},currentGamepad,oldGamepad,lastChangedAxis;
@@ -42,9 +42,16 @@ socket.on('settings',function(data){
 		}
 		if(!data.config['loadInEditMode']) toggleDriveMode();
 		loadedElements = true;
+		connected = true;
+		hideMessage();
 	}else{
 		console.log('already loaded elements');
 	}
+});
+socket.on('hardcoded_settings',function(data){
+	console.log(data);
+	if(data.show_terminal) document.getElementById('termButton').style.display = 'inline';
+	if(data.show_config_settings) document.getElementById('confButton').style.display = 'inline';
 });
 
 //on video feed recieve
@@ -104,8 +111,10 @@ socket.on('pong',function(ms){
 	document.getElementById('ping').innerText = 'ping '+ms+'ms';
 });
 socket.on('closeSocket',function(data){
+	connected = false;
+	showMessage('Socket was closed. Reload page to reopen');
 	console.log('manual disconnect');
-	socket.disconnect();
+	socket.disconnect(true);
 });
 function closeOtherSockets(){
 	socket.emit('closeOtherSockets');
@@ -1113,6 +1122,17 @@ function toggleDriveMode(){
     document.getElementsByClassName('toggleWidgetHolder')[0].style.visibility='hidden';
   }
 }
+
+function showMessage(text){
+	mask.style.display = 'inline';
+	document.getElementById('messagePanel').style.display = 'flex';
+	document.getElementById('messagePanelText').innerText = text;
+}
+function hideMessage(){
+	mask.style.display = 'none';
+	document.getElementById('messagePanel').style.display = 'none';
+}
+
 function hideWidgetHolder(){
   let me = document.getElementsByClassName('toggleWidgetHolder')[0];
   document.getElementById('widgetHolder').style.left = '-260px';

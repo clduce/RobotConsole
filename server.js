@@ -1,4 +1,6 @@
 #! /usr/bin/env node
+const SETTINGS_PATH = __dirname + '/settings.json';
+const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
 
 var express = require('express');
 const rosnodejs = require('rosnodejs');
@@ -9,9 +11,8 @@ var kill = require('tree-kill');
 const fs = require('fs');
 var app = express();
 var PORT = 3000;
-const SETTINGS_PATH = __dirname + '/settings.json';
 var server = app.listen(PORT);
-var settingsObject;
+var settingsObject,hardcoded;
 var rosready = false;
 var nh, rospublishers={}, rossubscribers={};
 var cameraReciever;//socket id of the client displaying the camera stream
@@ -146,6 +147,13 @@ io.sockets.on('connection', function(socket){
     socket.emit('makeThumbs',camArray.length);
     console.log('current settings on server: ' + JSON.stringify(settingsObject));
   });
+  //get settings from json and send to client
+  fs.readFile(HARDCODED_SETTINGS_PATH, (err, data) => {
+    if (err) throw err;
+    hardcoded = JSON.parse(data);
+    console.log(JSON.stringify(hardcoded));
+    socket.emit('hardcoded_settings',hardcoded);
+  });
 
   //widgets client to server
   socket.on('WCTS', function(data){
@@ -185,24 +193,31 @@ io.sockets.on('connection', function(socket){
   
   //start a child process
   socket.on('cmd', function(data){
-    cmds[data] = cp.spawn(data,[],{shell:true});
-    cmds[data].stdout.on('data', stdout => {
-		socket.emit('cmdOut',stdout.toString());
-		console.log(stdout.toString());
-	});
-	cmds[data].stderr.on('data', stderr => {
-		socket.emit('cmdOut',stderr.toString());
-		console.log(stderr.toString());
-	});
-	cmds[data].on('close', code => {
-		socket.emit('cmdOut','exit code: '+code+'\n');
-		socket.emit('removeCmd',data);
-		console.log(code);
-	});
+	  console.log(hardcoded);
+	if(hardcoded.show_terminal){
+		cmds[data] = cp.spawn(data,[],{shell:true});
+		cmds[data].stdout.on('data', stdout => {
+			socket.emit('cmdOut',stdout.toString());
+			console.log(stdout.toString());
+		});
+		cmds[data].stderr.on('data', stderr => {
+			socket.emit('cmdOut',stderr.toString());
+			console.log(stderr.toString());
+		});
+		cmds[data].on('close', code => {
+			socket.emit('cmdOut','exit code: '+code+'\n');
+			socket.emit('removeCmd',data);
+			console.log(code);
+		});
+	}else{
+		console.log('terminal has been disabled');
+	}
   });
   socket.on('stopcmd', function(data){
+	  if(hardcoded.show_terminal){
 		console.log('stopping '+data);
 		kill(cmds[data].pid);
+	  }
 	});
   
   //ROS client to server

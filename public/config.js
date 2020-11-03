@@ -1,4 +1,5 @@
 socket = io(window.location.hostname + ':' + window.location.port);
+var mask = document.getElementById('mask');
 let settings = {};
 let camcount = 1;
 let gotSettings = false, gotThumbs = false;
@@ -7,7 +8,12 @@ socket.on('settings', (data) => {
 		settings = data;
 		gotSettings = true;
 	}
+	hideMessage();
 });
+socket.on('hardcoded_settings',function(data){
+	if(!data.show_config_settings) document.body.innerHTML = '';
+});
+
 //recieve camera count
 socket.on('makeThumbs',(data) => {
 	if(!gotThumbs){
@@ -54,14 +60,22 @@ socket.on('makeThumbs',(data) => {
  *  		"password":"password",
  *  		"ipaddress":"ipaddress"
  * 		},
- * 		"cams":[
- * 			{
- * 				"width":"320",
- * 				"height":"240",
- * 				"quality":100,
- * 				"fps":30
- * 			}
- * 		]
+ * 		"cams":{
+ * 			"presets": [
+ * 				{
+ * 					"width":"320",
+ * 					"height":"240",
+ * 					"quality":100,
+ * 					"name":"low res"
+ * 				}
+ * 			],
+ * 			"camsettings":[
+ * 				{
+ * 					"preset":0,
+ * 					"name":"pi cam"
+ * 				}
+ * 			]
+ * 		}
  * }
 */
 function populateConfig(data){
@@ -172,4 +186,13 @@ function loadJsonFile(me){
 function backToConsole(){
 	if(gotSettings) sendToServer();
 	window.location.href = window.location.href.replace('/config.html','');
+}
+function showMessage(text){
+	mask.style.display = 'inline';
+	document.getElementById('messagePanel').style.display = 'flex';
+	document.getElementById('messagePanelText').innerText = text;
+}
+function hideMessage(){
+	mask.style.display = 'none';
+	document.getElementById('messagePanel').style.display = 'none';
 }

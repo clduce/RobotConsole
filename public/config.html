@@ -14,6 +14,13 @@ body{
   font-family: Tahoma, Geneva, sans-serif;
   font-weight: normal;
 }
+.panel{
+  position: absolute;
+  z-index: 9;
+  background-color: #f2f2f2;
+  text-align: center;
+  border-radius: 5px;
+}
 .widgetHolder{
   position: absolute;
   left: 0px;
@@ -52,6 +59,11 @@ body{
 }
 .settings{
   margin:20px;
+}
+.settingsLabel{
+  font-family: Tahoma, Geneva, sans-serif;
+  font-weight: bold;
+  font-size:17px;
 }
 .inputLabel{
   display: inline-block;
@@ -128,6 +140,10 @@ body{
   <div id='cams' class='div' style='background-color:beige'>
 	<h1 class='cat' id='camcount'>Cameras</h1>
   </div>
+  <div id='presets' class='div' style='background-color:beige'>
+	<h1 class='cat'>Camera Presets</h1>
+	<button id='addPreset' onclick='addPreset()'>+ Add Preset</button>
+  </div>
 	<div class='div' style='background-color:antiquewhite'>
 	<h1 class='cat'>Console Settings</h1>
 	<p class="inputLabel">Console Name</p>
@@ -139,6 +155,10 @@ body{
 	<p class="inputLabel">Snap Widgets to Grid (Experimental)</p>
 	<input type='checkbox'class='snaptogrid'></input><br>
   </div>
+</div>
+<div id='mask' style="position: fixed; z-index: 120; background-color:rgba(0, 0, 0, 0.6); width:100%; height:100%; top:0px; left:0px;"></div>
+<div id='messagePanel' class="panel" style="position:fixed;z-index: 121;width:500px; height:150px; left:calc(50% - 250px); top:calc(50% - 75px); overflow-y:auto; display:flex;align-items:center;justify-content:center">
+  <h1 class='settingsLabel' id='messagePanelText' style="margin: 0px;font-size:25px;">Waiting for Socket Connection...</h1>
 </div>
 <script src='config.js'></script>
 </body>

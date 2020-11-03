@@ -140,7 +140,7 @@ function makeUnique(type,newWidget){
   thisWidget['w'] = newWidget.style.width;
   thisWidget['h'] = newWidget.style.height;
   thisWidget['topic'] = newWidget.querySelector('#header').childNodes[0].data;
-  thisWidget['screen'] = document.getElementById('screenSelect').value;
+  thisWidget['screen'] = 1;
   thisWidget['useROS'] = true;
 
   switch (type) {
