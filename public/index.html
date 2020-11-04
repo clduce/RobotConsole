@@ -231,19 +231,19 @@ button:focus {outline:0;}
   background: #4CAF50; /* Green background */
   cursor: pointer; /* Cursor on hover */
 }
-
-
 .imageTile{
 	position:absolute;
 	left:500px;
 	top:55px;
 	border-radius: 10px;
-	width:100px;
+	width:150px;
 	border: solid;
-	border-color: yellow;
+	border-color: black;
+	background-color:#FFF;
 	cursor: pointer;
 	transition-property: all;
 	transition-duration:0.7s;
+	padding:3px;
 }
 #color_ap{
 	background-color:#32cd32;
@@ -290,21 +290,26 @@ button:focus {outline:0;}
 .soundbutton:hover{
 	filter:brightness(85%);
 }
+.gamepadStatus{
+	height:35px;
+	margin-top:6px;
+}
 </style>
 
 <body id='body' oncontextmenu="return false;">
 <!-- top nav bar -->
 <div class='navBar' id='navBar'>
   <h1 class="label" style="color: #FFF;margin:5px 40px 5px 10px;"id='consoleName'>Robot Control</h1>
+  <div id='infoPanel' style='font-size:10px'>
+	    <h1 class="label" style="color: #FFF;right:10px;position:absolute;margin:0px;top:3px"id='instanceCount'>waiting...</h1>
+		<h1 class="label" style="color: #FFF;right:10px;position:absolute;margin:0px;top:23px"id='ping'>waiting on ping...</h1>
+  </div>
   <button class="navBarButton" id='driveMode' onclick="toggleDriveMode();">Drive Mode</button>
   <button class="navBarButton" onclick="toggleFullscreen()">Toggle Fullscreen</button>
   <button class="navBarButton" onclick="window.location.href += 'config.html'" id='confButton' style='display:none'>Config Settings</button>
   <button class="navBarButton" onclick="openTerminal()" id='termButton' style='display:none'>Terminal</button>
   <button class="navBarButton" onclick="closeOtherSockets()">close other clients</button>
-  <div id='infoPanel'>
-	    <h1 class="label" style="color: #FFF;right:14px;position:absolute;margin:0px;top:6px"id='instanceCount'>waiting...</h1>
-		<h1 class="label" style="color: #FFF;right:153px;position:absolute;margin:0px;top:6px"id='ping'>waiting on ping...</h1>
-  </div>
+  <image id='gpstatus'class='gamepadStatus'src='gpoff.svg'></image>
 </div>
 <image class='image' id='mainImage'></image>
 <!-- inside this widget holder is the definitions of each widget -->

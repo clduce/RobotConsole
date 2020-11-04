@@ -6,7 +6,7 @@ var terminal = document.getElementById('terminal');
 var configIsOpen = false,elementOpenInConfig, terminalIsOpen = false;
 var driveMode = false, widgetHolderOpen = true;
 var currentID, currentIndex;
-var widgetArray = JSON.parse('{}');
+var widgetArray = JSON.parse('{}'),configSettings;
 var snapWidgets = false;
 var socket, connected = false;
 var loadedElements = false;//flag to check if elements have been constructed from json sent from server
@@ -16,8 +16,10 @@ var thisScreen = 1;
 var keys = {};
 var oldKeys = {};
 var time = new Date();
+var lastwidth = 0;
 let sounds = ['success.wav','message.wav','error.wav','fail.wav'];//change only this to add or remove sounds
-
+const THUMBWIDTH = 150;
+let mainImage = document.getElementById('mainImage');
 //use same IP to connect to socket server as to connect to express
 socket = io(window.location.hostname + ':' + window.location.port);
 
@@ -26,6 +28,7 @@ socket.on('settings',function(data){
 	if(!loadedElements){
 		socket.emit('setScreen1','');
 		console.log(data);
+		configSettings = data['config'];
 		widgetArray = data['widgets'];
 		let allDynamicElements = document.getElementsByClassName('panel dragable');
 		for(let i = allDynamicElements.length-1; i>=0; i--){
@@ -55,31 +58,49 @@ socket.on('hardcoded_settings',function(data){
 });
 
 //on video feed recieve
-socket.on('image',function(data){document.getElementById('mainImage').src=`data:image/jpeg;base64,${data}`;});
-socket.on('thumb',function(data){
-	if(document.getElementsByClassName('imageTile')[data.index])
-    document.getElementsByClassName('imageTile')[data.index].src=`data:image/jpeg;base64,${data.img}`;
-});
+socket.on('image',function(data){mainImage.src=`data:image/jpeg;base64,${data}`;});
+//socket.on('thumb',function(data){
+	//if(document.getElementsByClassName('imageTile')[data.index])
+    //document.getElementsByClassName('imageTile')[data.index].src=`data:image/jpeg;base64,${data.img}`;
+//});
+function refreshSelectPresets(){
+	let selects = document.getElementsByClassName('cam_presets');
+	for(let i = 0; i < selects.length; i++){
+		let g = selects[i].value || 0;
+		selects[i].innerHTML = '';
+		for(let k = 0; k < configSettings.cams.presets.length; k++){
+			selects[i].innerHTML += '<option value="'+k+'">'+configSettings.cams.presets[k].name+'</option>';
+		}
+		if(g < configSettings.cams.presets.length) selects[i].value = g;
+		else selects[i].value = 0;
+	}
+}
 socket.on('makeThumbs',function(data){
 	if(!madeThumbs){
+		//use camSelect(number 0-max cams) to switch the camera
 		let tiles = document.getElementsByClassName('imageTile');
 		for(let i = 0; i < tiles.length; i++) tiles[i].remove();
 		for(let i = 0; i < data; i++){
-			let img = document.createElement('img');
-			img.className = 'imageTile';
-			img.value = i;
-			img.setAttribute('src',' ');
-			img.onclick = function(){
-				console.log('selecting camera '+ this.value);
-				camSelect(this.value);
-			}
-			body.appendChild(img);
+			let code = '<div onclick="camSelect('+i+');"class="imageTile">'+
+			'<select style="margin-right:5px"class="cam_presets"onchange="changePreset('+i+',this)"></select>'+
+			'<h3 class="cam_names"style="padding:0px;display:inline">cam</h3>'+
+			'</div>';
+			body.insertAdjacentHTML('beforeend',code);
 		}
-		setTimeout(()=>{repositionThumbs()},300);//wait a bit so the main image can load in
+		setTimeout(()=>{repositionThumbs()},600);//wait a bit so the main image can load in
 		madeThumbs = true;
+		refreshSelectPresets();
+		let selects = document.getElementsByClassName('cam_presets');
+		let camnames = document.getElementsByClassName('cam_names');
+		for(let i = 0; i < selects.length; i++){
+			selects[i].value=parseInt(configSettings.cams.camsettings[i].preset);
+			camnames[i].innerText=configSettings.cams.camsettings[i].name;
+		}
 	}
 });
-// updateTopicMapIndex();
+function changePreset(cam,me){
+	socket.emit('setPreset',{c:cam,v:me.value});
+}
 socket.on('telem',function(data){
 	for(let i = widgetArray.length-1; i >= 0; i--){
 		if(widgetArray[i].topic == data.topic){
@@ -104,11 +125,13 @@ socket.on('telem',function(data){
 socket.on('instanceCount',function(data){
 	if(document.getElementById('instanceCount')) document.getElementById('instanceCount').innerText = 'clients: ' + data;
 });
-//socket.on('pingR',function(data){
-	//document.getElementById('ping').innerText = 'ping '+(Date.now()-data)+'ms';
-//});
 socket.on('pong',function(ms){
 	document.getElementById('ping').innerText = 'ping '+ms+'ms';
+	if(mainImage.width != lastwidth){
+		console.log('ok');
+		repositionThumbs();
+	}
+	lastwidth = mainImage.width;
 });
 socket.on('closeSocket',function(data){
 	connected = false;
@@ -997,6 +1020,7 @@ window.addEventListener("gamepadconnected", function(e) {
     e.gamepad.buttons.length, e.gamepad.axes.length);
     currentGamepad = navigator.getGamepads()[0];
     oldGamepad = currentGamepad;
+    document.getElementById('gpstatus').src = 'gpon.svg';
     readGamepadInterval[e.gamepad.id] = setInterval(() => {readGamepadLoop(e.gamepad.id)},30);
 });
 
@@ -1004,6 +1028,7 @@ window.addEventListener("gamepaddisconnected", function(e) {
   console.log("Gamepad disconnected from index %d: %s",
     e.gamepad.index, e.gamepad.id);
     clearInterval(readGamepadInterval[e.gamepad.id]);
+    document.getElementById('gpstatus').src = 'gpoff.svg';
 });
 
 function readGamepadLoop(){
@@ -1196,7 +1221,7 @@ function repositionThumbs(){
 	let x = document.getElementById('mainImage').getBoundingClientRect().x;
 	if(x < 0) x = 0;
 	for(let i =0; i< tileArray.length; i++){
-		tileArray[i].style.left = parseInt(x + i*110+5) + 'px';
+		tileArray[i].style.left = parseInt(x + i*(THUMBWIDTH+15)+5) + 'px';
 	}
 }
 window.onresize = function(){

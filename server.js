@@ -15,10 +15,9 @@ var server = app.listen(PORT);
 var settingsObject,hardcoded;
 var rosready = false;
 var nh, rospublishers={}, rossubscribers={};
-var cameraReciever;//socket id of the client displaying the camera stream
+//var cameraReciever;//socket id of the client displaying the camera stream
 var socketsOpen = 0;
-var camArray = [],camJSON=[{width:320,height:240,quality:100,fps:30}];
-let mainCamFPS = 1000/30;
+var camArray = [],camJSON={"presets": [{"width":"320","height":"240","quality":100,"name":"low res"}],"camsettings":[{"preset":0,"name":"pi cam"}]};
 var camindex = 0;
 app.use(express.static(__dirname + '/public'));
 console.log("server running on port "+ PORT);
@@ -133,14 +132,11 @@ io.sockets.on('connection', function(socket){
     if (err) throw err;
     settingsObject = JSON.parse(data);
     camJSON = settingsObject.config.cams;
-    let fps = 30;
-    let newFPS = fps<0.5?0.5:(fps>60?60:fps);
-    mainCamFPS = 1000/newFPS;
     
     //set initial resolutions for cameras
-    for(let i = 0; i < Math.min(camArray.length,camJSON.length); i++){
-		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camJSON[i].width));
-		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camJSON[i].height));
+    for(let i = 0; i < Math.min(camArray.length,camJSON.camsettings.length); i++){
+		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camSettings(camJSON,i).width));
+		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camSettings(camJSON,i).height));
 	}
     
     socket.emit('settings',settingsObject);
@@ -176,21 +172,14 @@ io.sockets.on('connection', function(socket){
 	  //do stuff with your new settings here (camera resolution, running cmds etc.)
 	  camJSON = data.cams;
 	  for(let i = 0; i < camArray.length; i++){
-		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camJSON[i].width));
-		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camJSON[i].height));
+		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camSettings(camJSON,i).width));
+		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camSettings(camJSON,i).height));
 	  }
-	  let fps = parseFloat(camJSON[camindex]['fps']);
-		let newFPS = fps<0.5?0.5:(fps>60?60:fps);
-		mainCamFPS = 1000/newFPS;
     }
     catch(e){
       console.log(e);
     }
   });
-  //socket.on('pingS', function(data){
-    //socket.emit('pingR',data);
-  //});
-  
   //start a child process
   socket.on('cmd', function(data){
 	  console.log(hardcoded);
@@ -246,14 +235,20 @@ io.sockets.on('connection', function(socket){
   });
   socket.on('setCam', function(data){
     camindex = data;
-    let fps = 30;
-    let newFPS = fps<0.5?0.5:(fps>60?60:fps);
-    mainCamFPS = 1000/newFPS;
     console.log(`Change Camera to ${data}`);
   });
-  socket.on('setScreen1', function(data){
-    cameraReciever = socket;
+  //change resolution of camera. c is camera, v is preset value (index)
+  socket.on('setPreset', function(data){
+	console.log(data.c,data.v);
+	console.log(camJSON.presets[data.v].name);
+	if(camArray[data.c]){
+		camArray[data.c].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camJSON.presets[data.v].width));
+		camArray[data.c].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camJSON.presets[data.v].height));
+	}
   });
+  //socket.on('setScreen1', function(data){
+    //cameraReciever = socket;
+  //});
   socket.on('closeOtherSockets', function(data){
     socket.broadcast.emit('closeSocket','');
   });
@@ -265,34 +260,38 @@ io.sockets.on('connection', function(socket){
 });
 
 //send thumbs (small camera previews)
-let thumbindex = 0;
-let getThumb = function(){
-	try{
-		let frame = camArray[thumbindex].read();
-		//let image = cv.imencode('.jpg',frame,[1,20]).toString('base64');
-		//io.emit('thumb',{img:image,index:thumbindex});
-		cv.imencodeAsync('.jpg',frame,[1,10]).then(function(result){
-			io.emit('thumb',{img:result.toString('base64'),index:thumbindex});
-			thumbindex++;
-			if(thumbindex == camArray.length) thumbindex = 0;
-			setTimeout(getThumb,200);
-		}).catch(function(e){console.log(e);});
-	}
-	catch{
-		console.log('error sending main cam');
-	};
+//let thumbindex = 0;
+//let getThumb = function(){
+	//try{
+		//let frame = camArray[thumbindex].read();
+		////let image = cv.imencode('.jpg',frame,[1,20]).toString('base64');
+		////io.emit('thumb',{img:image,index:thumbindex});
+		//cv.imencodeAsync('.jpg',frame,[1,10]).then(function(result){
+			//io.emit('thumb',{img:result.toString('base64'),index:thumbindex});
+			//thumbindex++;
+			//if(thumbindex == camArray.length) thumbindex = 0;
+			//setTimeout(getThumb,200);
+		//}).catch(function(e){console.log(e);});
+	//}
+	//catch{
+		//console.log('error sending main cam');
+	//};
+//}
+//setTimeout(getThumb,0);
+
+
+//cams is the entire cam json from config
+//cam index is the camera number in the camArray
+function camSettings(cams, camindex){
+	return cams.presets[cams.camsettings[camindex].preset];
 }
-setTimeout(getThumb,0);
 
 //send main camera stream
 let getCam = function(){
-	//send main camera stream
+	//send main camera streams
 	try{
-		//let frame = camArray[camindex].read();
 		let qual = 100;
-		if(camJSON[camindex]) qual = parseInt(camJSON[camindex].quality);
-		//let image = cv.imencode('.jpg',frame,[1,90]).toString('base64');
-		//io.emit('image',image);
+		if(camJSON[camindex]) qual = parseInt(camSettings(camJSON,camindex).quality);
 		cv.imencodeAsync('.jpg',camArray[camindex].read(),[1,qual]).then(function(result){
 			io.emit('image',result.toString('base64'));
 		}).catch(function(e){console.log(e);});
