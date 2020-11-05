@@ -32,7 +32,6 @@ for(let i = 0; i < 10; i++){
 		camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,320);
 		camArray[index].set(cv.CAP_PROP_FRAME_HEIGHT,240);
 		cps[index]=0;
-		//camArray[index].set(cv.CAP_PROP_BUFFER_SIZE,3);
 		index++;
 		console.log('camera found at index '+i);
 	}
@@ -127,7 +126,7 @@ rosnodejs.initNode('/webserver').then(() => {
 io.sockets.on('connection', function(socket){
 	socketsOpen++;
 	io.emit('instanceCount',socketsOpen);
-  console.log('made connection');
+    console.log('made connection');
   
   //get settings from json and send to client
   fs.readFile(SETTINGS_PATH, (err, data) => {
@@ -139,6 +138,7 @@ io.sockets.on('connection', function(socket){
     for(let i = 0; i < Math.min(camArray.length,camJSON.camsettings.length); i++){
 		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camSettings(camJSON,i).width));
 		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camSettings(camJSON,i).height));
+		cps[i] = camJSON.camsettings[i].preset;
 	}
     mainQuality = parseInt(camSettings(camJSON,0).quality);
     		console.log('main quality is ' + mainQuality);
@@ -242,12 +242,10 @@ io.sockets.on('connection', function(socket){
 	console.log(data.c,data.v);
 	console.log(camJSON.presets[data.v].name);
 	if(camArray[data.c]){
-		console.log('main quality is ');
 		camArray[data.c].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camJSON.presets[data.v].width));
 		camArray[data.c].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camJSON.presets[data.v].height));
 		cps[data.c] = data.v;
 		if(data.c == camindex) mainQuality = parseInt(camJSON.presets[data.v].quality);
-		console.log('main quality is '+mainQuality);
 	}
   });
   socket.on('setCam', function(data){
@@ -255,9 +253,6 @@ io.sockets.on('connection', function(socket){
     mainQuality = parseInt(camJSON.presets[cps[data]].quality);
     console.log(`Change Camera to ${data}`);
   });
-  //socket.on('setScreen1', function(data){
-    //cameraReciever = socket;
-  //});
   socket.on('closeOtherSockets', function(data){
     socket.broadcast.emit('closeSocket','');
   });
@@ -280,7 +275,7 @@ let retrieveCam = function(){
 		cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
 			io.emit('image',result.toString('base64'));
 		}).catch((e)=>{});
-		setTimeout(retrieveCam,27);
-	});
+		setTimeout(retrieveCam,10);
+	}).catch((e)=>{console.log("can't read camera");});
 }
 setTimeout(retrieveCam,0);

@@ -294,6 +294,12 @@ button:focus {outline:0;}
 	height:35px;
 	margin-top:6px;
 }
+.macroButton{
+	display:inline;
+	height:50px;
+	margin:0px 5px 0px 0px;
+	font-size:18px;
+}
 </style>
 
 <body id='body' oncontextmenu="return false;">
@@ -389,16 +395,19 @@ button:focus {outline:0;}
 </div>
 <!-- mask that blocks interaction, for the config settings panel etc. -->
 <div id='mask' style="position: absolute; z-index: 120; background-color:rgba(0, 0, 0, 0.6); width:100%; height:100%; top:0px; left:0px;"></div>
-<div spellcheck="false" id='terminal' class="panel" style="display: none; z-index: 121;width:80%; height:80%; left:10%; top:10%; overflow-y:auto">
-	<div style="position:absolute;width:65%; height:100%; left:0%; top:0px; overflow-y:auto"id='terminalLeft'>
+<div spellcheck="false" id='terminal' class="panel" style="display: none; z-index: 121;width:80%; height:90%; left:10%; top:5%; overflow-y:auto">
+	<div style="position:absolute;width:65%; height:100%; left:0%; top:0px; overflow-y:auto">
 		<h1>Terminal</h1>
 		<input id='cmdValue'style='width:calc(70% + 12px);height:40px; font-size:25px'></input><button onclick='runCmdFromInput()'style='margin:0px;margin-left:10px;height:46px; width:80px; transform:translateY(-3px)'>Run</button>
-		<textarea id='cmdOutput'style='resize:none;width:calc(70% + 105px);height:calc(100% - 230px); margin-top:10px'></textarea>
+		<textarea id='cmdOutput'style='resize:none;width:calc(70% + 105px);height:calc(100% - 235px); margin-top:10px'></textarea>
 	</div>
-	<div style="position:absolute;width:35%; height:100%; left:65%; top:0px; overflow-y:auto"id='terminalLeft'>
+	<div style="position:absolute;width:35%; height:100%; left:65%; top:0px; overflow-y:auto">
 		<h1>End Processes</h1>
 		<div id='processes' style='position:absolute; left:15%; width:70%; height:calc(100% - 173px); background-color:#FFF; border:1px solid #999;'>
 		</div>
+	</div>
+	<div id='macroHolder'style="position:absolute;width:calc(100% - 140px); height:80px; left:0px; bottom:0px; padding:0px;overflow-x:auto; white-space:nowrap;">
+		<h1 style='text-align:left;margin:8px 20px 0px 20px;display:inline-block'>Macros</h1>
 	</div>
 	<button onclick="closeTerminal();" class="label darken" style="font-size: 20px;background-color:#9de7fc; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:10px;">Exit</button>
 </div>

@@ -8,6 +8,7 @@ socket.on('settings', (data) => {
 		settings = data;
 		gotSettings = true;
 		addPresets(settings.config.cams.presets.length);
+		addMacros(settings.config.macros.length);
 	}
 	hideMessage();
 });
@@ -77,6 +78,12 @@ socket.on('makeThumbs',(data) => {
  * 				}
  * 			]
  * 		}
+ * 		"macros":[
+ * 			{
+ * 		 		"name":"name",
+ * 		 		"cmd":"cmd"
+ * 		 	}
+ * 		]
  * }
 */
 //"cams":{"presets":[{"width":320,"height":240,"quality":95,"name":"low res"}],"camsettings":[{"preset":0,"name":"cam1"}]}
@@ -101,6 +108,11 @@ function populateConfig(data){
 		document.getElementsByClassName('presets_width')[i].value = data.cams.presets[i]['width'];
 		document.getElementsByClassName('presets_height')[i].value = data.cams.presets[i]['height'];
 		document.getElementsByClassName('presets_quality')[i].value = data.cams.presets[i]['quality'];
+	}
+	for(let i = 0; i < document.getElementsByClassName('macro_name').length; i++){//for each macro
+		if(!data.macros[i]) data.macros[i] = {name:"example",cmd:"ls"};
+		document.getElementsByClassName('macro_name')[i].value = data.macros[i]['name'];
+		document.getElementsByClassName('macro_cmd')[i].value = data.macros[i]['cmd'];
 	}
 	refreshSelectPresets();
 	document.getElementsByClassName('consoleName')[0].value = data['consoleName'];
@@ -134,12 +146,19 @@ function generateConfig(){
 		data.cams.presets[i]['height'] = document.getElementsByClassName('presets_height')[i].value;
 		data.cams.presets[i]['quality'] = document.getElementsByClassName('presets_quality')[i].value;
 	}
+	data.macros = [];
+	for(let i = 0; i < document.getElementsByClassName('macro_name').length; i++){
+		data.macros[i] = {};
+		data.macros[i]['name'] = document.getElementsByClassName('macro_name')[i].value;
+		data.macros[i]['cmd'] = document.getElementsByClassName('macro_cmd')[i].value;
+	}
 	data['consoleName'] = document.getElementsByClassName('consoleName')[0].value;
 	data['loadInEditMode'] = document.getElementsByClassName('loadInEditMode')[0].checked;
 	data['background'] = document.getElementsByClassName('background')[0].value
 	data['snaptogrid'] = document.getElementsByClassName('snaptogrid')[0].checked;
 	return data;
 }
+//theese functions add the DOM for the dynamic settings. c is number of doms to add
 function addCams(c){
 	for(let i = 0; i < c; i++){
 		let html = "<p class='inputLabel'>Default preset</p>"+
@@ -165,6 +184,17 @@ function addPresets(c){
 		document.getElementById('presets').insertAdjacentHTML('beforeend',html);
 	}
 }
+function addMacros(c){
+	for(let i = 0; i < c; i++){
+		let html = "<div class='macrodiv'><p class='inputLabel'>Macro name</p>"+
+		"<input class='macro_name'></input>"+
+		"<p class='inputLabel'>Command</p>"+
+		"<input class='macro_cmd'style='width:650px'></input>"+
+		"<button style='margin-left:5px;width:50px'class='presets_delete'onclick='deletePreset(this)'>delete</button>"+
+		"<br></div>";
+		document.getElementById('macros').insertAdjacentHTML('beforeend',html);
+	}
+}
 function addPreset(){
 	let html = "<div class='presetdiv'><p class='inputLabel'>Preset name</p>"+
 	"<input class='presets_name'value='default'onkeyup='onPresetNameChage()'></input>"+
@@ -179,9 +209,21 @@ function addPreset(){
 	document.getElementById('presets').insertAdjacentHTML('beforeend',html);
 	refreshSelectPresets();
 }
+function addMacro(){
+	let html = "<div class='macrodiv'><p class='inputLabel'>Macro name</p>"+
+	"<input class='macro_name'></input>"+
+	"<p class='inputLabel'>Command</p>"+
+	"<input class='macro_cmd'style='width:650px'></input>"+
+	"<button style='margin-left:5px;width:50px'class='presets_delete'onclick='deletePreset(this)'>delete</button>"+
+	"<br></div>";
+	document.getElementById('macros').insertAdjacentHTML('beforeend',html);
+}
 function deletePreset(e){
 	if(document.getElementsByClassName('presetdiv').length > 1) e.parentNode.remove();
 	refreshSelectPresets();
+}
+function deleteMacro(e){
+	if(document.getElementsByClassName('macrodiv').length > 1) e.parentNode.remove();
 }
 function onPresetNameChage(){
 	refreshSelectPresets();

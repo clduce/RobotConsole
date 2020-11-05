@@ -47,6 +47,7 @@ socket.on('settings',function(data){
 		loadedElements = true;
 		connected = true;
 		hideMessage();
+		for(let i=0;i<configSettings.macros.length;i++) addMacro(configSettings.macros[i].name,configSettings.macros[i].cmd);
 	}else{
 		console.log('already loaded elements');
 	}
@@ -74,6 +75,17 @@ function refreshSelectPresets(){
 		if(g < configSettings.cams.presets.length) selects[i].value = g;
 		else selects[i].value = 0;
 	}
+}
+function addMacro(name,cmd){
+	if(name != undefined && name && cmd != undefined && cmd){
+		let html = '<button class="macroButton"onmouseup="runMacro(\''+cmd+'\')">'+name+'</button>';
+		document.getElementById('macroHolder').insertAdjacentHTML('beforeend', html);
+	}
+}
+function runMacro(cmd){
+	console.log('macro '+cmd);
+	document.getElementById('cmdValue').value = cmd;
+	runCmdFromInput();
 }
 socket.on('makeThumbs',function(data){
 	if(!madeThumbs){
@@ -1267,7 +1279,7 @@ function toggleFullscreen(){
 	fullScreen = !fullScreen; 
 }
 
-//mobile support
+//mobile view support
 function preventBehavior(e) {
     e.preventDefault(); 
 };
