@@ -4,7 +4,6 @@ const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
 
 var express = require('express');
 const rosnodejs = require('rosnodejs');
-//const raspberryPiCamera = require('raspberry-pi-camera-native');
 const cv = require('opencv4nodejs');
 const cp = require('child_process');
 var kill = require('tree-kill');
@@ -24,12 +23,15 @@ console.log("server running on port "+ PORT);
 console.log("looking for cameras...");
 let index = 0;
 let cmds = {};
+var cps = [];
+var mainQuality = 90;
 
 for(let i = 0; i < 10; i++){
 	try{
 		camArray[index] = new cv.VideoCapture(i);
 		camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,320);
 		camArray[index].set(cv.CAP_PROP_FRAME_HEIGHT,240);
+		cps[index]=0;
 		//camArray[index].set(cv.CAP_PROP_BUFFER_SIZE,3);
 		index++;
 		console.log('camera found at index '+i);
@@ -138,7 +140,8 @@ io.sockets.on('connection', function(socket){
 		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camSettings(camJSON,i).width));
 		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camSettings(camJSON,i).height));
 	}
-    
+    mainQuality = parseInt(camSettings(camJSON,0).quality);
+    		console.log('main quality is ' + mainQuality);
     socket.emit('settings',settingsObject);
     socket.emit('makeThumbs',camArray.length);
     console.log('current settings on server: ' + JSON.stringify(settingsObject));
@@ -174,6 +177,7 @@ io.sockets.on('connection', function(socket){
 	  for(let i = 0; i < camArray.length; i++){
 		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camSettings(camJSON,i).width));
 		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camSettings(camJSON,i).height));
+		cps[i] = camJSON.camsettings[i].preset;
 	  }
     }
     catch(e){
@@ -233,18 +237,23 @@ io.sockets.on('connection', function(socket){
 	  if(rossubscribers[data]) rossubscribers[data].shutdown();
 	  if(rospublishers[data]) rospublishers[data].shutdown();
   });
-  socket.on('setCam', function(data){
-    camindex = data;
-    console.log(`Change Camera to ${data}`);
-  });
   //change resolution of camera. c is camera, v is preset value (index)
   socket.on('setPreset', function(data){
 	console.log(data.c,data.v);
 	console.log(camJSON.presets[data.v].name);
 	if(camArray[data.c]){
+		console.log('main quality is ');
 		camArray[data.c].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camJSON.presets[data.v].width));
 		camArray[data.c].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camJSON.presets[data.v].height));
+		cps[data.c] = data.v;
+		if(data.c == camindex) mainQuality = parseInt(camJSON.presets[data.v].quality);
+		console.log('main quality is '+mainQuality);
 	}
+  });
+  socket.on('setCam', function(data){
+    camindex = data;
+    mainQuality = parseInt(camJSON.presets[cps[data]].quality);
+    console.log(`Change Camera to ${data}`);
   });
   //socket.on('setScreen1', function(data){
     //cameraReciever = socket;
@@ -259,26 +268,6 @@ io.sockets.on('connection', function(socket){
   });
 });
 
-//send thumbs (small camera previews)
-//let thumbindex = 0;
-//let getThumb = function(){
-	//try{
-		//let frame = camArray[thumbindex].read();
-		////let image = cv.imencode('.jpg',frame,[1,20]).toString('base64');
-		////io.emit('thumb',{img:image,index:thumbindex});
-		//cv.imencodeAsync('.jpg',frame,[1,10]).then(function(result){
-			//io.emit('thumb',{img:result.toString('base64'),index:thumbindex});
-			//thumbindex++;
-			//if(thumbindex == camArray.length) thumbindex = 0;
-			//setTimeout(getThumb,200);
-		//}).catch(function(e){console.log(e);});
-	//}
-	//catch{
-		//console.log('error sending main cam');
-	//};
-//}
-//setTimeout(getThumb,0);
-
 
 //cams is the entire cam json from config
 //cam index is the camera number in the camArray
@@ -286,35 +275,12 @@ function camSettings(cams, camindex){
 	return cams.presets[cams.camsettings[camindex].preset];
 }
 
-//send main camera stream
-let getCam = function(){
-	//send main camera streams
-	try{
-		let qual = 100;
-		if(camJSON[camindex]) qual = parseInt(camSettings(camJSON,camindex).quality);
-		cv.imencodeAsync('.jpg',camArray[camindex].read(),[1,qual]).then(function(result){
+let retrieveCam = function(){
+	camArray[camindex].readAsync().then(function(result){
+		cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
 			io.emit('image',result.toString('base64'));
-		}).catch(function(e){console.log(e);});
-		setTimeout(getCam,30);
-	}
-	catch{
-		console.log('error sending main cam');
-	}
+		}).catch((e)=>{});
+		setTimeout(retrieveCam,27);
+	});
 }
-setTimeout(getCam,0);
-
-
-
-////READ CAM STREAM FROM PICAM
- //let opts = {//bring these in from config?
-	 //width:300,
-	 //height:300,
-	 //fps:10,
-	 //encoding: 'JPEG',
-	 //quality:10
- //};
-//raspberryPiCamera.on('frame', (frameData) => {
-	//if(cameraReciever) cameraReciever.emit('image',frameData.toString('base64'));
-//});
-//// start capture
-//raspberryPiCamera.start(opts);
+setTimeout(retrieveCam,0);
