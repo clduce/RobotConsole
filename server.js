@@ -25,6 +25,7 @@ let index = 0;
 let cmds = {};
 var cps = [];
 var mainQuality = 90;
+var hardcodedLoaded = false;
 
 for(let i = 0; i < 10; i++){
 	try{
@@ -83,6 +84,13 @@ function joinRosTopics(){
 						break;
 						case '_value':
 							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
+							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
+								io.emit('telem',{topic:topic,id:i,msg:msg});
+							});
+						break;
+						case '_compass':
+							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Int16';
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
 								io.emit('telem',{topic:topic,id:i,msg:msg});
@@ -152,15 +160,18 @@ io.sockets.on('connection', function(socket){
     hardcoded = JSON.parse(data);
     console.log(JSON.stringify(hardcoded));
     socket.emit('hardcoded_settings',hardcoded);
+    hardcodedLoaded=true;
   });
 
   //widgets client to server
   socket.on('WCTS', function(data){
     try{
-      settingsObject['widgets'] = data;
-      fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settingsObject));
-		console.log('recieved updated widget settings from client');
-		joinRosTopics();
+		if(settingsObject.config.saveWidgets){
+			settingsObject['widgets'] = data;
+			fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settingsObject));
+			console.log('recieved updated widget settings from client');
+			joinRosTopics();
+		}
     }
     catch(e){
       console.log(e);
@@ -186,8 +197,7 @@ io.sockets.on('connection', function(socket){
   });
   //start a child process
   socket.on('cmd', function(data){
-	  console.log(hardcoded);
-	if(hardcoded.show_terminal){
+	if(hardcodedLoaded && hardcoded.show_terminal){
 		cmds[data] = cp.spawn(data,[],{shell:true});
 		cmds[data].stdout.on('data', stdout => {
 			socket.emit('cmdOut',stdout.toString());
@@ -207,7 +217,7 @@ io.sockets.on('connection', function(socket){
 	}
   });
   socket.on('stopcmd', function(data){
-	  if(hardcoded.show_terminal){
+	  if(hardcodedLoaded && hardcoded.show_terminal){
 		console.log('stopping '+data);
 		kill(cmds[data].pid);
 	  }
@@ -270,12 +280,17 @@ function camSettings(cams, camindex){
 	return cams.presets[cams.camsettings[camindex].preset];
 }
 
+let oldtime = 0;
 let retrieveCam = function(){
+	//time = new Date().getTime();
 	camArray[camindex].readAsync().then(function(result){
+		//result.rotate(int 0-4), result.flip(int)
 		cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
 			io.emit('image',result.toString('base64'));
-		}).catch((e)=>{});
-		setTimeout(retrieveCam,10);
-	}).catch((e)=>{console.log("can't read camera");});
+		}).catch((e)=>{console.log(e)});
+		setTimeout(retrieveCam,0);
+	}).catch((e)=>{console.log("can't read camera " + e);});
+	//console.log(oldtime-time);
+	//oldtime = time;
 }
 setTimeout(retrieveCam,0);

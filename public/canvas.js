@@ -153,7 +153,7 @@ function drawGauge(c,v,format){
     let ir = r*0.3;
 
     ctx.lineCap = 'round';
-    ctx.font = (r*0.1+10)+"px Arial";
+    ctx.font = (r*0.05+10)+"px Arial";
     ctx.fillStyle = "#5c5c5c";
     ctx.textAlign = 'center';
 

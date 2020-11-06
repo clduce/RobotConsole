@@ -26,7 +26,7 @@ socket = io(window.location.hostname + ':' + window.location.port);
 //get all config from server
 socket.on('settings',function(data){
 	if(!loadedElements){
-		socket.emit('setScreen1','');
+		socket.emit('setScreen1');
 		console.log(data);
 		configSettings = data['config'];
 		widgetArray = data['widgets'];
@@ -44,6 +44,8 @@ socket.on('settings',function(data){
 			if(a.screen == thisScreen) widgetFromJson(a);
 		}
 		if(!data.config['loadInEditMode']) toggleDriveMode();
+		else showWidgetHolder();
+		
 		loadedElements = true;
 		connected = true;
 		hideMessage();
@@ -60,10 +62,6 @@ socket.on('hardcoded_settings',function(data){
 
 //on video feed recieve
 socket.on('image',function(data){mainImage.src=`data:image/jpeg;base64,${data}`;});
-//socket.on('thumb',function(data){
-	//if(document.getElementsByClassName('imageTile')[data.index])
-    //document.getElementsByClassName('imageTile')[data.index].src=`data:image/jpeg;base64,${data.img}`;
-//});
 function refreshSelectPresets(){
 	let selects = document.getElementsByClassName('cam_presets');
 	for(let i = 0; i < selects.length; i++){
@@ -93,8 +91,8 @@ socket.on('makeThumbs',function(data){
 		let tiles = document.getElementsByClassName('imageTile');
 		for(let i = 0; i < tiles.length; i++) tiles[i].remove();
 		for(let i = 0; i < data; i++){
-			let code = '<div onclick="camSelect('+i+');"class="imageTile">'+
-			'<select style="margin-right:5px"class="cam_presets"onchange="changePreset('+i+',this)"></select>'+
+			let code = '<div style="border-color:'+(i==0?'yellow':'#000')+'"onclick="camSelect('+i+');"class="imageTile">'+
+			'<select style="margin-right:5px;"class="cam_presets"onchange="changePreset('+i+',this)"></select>'+
 			'<h3 class="cam_names"style="padding:0px;display:inline">cam</h3>'+
 			'</div>';
 			body.insertAdjacentHTML('beforeend',code);
@@ -105,8 +103,13 @@ socket.on('makeThumbs',function(data){
 		let selects = document.getElementsByClassName('cam_presets');
 		let camnames = document.getElementsByClassName('cam_names');
 		for(let i = 0; i < selects.length; i++){
-			selects[i].value=parseInt(configSettings.cams.camsettings[i].preset);
-			camnames[i].innerText=configSettings.cams.camsettings[i].name;
+			if(configSettings.cams.camsettings[i]){
+				selects[i].value=parseInt(configSettings.cams.camsettings[i].preset);
+				camnames[i].innerText=configSettings.cams.camsettings[i].name;
+			}else{
+				selects[i].value=0;
+				camnames[i].innerText='new';
+			}
 		}
 	}
 });
@@ -124,6 +127,9 @@ socket.on('telem',function(data){
 				break;
 				case '_gauge':
 					drawGauge(we.querySelector('#gauge_ap'),data.msg.data,c);
+				break;
+				case '_compass':
+					we.querySelector('#yaw_ap').style.transform = 'rotateZ('+(data.msg.data*-1)+'deg)';
 				break;
 				case '_light':
 					we.querySelector('#color_ap').style.backgroundColor = data.msg.data?'#32cd32':'#cd3f32';
@@ -242,11 +248,17 @@ function dragElement(elmnt) {
     else{
 		elmnt.style.left = snapX(parseInt(elmnt.style.left)) + 'px';
 		elmnt.style.top = snapY(parseInt(elmnt.style.top)) + 'px';
+		
+		if(WA.childids) for(let i = 0; i < WA.childids.length; i++){
+			let c = document.getElementById(WA.childids[i]);
+			c.style.left = snapX(parseInt(c.style.left) - pos1) + 'px';
+			c.style.top = snapY(parseInt(c.style.top) - pos2) + 'px';
+		}
+		
 		moveWidget({id:elmnt.id,x:elmnt.style.left,y:elmnt.style.top});
 		get4position(elmnt);
 		useClosest(elmnt);
 		set4style(elmnt);
-		
 		updatePanels(elmnt);
     }
     sendWidgetsArray();
@@ -298,6 +310,18 @@ function dragElement(elmnt) {
 	  }
 	  else{
 		  newHeight = '49px';
+	  }
+    }
+    else if(elmnt.querySelector('.compass')){
+      var eleclass = elmnt.querySelectorAll('.compass');
+      for(let i = 0; i < eleclass.length; i++){
+		if(-pos2S-20 > -pos1S){
+			eleclass[i].style.width = '100%';
+			eleclass[i].style.height = '';
+		}else{
+			eleclass[i].style.height = 'calc(100% - 20px)';
+			eleclass[i].style.width = '';
+		}
 	  }
     }
     
@@ -398,11 +422,11 @@ function sourceElement(elmnt) {
 }
 //returns closest grid value
 function snapX(v){
-	if(snapWidgets) return Math.round(v/20)*20;
+	if(snapWidgets) return Math.round(v/17.5)*17.5;
 	return v;
 }
 function snapY(v){
-	if(snapWidgets) return Math.round(v/20)*20;
+	if(snapWidgets) return Math.round(v/17.5)*17.5;
 	return v;
 }
 //elmnt is the widget your finished dragging or scaling
@@ -410,7 +434,8 @@ function updatePanels(elmnt){
 	let index = indexMap[elmnt.id];
 	let b = widgetArray[index];
 	for(let i = 0; i < widgetArray.length; i++){
-		if(widgetArray[i].type == '_box' && i != index){
+		if(widgetArray[i].type == '_box' && i != index){//if widget is a panel
+			//add/remove widgets from panels
 			let a = widgetArray[i];
 			if(overlaps(a.left,a.top,a.w,a.h,  b.left,b.top,b.w,b.h)){
 				if(!a.childids) a.childids = [];
@@ -584,6 +609,11 @@ function openConfig(e){
 		createGraph(widgetArray[currentIndex]);
 		createFormat(widgetArray[currentIndex]);
     break;
+    case '_compass':
+		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
+		createText('0 is north, increasing clockwise in degrees.');
+		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16']);
+    break;
     case '_audio':
     	createCheckbox('Hide this widget in drive mode', 'hideondrive', widgetArray[currentIndex]['hideondrive']);
     	createText('Subscribes to an Int16');
@@ -706,8 +736,16 @@ function applyConfigChanges(){
     case '_gauge':
       WA['min'] = document.getElementById('min').value;
       WA['max'] = document.getElementById('max').value;
+      if(Number(WA.max) < Number(WA.min)){
+		  WA['max'] = document.getElementById('min').value;
+		  WA['min'] = document.getElementById('max').value;
+	  }
       WA['bigtick'] = document.getElementById('bigtick').value;
+      if(Number(WA.bigtick) > Number(WA.max) - Number(WA.min)) WA['bigtick'] = Number(WA.max) - Number(WA.min);
+      if(Number(WA.bigtick) < 1) WA['bigtick'] = 1;
       WA['smalltick'] = document.getElementById('smalltick').value;
+      if(Number(WA.smalltick) > 100) WA['smalltick'] = 100;
+      if(Number(WA.smalltick) < 0) WA['smalltick'] = 0;
       WA['label'] = document.getElementById('label').value;
       WA['msgType'] = document.getElementById('msgType').value;
       WA['formatmode'] = document.getElementById('formatmode').value;
@@ -715,6 +753,10 @@ function applyConfigChanges(){
       let obj = JSON.stringify({min:WA.min,max:WA.max,bigtick:WA.bigtick,smalltick:WA.smalltick, title:WA.label});
       localWidget.querySelector('#gauge_ap').setAttribute("data-config",obj);
       drawGauge(localWidget.querySelector('#gauge_ap'),WA.min,WA);
+    break;
+    case '_compass':
+      WA['msgType'] = document.getElementById('msgType').value;
+      WA['label'] = document.getElementById('label').value;
     break;
     case '_text':
       WA['text'] = document.getElementById('text').value;
@@ -735,6 +777,10 @@ function applyConfigChanges(){
 }
 function cleanTopicName(str){
 	return str;
+}
+function guardTopicName(ele){
+	ele.value = ele.value.replace(/ /g,'_');
+	let firstChar = ele.value.charAt(0);
 }
 //dynamically creates custom config settings. input is the content id ex _button.labelText
 function createSoundsList(){
@@ -1226,6 +1272,11 @@ function changeScreen(me){
 }
 function camSelect(me){
   socket.emit('setCam',me);
+  let cams = document.getElementsByClassName('imageTile');
+  for(let i = 0; i < cams.length; i++){
+	  if(i == me) cams[i].style.borderColor = 'yellow';
+	  else cams[i].style.borderColor = '#000';
+  }
 }
 //align small previews of image to left side of main image
 function repositionThumbs(){

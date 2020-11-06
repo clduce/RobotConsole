@@ -4,8 +4,6 @@
   <meta charset="utf-8">
   <title id='title'>Robot Console</title>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="joystick.js" charset="utf-8"></script
-  
 </head>
 
 <style>
@@ -62,14 +60,14 @@ body{
 }
 .widgetHolder{
   position: absolute;
-  left: 0px;
+  left: -260px;
   top: 50px;
   width: 260px;
   height: calc(100% - 50px);
   background-color: #e3e3e3;
   overflow-y: scroll;
   z-index: 40;
-  transition: all 0.6s;
+  transition: all 0.3s;
 }
 /* css for the settings gear icon on each widget*/
 #configButton{
@@ -166,7 +164,7 @@ button:focus {outline:0;}
   border-radius:2px;
   width:47px;
   height:25px;
-  transition: left 0.6s;
+  transition: left 0.3s;
 }
 .toggleWidgetHolder:hover{
   filter:brightness(85%);
@@ -242,7 +240,7 @@ button:focus {outline:0;}
 	background-color:#FFF;
 	cursor: pointer;
 	transition-property: all;
-	transition-duration:0.7s;
+	transition-duration:0.3s;
 	padding:3px;
 }
 #color_ap{
@@ -300,6 +298,13 @@ button:focus {outline:0;}
 	margin:0px 5px 0px 0px;
 	font-size:18px;
 }
+.compass{
+	position:absolute;
+	left:0px;
+	top:20px;
+	width:100%;
+	height:calc(100% - 20px);
+}
 </style>
 
 <body id='body' oncontextmenu="return false;">
@@ -319,7 +324,7 @@ button:focus {outline:0;}
 </div>
 <image class='image' id='mainImage'></image>
 <!-- inside this widget holder is the definitions of each widget -->
-<button class='toggleWidgetHolder' onclick="toggleWidgetHolder()">Hide</button>
+<button class='toggleWidgetHolder' onclick="toggleWidgetHolder()">Show</button>
 <div class='widgetHolder' id='widgetHolder'>
   <h1 class="label" style="text-align:center">Inputs</h1>
 
@@ -373,6 +378,14 @@ button:focus {outline:0;}
     <img src="resize.png" id="resize"></img>
   </div>
   
+  <div class="panel source" id="_compass" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <img class='compass showOnDrive'id='yaw_ap'src="compass/yaw.svg"></img>
+    <img class='compass showOnDrive'id='heading_ap'src="compass/heading.svg"></img>
+    <img class='compass showOnDrive'id='cirlce_ap'src="compass/circle.svg"></img>
+    <div id="header">Compass<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <img src="resize.png" id="resize"></img>
+  </div>
+  
   <div class="panel source" id="_audio" style="width:200px;height:70px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Audio Indicator<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <image id='speaker_ap' class='showOnDrive' src='speaker.svg' style='height:40px;position:absolute:left:0px;top:26px'></image>
@@ -403,7 +416,7 @@ button:focus {outline:0;}
 	</div>
 	<div style="position:absolute;width:35%; height:100%; left:65%; top:0px; overflow-y:auto">
 		<h1>End Processes</h1>
-		<div id='processes' style='position:absolute; left:15%; width:70%; height:calc(100% - 173px); background-color:#FFF; border:1px solid #999;'>
+		<div id='processes' style='overflow-y:auto;position:absolute; left:15%; width:70%; height:calc(100% - 173px); background-color:#FFF; border:1px solid #999;'>
 		</div>
 	</div>
 	<div id='macroHolder'style="position:absolute;width:calc(100% - 140px); height:80px; left:0px; bottom:0px; padding:0px;overflow-x:auto; white-space:nowrap;">
@@ -414,7 +427,7 @@ button:focus {outline:0;}
 <!-- config settins panel -->
 <div id='configWindow' class="panel" style="display: none;z-index: 121;width:50%; height:70%; left:25%; top:15%; overflow-y:auto">
   <h1 class='settingsLabel' id='topiclabel' style="margin-top: 20px;">ROS Topic Name</h1>
-  <input class="settingInput" id='topicTitle'></input>
+  <input class="settingInput" id='topicTitle' onchange='guardTopicName(this)'></input>
   <button onclick="applyConfigChanges();removeWidgetFromScreen(elementOpenInConfig);" class="label darken" style="font-size: 20px;background-color:#fc9d9d; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;left:10px;">Delete</button>
   <button onclick="applyConfigChanges();" class="label darken" style="font-size: 20px;background-color:#9de7fc; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:10px;">Done</button>
 </div>
@@ -422,6 +435,7 @@ button:focus {outline:0;}
 <div id='messagePanel' class="panel" style="z-index: 121;width:500px; height:150px; left:calc(50% - 250px); top:calc(50% - 75px); overflow-y:auto; display:flex;align-items:center;justify-content:center">
   <h1 class='settingsLabel' id='messagePanelText' style="margin: 0px;font-size:25px;">Waiting for Socket Connection...</h1>
 </div>
+<script src="canvas.js" charset="utf-8"></script>
 <script src="widgets.js" charset="utf-8"></script>
 <script src="main.js" charset="utf-8"></script>
 </body>

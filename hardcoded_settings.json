@@ -1,5 +1,4 @@
 {
 	"show_terminal":true,
-	"show_config_settings":true,
-	"allow_editing":true
+	"show_config_settings":true
 }

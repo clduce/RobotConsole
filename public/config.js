@@ -119,6 +119,7 @@ function populateConfig(data){
 	document.getElementsByClassName('loadInEditMode')[0].checked = data['loadInEditMode'];
 	document.getElementsByClassName('background')[0].value = data['background'];
 	document.getElementsByClassName('snaptogrid')[0].checked = data['snaptogrid'];
+	document.getElementsByClassName('saveWidgets')[0].checked = data['saveWidgets'];
 	console.log('done loading settings');
 }
 function generateConfig(){
@@ -156,6 +157,7 @@ function generateConfig(){
 	data['loadInEditMode'] = document.getElementsByClassName('loadInEditMode')[0].checked;
 	data['background'] = document.getElementsByClassName('background')[0].value
 	data['snaptogrid'] = document.getElementsByClassName('snaptogrid')[0].checked;
+	data['saveWidgets'] = document.getElementsByClassName('saveWidgets')[0].checked;
 	return data;
 }
 //theese functions add the DOM for the dynamic settings. c is number of doms to add
