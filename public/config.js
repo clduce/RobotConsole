@@ -35,33 +35,6 @@ socket.on('makeThumbs',(data) => {
  * 		"loadInEditMode":true,
  * 		"background":"#000",
  * 		"snaptogrid":false,
- * 		"wifilist":[
- * 			{
- * 				"ssid":"ssid",
- * 				"password":"password"
- * 			},
- * 			{
- * 				"ssid":"ssid",
- * 				"password":"password"
- * 			},
- * 			{
- * 				"ssid":"ssid",
- * 				"password":"password"
- * 			},
- * 			{
- * 				"ssid":"ssid",
- * 				"password":"password"
- * 			},
- * 			{
- * 				"ssid":"ssid",
- * 				"password":"password"
- * 			}
- * 		],
- * 		"hotspot":{
- * 			"ssid":"ssid",
- *  		"password":"password",
- *  		"ipaddress":"ipaddress"
- * 		},
  * 		"cams":{
  * 			"presets": [
  * 				{
@@ -86,15 +59,7 @@ socket.on('makeThumbs',(data) => {
  * 		]
  * }
 */
-//"cams":{"presets":[{"width":320,"height":240,"quality":95,"name":"low res"}],"camsettings":[{"preset":0,"name":"cam1"}]}
 function populateConfig(data){
-	for(let i = 0; i < 5; i++){
-		document.getElementsByClassName('wifilist_ssid')[i].value = data['wifilist'][i]['ssid'];
-		document.getElementsByClassName('wifilist_password')[i].value = data['wifilist'][i]['password'];
-	}
-	document.getElementsByClassName('hotspot_ssid')[0].value = data['hotspot']['ssid'];
-	document.getElementsByClassName('hotspot_password')[0].value = data['hotspot']['password'];
-	document.getElementsByClassName('hotspot_ip')[0].value = data['hotspot']['ipaddress'];
 	if(!data['cams']) data['cams'] = {};
 	refreshSelectPresets();
 	for(let i = 0; i < document.getElementsByClassName('cams_name').length; i++){//for each camera
@@ -124,16 +89,6 @@ function populateConfig(data){
 }
 function generateConfig(){
 	let data = {};
-	data['wifilist'] = [];
-	for(let i = 0; i < 5; i++){
-		data['wifilist'][i] = {};
-		data['wifilist'][i]['ssid'] = document.getElementsByClassName('wifilist_ssid')[i].value;
-		data['wifilist'][i]['password'] = document.getElementsByClassName('wifilist_password')[i].value;
-	}
-	data['hotspot'] = {};
-	data['hotspot']['ssid'] = document.getElementsByClassName('hotspot_ssid')[0].value;
-	data['hotspot']['password'] = document.getElementsByClassName('hotspot_password')[0].value;
-	data['hotspot']['ipaddress'] = document.getElementsByClassName('hotspot_ip')[0].value;
 	data['cams'] = {presets:[],camsettings:[]};
 	for(let i = 0; i < document.getElementsByClassName('cams_name').length; i++){
 		data.cams.camsettings[i] = {};
@@ -303,4 +258,10 @@ function showMessage(text){
 function hideMessage(){
 	mask.style.display = 'none';
 	document.getElementById('messagePanel').style.display = 'none';
+}
+function exitServer(d){
+	socket.emit('exit',d);
+	//uncomment below to reset the web page too
+	//showMessage('Restarting Server...');
+	//location.reload();
 }

@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 const SETTINGS_PATH = __dirname + '/settings.json';
 const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
+const RESET_SOCKET_AFTER_MS = 400; //if the ping gets above this, the socket and cameras will reset
 
 var express = require('express');
 const rosnodejs = require('rosnodejs');
@@ -14,7 +15,6 @@ var server = app.listen(PORT);
 var settingsObject,hardcoded;
 var rosready = false;
 var nh, rospublishers={}, rossubscribers={};
-//var cameraReciever;//socket id of the client displaying the camera stream
 var socketsOpen = 0;
 var camArray = [],camJSON={"presets": [{"width":"320","height":"240","quality":100,"name":"low res"}],"camsettings":[{"preset":0,"name":"pi cam"}]};
 var camindex = 0;
@@ -42,7 +42,7 @@ for(let i = 0; i < 10; i++){
 console.log('total of ' + camArray.length + ' cameras found');
 
 var socket = require('socket.io');
-var io = socket(server, {pingInterval: 100});
+var io = socket(server, {pingInterval: 100, pingTimeout: RESET_SOCKET_AFTER_MS});
 io.set('origins','*:*');
 
 
@@ -94,6 +94,19 @@ function joinRosTopics(){
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
 								io.emit('telem',{topic:topic,id:i,msg:msg});
+								console.log(msg);
+							});
+						break;
+						case '_horizon':
+							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Float64Array';
+							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
+								io.emit('telem',{topic:topic,id:i,msg:msg.data});
+							});
+						break;
+						case '_rosImage':
+							rossubscribers[topic] = nh.subscribe(topic, 'sensor_msgs/CompressedImage', (msg) => {
+								io.emit('telem',{topic:topic,id:i,msg:msg.data});
 							});
 						break;
 						case '_light':
@@ -135,6 +148,7 @@ io.sockets.on('connection', function(socket){
 	socketsOpen++;
 	io.emit('instanceCount',socketsOpen);
     console.log('made connection');
+    io.emit('cmdStopButtons',Object.keys(cmds));
   
   //get settings from json and send to client
   fs.readFile(SETTINGS_PATH, (err, data) => {
@@ -151,7 +165,7 @@ io.sockets.on('connection', function(socket){
     mainQuality = parseInt(camSettings(camJSON,0).quality);
     		console.log('main quality is ' + mainQuality);
     socket.emit('settings',settingsObject);
-    socket.emit('makeThumbs',camArray.length);
+    socket.emit('makeThumbs',camArray.length,camindex,cps);
     console.log('current settings on server: ' + JSON.stringify(settingsObject));
   });
   //get settings from json and send to client
@@ -211,16 +225,21 @@ io.sockets.on('connection', function(socket){
 			socket.emit('cmdOut','exit code: '+code+'\n');
 			socket.emit('removeCmd',data);
 			console.log(code);
+			if(cmds[data]) delete cmds[data];
 		});
 	}else{
 		console.log('terminal has been disabled');
 	}
   });
   socket.on('stopcmd', function(data){
-	  if(hardcodedLoaded && hardcoded.show_terminal){
+	  if(hardcodedLoaded && hardcoded.show_terminal && cmds[data]){
 		console.log('stopping '+data);
 		kill(cmds[data].pid);
+		delete cmds[data];
 	  }
+	});
+  socket.on('exit', function(data){
+	  process.exit(data);
 	});
   
   //ROS client to server
@@ -285,9 +304,11 @@ let retrieveCam = function(){
 	//time = new Date().getTime();
 	camArray[camindex].readAsync().then(function(result){
 		//result.rotate(int 0-4), result.flip(int)
-		cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
-			io.emit('image',result.toString('base64'));
-		}).catch((e)=>{console.log(e)});
+		if(!result.empty){
+			cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
+				io.emit('image',result.toString('base64'));
+			}).catch((e)=>{console.log(e)});
+		}
 		setTimeout(retrieveCam,0);
 	}).catch((e)=>{console.log("can't read camera " + e);});
 	//console.log(oldtime-time);

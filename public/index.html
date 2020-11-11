@@ -12,6 +12,9 @@ body{
   font-family: Tahoma, Geneva, sans-serif;
   user-select: none;
 }
+.selectable{
+	user-select: text;
+}
 .image{
   position: absolute;
   top: 40px;
@@ -118,7 +121,7 @@ body{
   margin-top:0px;
   width:100%;
   padding:0px;
-  height:calc(100% - 23px);
+  height:calc(100% - 22px);
   background-color:internal-light-dark(rgb(239, 239, 239), rgb(74, 74, 74));
   cursor:pointer;
   z-index:102;
@@ -298,12 +301,13 @@ button:focus {outline:0;}
 	margin:0px 5px 0px 0px;
 	font-size:18px;
 }
-.compass{
+.fsImage{
 	position:absolute;
 	left:0px;
 	top:20px;
 	width:100%;
 	height:calc(100% - 20px);
+	pointer-events:none;
 }
 </style>
 
@@ -315,11 +319,12 @@ button:focus {outline:0;}
 	    <h1 class="label" style="color: #FFF;right:10px;position:absolute;margin:0px;top:3px"id='instanceCount'>waiting...</h1>
 		<h1 class="label" style="color: #FFF;right:10px;position:absolute;margin:0px;top:23px"id='ping'>waiting on ping...</h1>
   </div>
-  <button class="navBarButton" id='driveMode' onclick="toggleDriveMode();">Drive Mode</button>
+  <button class="navBarButton" id='driveMode' style='display:none' onclick="toggleDriveMode();">Drive Mode</button>
   <button class="navBarButton" onclick="toggleFullscreen()">Toggle Fullscreen</button>
   <button class="navBarButton" onclick="window.location.href += 'config.html'" id='confButton' style='display:none'>Config Settings</button>
   <button class="navBarButton" onclick="openTerminal()" id='termButton' style='display:none'>Terminal</button>
-  <button class="navBarButton" onclick="closeOtherSockets()">close other clients</button>
+  <button class="navBarButton" onclick="closeOtherSockets()">Close Other Clients</button>
+  <button class="navBarButton" onclick="exitServer(1)">Restart Server</button>
   <image id='gpstatus'class='gamepadStatus'src='gpoff.svg'></image>
 </div>
 <image class='image' id='mainImage'></image>
@@ -379,10 +384,24 @@ button:focus {outline:0;}
   </div>
   
   <div class="panel source" id="_compass" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
-    <img class='compass showOnDrive'id='yaw_ap'src="compass/yaw.svg"></img>
-    <img class='compass showOnDrive'id='heading_ap'src="compass/heading.svg"></img>
-    <img class='compass showOnDrive'id='cirlce_ap'src="compass/circle.svg"></img>
+    <img class='fsImage showOnDrive'id='yaw_ap'src="compass/yaw.svg"></img>
+    <img class='fsImage showOnDrive'id='heading_ap'src="compass/heading.svg"></img>
+    <img class='fsImage showOnDrive'id='cirlce_ap'src="compass/circle.svg"></img>
     <div id="header">Compass<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <img src="resize.png" id="resize"></img>
+  </div>
+  <div class="panel source" id="_horizon" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <img class='fsImage showOnDrive'id='bkg_ap'src="horizon/back.svg"></img>
+    <img class='fsImage showOnDrive'id='pitch_ap'src="horizon/ball.svg"></img>
+    <img class='fsImage showOnDrive'id='roll_ap'src="horizon/circle.svg"></img>
+    <img class='fsImage showOnDrive'src="horizon/mech.svg"></img>
+    <img class='fsImage showOnDrive'src="horizon/ring.svg"></img>
+    <div id="header">Artificial Horizon<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <img src="resize.png" id="resize"></img>
+  </div>
+  <div class="panel source" id="_rosImage" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <div id="header">ROS JPEG Image<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <img class='fsImage showOnDrive'id='img_ap'src="phImg.svg"></img>
     <img src="resize.png" id="resize"></img>
   </div>
   

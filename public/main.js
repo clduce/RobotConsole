@@ -17,9 +17,10 @@ var keys = {};
 var oldKeys = {};
 var time = new Date();
 var lastwidth = 0;
-let sounds = ['success.wav','message.wav','error.wav','fail.wav'];//change only this to add or remove sounds
+let sounds = ['bells.mp3','warning.mp3','message.mp3','info.mp3','xylo.mp3'];//change only this to add or remove sounds
 const THUMBWIDTH = 150;
 let mainImage = document.getElementById('mainImage');
+let gamepadCount = 0;
 //use same IP to connect to socket server as to connect to express
 socket = io(window.location.hostname + ':' + window.location.port);
 
@@ -55,9 +56,9 @@ socket.on('settings',function(data){
 	}
 });
 socket.on('hardcoded_settings',function(data){
-	console.log(data);
 	if(data.show_terminal) document.getElementById('termButton').style.display = 'inline';
 	if(data.show_config_settings) document.getElementById('confButton').style.display = 'inline';
+	if(data.allow_edit_mode) document.getElementById('driveMode').style.display = 'inline';
 });
 
 //on video feed recieve
@@ -85,31 +86,35 @@ function runMacro(cmd){
 	document.getElementById('cmdValue').value = cmd;
 	runCmdFromInput();
 }
-socket.on('makeThumbs',function(data){
-	if(!madeThumbs){
-		//use camSelect(number 0-max cams) to switch the camera
-		let tiles = document.getElementsByClassName('imageTile');
-		for(let i = 0; i < tiles.length; i++) tiles[i].remove();
-		for(let i = 0; i < data; i++){
-			let code = '<div style="border-color:'+(i==0?'yellow':'#000')+'"onclick="camSelect('+i+');"class="imageTile">'+
-			'<select style="margin-right:5px;"class="cam_presets"onchange="changePreset('+i+',this)"></select>'+
-			'<h3 class="cam_names"style="padding:0px;display:inline">cam</h3>'+
-			'</div>';
-			body.insertAdjacentHTML('beforeend',code);
-		}
-		setTimeout(()=>{repositionThumbs()},600);//wait a bit so the main image can load in
-		madeThumbs = true;
-		refreshSelectPresets();
-		let selects = document.getElementsByClassName('cam_presets');
-		let camnames = document.getElementsByClassName('cam_names');
-		for(let i = 0; i < selects.length; i++){
-			if(configSettings.cams.camsettings[i]){
-				selects[i].value=parseInt(configSettings.cams.camsettings[i].preset);
-				camnames[i].innerText=configSettings.cams.camsettings[i].name;
-			}else{
-				selects[i].value=0;
-				camnames[i].innerText='new';
-			}
+//data is how many cameras, ind is current camera selected, cps is presets for each camera
+socket.on('makeThumbs',function(data,ind,cps){
+	if(madeThumbs){
+		let all = document.getElementsByClassName('imageTile');
+		for(let i = all.length-1; i >= 0; i--) all[i].remove();
+		madeThumbs = false;
+	}
+	//use camSelect(number 0-max cams) to switch the camera
+	let tiles = document.getElementsByClassName('imageTile');
+	for(let i = 0; i < tiles.length; i++) tiles[i].remove();
+	for(let i = 0; i < data; i++){
+		let code = '<div style="border-color:'+(i==ind?'yellow':'#000')+'"onclick="camSelect('+i+');"class="imageTile">'+
+		'<select id="camsel"style="margin-right:5px;"class="cam_presets"onchange="changePreset('+i+',this)"></select>'+
+		'<h3 class="cam_names"style="padding:0px;display:inline">cam</h3>'+
+		'</div>';
+		body.insertAdjacentHTML('beforeend',code);
+	}
+	setTimeout(()=>{repositionThumbs()},600);//wait a bit so the main image can load in
+	madeThumbs = true;
+	refreshSelectPresets();
+	let selects = document.getElementsByClassName('cam_presets');
+	let camnames = document.getElementsByClassName('cam_names');
+	for(let i = 0; i < selects.length; i++){
+		if(configSettings.cams.camsettings[i]){
+			selects[i].value=parseInt(cps[i]);
+			camnames[i].innerText=configSettings.cams.camsettings[i].name;
+		}else{
+			selects[i].value=0;
+			camnames[i].innerText='new';
 		}
 	}
 });
@@ -131,6 +136,23 @@ socket.on('telem',function(data){
 				case '_compass':
 					we.querySelector('#yaw_ap').style.transform = 'rotateZ('+(data.msg.data*-1)+'deg)';
 				break;
+				case '_horizon':
+					let pt = we.querySelector('#pitch_ap');
+					let pitch = Math.min(parseFloat(pt.width),parseFloat(pt.height));
+					console.log(pitch);
+					we.querySelector('#roll_ap').style.transform='rotateZ('+(data.msg[0]*-1)+'deg)';
+					we.querySelector('#bkg_ap').style.transform='rotateZ('+(data.msg[0]*-1)+'deg)';
+					if(data.msg[1] > 30) data.msg[1] = 30;
+					if(data.msg[1] < -30) data.msg[1] = -30;
+					pt.style.transform='rotateZ('+(data.msg[0]*-1)+'deg) translateY('+(pitch*0.0067 * data.msg[1])+'px)';
+				break;
+				case '_rosImage':
+				console.log(data.msg);
+					var blob = new Blob([new Uint8Array(data.msg)],{type:"image/jpeg"});
+					var urlCreator = window.URL || window.webkitURL;
+					var imageURL = urlCreator.createObjectURL(blob);
+					we.querySelector('#img_ap').src=imageURL;
+				break;
 				case '_light':
 					we.querySelector('#color_ap').style.backgroundColor = data.msg.data?'#32cd32':'#cd3f32';
 				case '_audio':
@@ -146,7 +168,6 @@ socket.on('instanceCount',function(data){
 socket.on('pong',function(ms){
 	document.getElementById('ping').innerText = 'ping '+ms+'ms';
 	if(mainImage.width != lastwidth){
-		console.log('ok');
 		repositionThumbs();
 	}
 	lastwidth = mainImage.width;
@@ -312,8 +333,8 @@ function dragElement(elmnt) {
 		  newHeight = '49px';
 	  }
     }
-    else if(elmnt.querySelector('.compass')){
-      var eleclass = elmnt.querySelectorAll('.compass');
+    else if(elmnt.querySelector('.fsImage')){
+      var eleclass = elmnt.querySelectorAll('.fsImage');
       for(let i = 0; i < eleclass.length; i++){
 		if(-pos2S-20 > -pos1S){
 			eleclass[i].style.width = '100%';
@@ -536,6 +557,11 @@ function stopCmd(e){
 	if(e.value) socket.emit('stopcmd',e.value);
 	e.remove();
 }
+socket.on('cmdStopButtons',function(data){
+	for(let i = 0; i < data.length; i++){
+		createStopButton(data[i]);
+	}
+});
 
 //WIDGET CONFIGURATION PANEL
 //open configuration settings panel for each widget
@@ -565,6 +591,7 @@ function openConfig(e){
   switch(type){
     case '_button':
       createconfigInput('Button Label', '_button-labelText', widgetArray[currentIndex]['label']);
+      createText('Copy and Paste Icons: ⬆️➡️⬇️⬅️️ ');
       createLittleInput('Font Size (px)', 'fontsize', widgetArray[currentIndex]['fontsize'],16);
       createconfiglinkGamepadButton(widgetArray[currentIndex]);
       createconfiglinkKeys(widgetArray[currentIndex]);
@@ -574,7 +601,7 @@ function openConfig(e){
       createconfiglinkKeys(widgetArray[currentIndex],['up','left','down','right']);
     break;
     case '_checkbox':
-      createconfigInput('Label', 'Label', widgetArray[currentIndex]['label']);
+      createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
       createCheckbox('Initial State', 'initialState', widgetArray[currentIndex]['initial']);
       createCheckbox('ROS Latching', 'latching', widgetArray[currentIndex]['latching']);
       createconfiglinkGamepadButton(widgetArray[currentIndex]);
@@ -614,6 +641,15 @@ function openConfig(e){
 		createText('0 is north, increasing clockwise in degrees.');
 		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16']);
     break;
+    case '_horizon':
+		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
+		createText('[0]=Roll,[1]=Pitch in degrees');
+		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64MultiArray','std_msgs/Float32MultiArray']);
+    break;
+    case '_rosImage':
+		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
+		createText('This widget subscribes to sensor_msgs/CompressedImage and displays a JPEG.');
+	break;
     case '_audio':
     	createCheckbox('Hide this widget in drive mode', 'hideondrive', widgetArray[currentIndex]['hideondrive']);
     	createText('Subscribes to an Int16');
@@ -651,7 +687,7 @@ function applyConfigChanges(){
       if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
     break;
     case '_checkbox':
-      WA['label'] = document.getElementById('Label').value;
+      WA['label'] = document.getElementById('label').value;
       WA['initial'] = document.getElementById('initialState').checked;
       WA['latching'] = document.getElementById('latching').checked;
       WA['textColor'] = document.getElementById('textColor').value;
@@ -758,6 +794,13 @@ function applyConfigChanges(){
       WA['msgType'] = document.getElementById('msgType').value;
       WA['label'] = document.getElementById('label').value;
     break;
+    case '_horizon':
+      WA['msgType'] = document.getElementById('msgType').value;
+      WA['label'] = document.getElementById('label').value;
+    break;
+    case '_rosImage':
+		WA['label'] = document.getElementById('label').value;
+    break;
     case '_text':
       WA['text'] = document.getElementById('text').value;
       WA['textColor'] = document.getElementById('textColor').value;
@@ -792,7 +835,7 @@ function createSoundsList(){
 }
 function createText(text){
 	var label = document.createElement("h1");
-  label.className = 'settingsLabel specific';
+  label.className = 'settingsLabel specific selectable';
   label.style.margin.top = '5px';
   label.innerText = text;
   configWindow.appendChild(label);
@@ -914,12 +957,18 @@ function createconfiglinkKeys(array,keylabels=['hotkey']){
   for(let i = 0; i < keylabels.length; i++){
     let value = array['usekey_'+keylabels[i]];
     if(value == undefined) value = '';
-    innerhtml += keylabels[i]+' <input style="width:50px;margin-right:5px;" id="usekey_'+keylabels[i]+'" value="'+value+'"></input>';
+    innerhtml += keylabels[i]+' <input class="hotkeys" style="width:50px;margin-right:5px;" id="usekey_'+keylabels[i]+'" value="'+value+'"></input>';
   }
   label2.innerHTML = innerhtml;
   label2.style.margin.bottom = '0px';
   configWindow.appendChild(label2);
   document.getElementById('useKeys').checked = array["useKeys"];
+  let allHotkeys = document.getElementsByClassName('hotkeys');
+  for(let i = 0; i < keylabels.length; i++){
+	  allHotkeys[i].addEventListener("keyup",event=>{
+		  allHotkeys[i].value= event.key;
+	  });
+  }
 }
 function createconfigDataWrapper(array){
   let prefix = array.prefix;
@@ -1073,9 +1122,8 @@ function getKeyboardUpdates(){
 
 //GAMEPAD INTERFACING
 window.addEventListener("gamepadconnected", function(e) {
-  console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
-    e.gamepad.index, e.gamepad.id,
-    e.gamepad.buttons.length, e.gamepad.axes.length);
+	gamepadCount++;
+	console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",e.gamepad.index, e.gamepad.id,e.gamepad.buttons.length, e.gamepad.axes.length);
     currentGamepad = navigator.getGamepads()[0];
     oldGamepad = currentGamepad;
     document.getElementById('gpstatus').src = 'gpon.svg';
@@ -1083,10 +1131,10 @@ window.addEventListener("gamepadconnected", function(e) {
 });
 
 window.addEventListener("gamepaddisconnected", function(e) {
-  console.log("Gamepad disconnected from index %d: %s",
-    e.gamepad.index, e.gamepad.id);
+	gamepadCount--;
+    console.log("Gamepad disconnected from index %d: %s",e.gamepad.index, e.gamepad.id);
     clearInterval(readGamepadInterval[e.gamepad.id]);
-    document.getElementById('gpstatus').src = 'gpoff.svg';
+    if(gamepadCount == 0) document.getElementById('gpstatus').src = 'gpoff.svg';
 });
 
 function readGamepadLoop(){
@@ -1271,12 +1319,14 @@ function changeScreen(me){
   showWidgetHolder();
 }
 function camSelect(me){
-  socket.emit('setCam',me);
   let cams = document.getElementsByClassName('imageTile');
   for(let i = 0; i < cams.length; i++){
-	  if(i == me) cams[i].style.borderColor = 'yellow';
+	  if(i == me){
+		  cams[i].style.borderColor = 'yellow';
+	  }
 	  else cams[i].style.borderColor = '#000';
   }
+  socket.emit('setCam',me);
 }
 //align small previews of image to left side of main image
 function repositionThumbs(){
@@ -1292,7 +1342,7 @@ window.onresize = function(){
 }
 
 function playSound(s){
-	if(sounds[s]) new Audio(sounds[s]).play();
+	if(sounds[s]) new Audio('sounds/'+sounds[s]).play();
 }
 //opts = bool mode, value
 function formatNumber(data,opts){
@@ -1329,7 +1379,12 @@ function toggleFullscreen(){
 	else openFullscreen();
 	fullScreen = !fullScreen; 
 }
-
+function exitServer(d){
+	socket.emit('exit',d);
+	//uncomment below to reset the web page too
+	//showMessage('Restarting Server...');
+	//location.reload();
+}
 //mobile view support
 function preventBehavior(e) {
     e.preventDefault(); 
