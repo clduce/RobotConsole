@@ -1,3 +1,0 @@
-<launch>
-	<node name="webserver" pkg="testpkg" type="server.js" respawn="true" />
-</launch>

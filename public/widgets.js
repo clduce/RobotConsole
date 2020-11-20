@@ -15,9 +15,6 @@ function widgetFromJson(json){
 	
 	tile.style.width = json['w'];
 	tile.style.height = json['h'];
-	
-	console.log(json['left'],json['right'],json['top'],json['bottom']);
-	console.log(json['useLeft'],json['useTop']);
   
   switch (type) {
     case '_button':
@@ -183,6 +180,9 @@ function makeUnique(type,newWidget){
     case '_text':
 		thisWidget['useROS'] = false;
     break;
+    case '_logger':
+		thisWidget['msgType'] = 'std_msgs/String';
+    break;
     default:
 
   }
@@ -217,7 +217,6 @@ function initFunctionality(type, newWidget,thisID){
 		   if(jsw['vertical']){
 				newWidget.querySelector('#slider_ap').className += ' vertical';
 				newWidget.querySelector('#slider_ap').style.width =(parseInt(jsw['h'])-27) + 'px';
-				console.log('all good');
 			}
 			newWidget.querySelector('#slider_ap').value = parseFloat(jsw['default']);
 			sendToRos(jsw['topic'],{value:parseFloat(jsw['default'])},jsw['type']);
@@ -275,7 +274,6 @@ function updateTopicMapIndex(){
 }
 function generateUniqueId(index){
   for(let i = 0; i < 500; i++){
-    console.log('itter: ' + i);
     if(typeof indexMap[i] === "undefined"){
       indexMap[i] == index;
       console.log('empty id found: ' + i);

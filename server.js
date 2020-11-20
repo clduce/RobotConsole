@@ -1,7 +1,8 @@
 #! /usr/bin/env node
 const SETTINGS_PATH = __dirname + '/settings.json';
 const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
-const RESET_SOCKET_AFTER_MS = 400; //if the ping gets above this, the socket and cameras will reset
+const RESET_SOCKET_AFTER_MS = 900; //if the ping gets above this, the socket and cameras will reset
+var PORT = 3000;
 
 var express = require('express');
 const rosnodejs = require('rosnodejs');
@@ -9,9 +10,11 @@ const cv = require('opencv4nodejs');
 const cp = require('child_process');
 var kill = require('tree-kill');
 const fs = require('fs');
+
 var app = express();
-var PORT = 3000;
 var server = app.listen(PORT);
+
+var cameraExists = false;
 var settingsObject,hardcoded;
 var rosready = false;
 var nh, rospublishers={}, rossubscribers={};
@@ -20,29 +23,61 @@ var camArray = [],camJSON={"presets": [{"width":"320","height":"240","quality":1
 var camindex = 0;
 app.use(express.static(__dirname + '/public'));
 console.log("server running on port "+ PORT);
-console.log("looking for cameras...");
 let index = 0;
 let cmds = {};
 var cps = [];
 var mainQuality = 90;
+var mainRotation = 0;
 var hardcodedLoaded = false;
+var resolutionStack = {};
+var shutdownFlag = false;
 
-for(let i = 0; i < 10; i++){
+console.log('FINDING ALL VIDEO PATHS...');
+let output = cp.execSync('ls -ltrh /dev/video*',{shell:true});
+console.log(output.toString());
+
+console.log('CONNECTING TO OPENCV...');
+output = output.toString().split(/\r?\n/);
+let devicePaths = {};
+//ignore last element because it's always empty
+//and first 3 elements because their not cameras fsr
+for(let i = 0; i < output.length-1; i++){
+  let tmp_path = output[i].split('/dev/video')[1];
+  let cam_name = cp.execSync('cat /sys/class/video4linux/video'+tmp_path+'/name',{shell:true}).toString().replace('\n','');
+  if(!cam_name.includes('bcm2835-codec')){
+	  if(!devicePaths[cam_name]){
+		   console.log('FOUND DEVCE:',cam_name,tmp_path);
+		   devicePaths[cam_name] = tmp_path;
+	  }
+	  else{
+		  if(Number(devicePaths[cam_name]) > Number(tmp_path)) devicePaths[cam_name] = tmp_path;
+	  }
+  }
+}
+let dv_keys = Object.keys(devicePaths);
+for(let i = 0; i < dv_keys.length; i++){
+	camArray[index] = new cv.VideoCapture('/dev/video'+devicePaths[dv_keys[i]]);
 	try{
-		camArray[index] = new cv.VideoCapture(i);
-		camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,320);
-		camArray[index].set(cv.CAP_PROP_FRAME_HEIGHT,240);
-		cps[index]=0;
+		camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,640);
+		camArray[index].set(cv.CAP_PROP_FRAME_HEIGHT,480);
+		camArray[index].set(cv.CAP_PROP_FPS,25);
 		index++;
 		console.log('camera found at index '+i);
+		cps[index]=0;
+		cameraExists = true;
 	}
-	catch{
+	catch(e){
+		console.log(e);
 	}
 }
 console.log('total of ' + camArray.length + ' cameras found');
 
+function requestResolutionSet(c,w,h,f){
+	resolutionStack[c]=[w,h,f];
+}
+
 var socket = require('socket.io');
-var io = socket(server, {pingInterval: 100, pingTimeout: RESET_SOCKET_AFTER_MS});
+var io = socket(server, {pingInterval: 300, pingTimeout: RESET_SOCKET_AFTER_MS});
 io.set('origins','*:*');
 
 
@@ -82,6 +117,7 @@ function joinRosTopics(){
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, msgType);
 						break;
+						case '_logger':
 						case '_value':
 							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
@@ -105,6 +141,7 @@ function joinRosTopics(){
 							});
 						break;
 						case '_rosImage':
+							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, 'sensor_msgs/CompressedImage', (msg) => {
 								io.emit('telem',{topic:topic,id:i,msg:msg.data});
 							});
@@ -148,25 +185,30 @@ io.sockets.on('connection', function(socket){
 	socketsOpen++;
 	io.emit('instanceCount',socketsOpen);
     console.log('made connection');
-    io.emit('cmdStopButtons',Object.keys(cmds));
   
   //get settings from json and send to client
   fs.readFile(SETTINGS_PATH, (err, data) => {
     if (err) throw err;
     settingsObject = JSON.parse(data);
     camJSON = settingsObject.config.cams;
-    
-    //set initial resolutions for cameras
-    for(let i = 0; i < Math.min(camArray.length,camJSON.camsettings.length); i++){
-		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camSettings(camJSON,i).width));
-		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camSettings(camJSON,i).height));
-		cps[i] = camJSON.camsettings[i].preset;
-	}
-    mainQuality = parseInt(camSettings(camJSON,0).quality);
-    		console.log('main quality is ' + mainQuality);
     socket.emit('settings',settingsObject);
-    socket.emit('makeThumbs',camArray.length,camindex,cps);
-    console.log('current settings on server: ' + JSON.stringify(settingsObject));
+    //set initial resolutions for cameras
+    if(cameraExists){
+		for(let i = 0; i < Math.min(camArray.length,camJSON.camsettings.length); i++){
+			requestResolutionSet(i,parseInt(camSettings(camJSON,i).width),parseInt(camSettings(camJSON,i).height),parseInt(camSettings(camJSON,i).fps));
+			cps[i] = camJSON.camsettings[i].preset;
+			if(camJSON.camsettings[i].rotation == undefined) camJSON.camsettings[i].rotation = 0;
+		}
+		mainQuality = parseInt(camSettings(camJSON,camindex).quality);
+		mainRotation = parseInt(camJSON.camsettings[camindex].rotation);
+    	console.log('main quality is ' + mainQuality);
+    	socket.emit('makeThumbs',camArray.length,camindex,cps);
+	}else{
+		socket.emit('makeThumbs');
+	}
+    
+    io.emit('cmdStopButtons',Object.keys(cmds));
+    console.log('number of widgets: ' + settingsObject.widgets.length);
   });
   //get settings from json and send to client
   fs.readFile(HARDCODED_SETTINGS_PATH, (err, data) => {
@@ -193,21 +235,24 @@ io.sockets.on('connection', function(socket){
   });
   //config settings client to server
   socket.on('configSettings', function(data){
-    try{
-      settingsObject['config'] = data;
-      fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settingsObject));
-	  console.log('recieved updated config settings from client');
-	  //do stuff with your new settings here (camera resolution, running cmds etc.)
-	  camJSON = data.cams;
-	  for(let i = 0; i < camArray.length; i++){
-		camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camSettings(camJSON,i).width));
-		camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camSettings(camJSON,i).height));
-		cps[i] = camJSON.camsettings[i].preset;
-	  }
-    }
-    catch(e){
-      console.log(e);
-    }
+	if(data){
+	    try{
+	      settingsObject['config'] = data;
+	      fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settingsObject));
+		  console.log('recieved updated config settings from client');
+		  //do stuff with your new settings here (camera resolution, running cmds etc.)
+		  if(cameraExists){
+			  camJSON = data.cams;
+			  for(let i = 0; i < camArray.length; i++){
+				requestResolutionSet(i,parseInt(camSettings(camJSON,i).width),parseInt(camSettings(camJSON,i).height),parseInt(camSettings(camJSON,i).fps));
+				cps[i] = camJSON.camsettings[i].preset;
+			  }
+		  }
+	    }
+	    catch(e){
+	      console.log(e);
+	    }
+	}
   });
   //start a child process
   socket.on('cmd', function(data){
@@ -239,7 +284,9 @@ io.sockets.on('connection', function(socket){
 	  }
 	});
   socket.on('exit', function(data){
-	  process.exit(data);
+	  console.log('closing server...');
+	  if(cameraExists) shutdownFlag = true;
+	  else process.exit(1);
 	});
   
   //ROS client to server
@@ -268,19 +315,27 @@ io.sockets.on('connection', function(socket){
   });
   //change resolution of camera. c is camera, v is preset value (index)
   socket.on('setPreset', function(data){
-	console.log(data.c,data.v);
-	console.log(camJSON.presets[data.v].name);
-	if(camArray[data.c]){
-		camArray[data.c].set(cv.CAP_PROP_FRAME_WIDTH,parseInt(camJSON.presets[data.v].width));
-		camArray[data.c].set(cv.CAP_PROP_FRAME_HEIGHT,parseInt(camJSON.presets[data.v].height));
-		cps[data.c] = data.v;
-		if(data.c == camindex) mainQuality = parseInt(camJSON.presets[data.v].quality);
+	if(cameraExists){
+		console.log(data.c,data.v);
+		console.log(camJSON.presets[data.v].name);
+		if(camArray[data.c]){
+			requestResolutionSet(data.c,parseInt(camJSON.presets[data.v].width),parseInt(camJSON.presets[data.v].height),parseInt(camJSON.presets[data.v].fps));
+			cps[data.c] = data.v;
+			if(data.c == camindex){
+				mainQuality = parseInt(camJSON.presets[data.v].quality);
+				mainRotation = parseInt(camJSON.camsettings[data.c].rotation);
+			}
+		}
 	}
   });
   socket.on('setCam', function(data){
-    camindex = data;
-    mainQuality = parseInt(camJSON.presets[cps[data]].quality);
-    console.log(`Change Camera to ${data}`);
+	if(cameraExists){
+		camindex = data;
+		mainQuality = parseInt(camJSON.presets[cps[data]].quality);
+		mainRotation = parseInt(camJSON.camsettings[data].rotation);
+		rotation = mainRotation;
+		console.log(`Change Camera to ${data} rotation ${mainRotation}`);
+	}
   });
   socket.on('closeOtherSockets', function(data){
     socket.broadcast.emit('closeSocket','');
@@ -300,18 +355,44 @@ function camSettings(cams, camindex){
 }
 
 let oldtime = 0;
+let rotation = mainRotation;
 let retrieveCam = function(){
-	//time = new Date().getTime();
-	camArray[camindex].readAsync().then(function(result){
-		//result.rotate(int 0-4), result.flip(int)
+	time = new Date().getTime();
+	let c = camindex;
+	camArray[c].readAsync().then(function(result){
 		if(!result.empty){
+			if(rotation != 0) result = result.rotate(rotation-1);
 			cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
 				io.emit('image',result.toString('base64'));
 			}).catch((e)=>{console.log(e)});
 		}
+		
+		//update resolutions
+		let keys = Object.keys(resolutionStack);
+		if(keys.length > 0){
+			rotation = mainRotation;
+			for(let i = 0; i < keys.length; i++){
+				camArray[keys[i]].set(cv.CAP_PROP_FRAME_WIDTH,resolutionStack[keys[i]][0]);
+				camArray[keys[i]].set(cv.CAP_PROP_FRAME_HEIGHT,resolutionStack[keys[i]][1]);
+				camArray[keys[i]].set(cv.CAP_PROP_FPS,resolutionStack[keys[i]][2]);
+			}
+			resolutionStack = {};
+		}
+		
+		if(shutdownFlag) process.exit(1);
 		setTimeout(retrieveCam,0);
+		
 	}).catch((e)=>{console.log("can't read camera " + e);});
-	//console.log(oldtime-time);
-	//oldtime = time;
+	io.emit('fps',1000/(time-oldtime));
+	oldtime = time;
 }
-setTimeout(retrieveCam,0);
+if(cameraExists) setTimeout(retrieveCam,0);
+
+process.on('SIGINT',()=>{
+	//for(let i = 0; i < camArray.length; i++){
+		//camArray[i].release();
+		//console.log(camArray[i]);
+		//console.log('released cam',i);
+	//}
+});
+

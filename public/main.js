@@ -6,12 +6,12 @@ var terminal = document.getElementById('terminal');
 var configIsOpen = false,elementOpenInConfig, terminalIsOpen = false;
 var driveMode = false, widgetHolderOpen = true;
 var currentID, currentIndex;
-var widgetArray = JSON.parse('{}'),configSettings;
+var widgetArray = [],configSettings;
 var snapWidgets = false;
 var socket, connected = false;
 var loadedElements = false;//flag to check if elements have been constructed from json sent from server
 var madeThumbs = false;
-var readGamepadInterval={},currentGamepad,oldGamepad,lastChangedAxis;
+var readGamepadInterval,currentGamepad,oldGamepad,lastChangedAxis;
 var thisScreen = 1;
 var keys = {};
 var oldKeys = {};
@@ -25,7 +25,12 @@ let gamepadCount = 0;
 socket = io(window.location.hostname + ':' + window.location.port);
 
 //get all config from server
+socket.on('connection',function(){
+	console.log('connect');
+});
 socket.on('settings',function(data){
+	let p = document.getElementsByClassName('pbutton');
+	for(let i = 0; i < p.length; i++) p[i].remove();
 	if(!loadedElements){
 		socket.emit('setScreen1');
 		console.log(data);
@@ -88,33 +93,35 @@ function runMacro(cmd){
 }
 //data is how many cameras, ind is current camera selected, cps is presets for each camera
 socket.on('makeThumbs',function(data,ind,cps){
-	if(madeThumbs){
-		let all = document.getElementsByClassName('imageTile');
-		for(let i = all.length-1; i >= 0; i--) all[i].remove();
-		madeThumbs = false;
-	}
-	//use camSelect(number 0-max cams) to switch the camera
-	let tiles = document.getElementsByClassName('imageTile');
-	for(let i = 0; i < tiles.length; i++) tiles[i].remove();
-	for(let i = 0; i < data; i++){
-		let code = '<div style="border-color:'+(i==ind?'yellow':'#000')+'"onclick="camSelect('+i+');"class="imageTile">'+
-		'<select id="camsel"style="margin-right:5px;"class="cam_presets"onchange="changePreset('+i+',this)"></select>'+
-		'<h3 class="cam_names"style="padding:0px;display:inline">cam</h3>'+
-		'</div>';
-		body.insertAdjacentHTML('beforeend',code);
-	}
-	setTimeout(()=>{repositionThumbs()},600);//wait a bit so the main image can load in
-	madeThumbs = true;
-	refreshSelectPresets();
-	let selects = document.getElementsByClassName('cam_presets');
-	let camnames = document.getElementsByClassName('cam_names');
-	for(let i = 0; i < selects.length; i++){
-		if(configSettings.cams.camsettings[i]){
-			selects[i].value=parseInt(cps[i]);
-			camnames[i].innerText=configSettings.cams.camsettings[i].name;
-		}else{
-			selects[i].value=0;
-			camnames[i].innerText='new';
+	if(data || ind || cps){
+		if(madeThumbs){
+			let all = document.getElementsByClassName('imageTile');
+			for(let i = all.length-1; i >= 0; i--) all[i].remove();
+			madeThumbs = false;
+		}
+		//use camSelect(number 0-max cams) to switch the camera
+		let tiles = document.getElementsByClassName('imageTile');
+		for(let i = 0; i < tiles.length; i++) tiles[i].remove();
+		for(let i = 0; i < data; i++){
+			let code = '<div style="border-color:'+(i==ind?'yellow':'#000')+'"onclick="camSelect('+i+');"class="imageTile">'+
+			'<select id="camsel"style="margin-right:5px;"class="cam_presets"onchange="changePreset('+i+',this)"></select>'+
+			'<h3 class="cam_names"style="padding:0px;display:inline">cam</h3>'+
+			'</div>';
+			body.insertAdjacentHTML('beforeend',code);
+		}
+		setTimeout(()=>{repositionThumbs()},600);//wait a bit so the main image can load in
+		madeThumbs = true;
+		refreshSelectPresets();
+		let selects = document.getElementsByClassName('cam_presets');
+		let camnames = document.getElementsByClassName('cam_names');
+		for(let i = 0; i < selects.length; i++){
+			if(configSettings.cams.camsettings[i]){
+				selects[i].value=parseInt(cps[i]);
+				camnames[i].innerText=configSettings.cams.camsettings[i].name;
+			}else{
+				selects[i].value=0;
+				camnames[i].innerText='new';
+			}
 		}
 	}
 });
@@ -139,7 +146,6 @@ socket.on('telem',function(data){
 				case '_horizon':
 					let pt = we.querySelector('#pitch_ap');
 					let pitch = Math.min(parseFloat(pt.width),parseFloat(pt.height));
-					console.log(pitch);
 					we.querySelector('#roll_ap').style.transform='rotateZ('+(data.msg[0]*-1)+'deg)';
 					we.querySelector('#bkg_ap').style.transform='rotateZ('+(data.msg[0]*-1)+'deg)';
 					if(data.msg[1] > 30) data.msg[1] = 30;
@@ -147,11 +153,15 @@ socket.on('telem',function(data){
 					pt.style.transform='rotateZ('+(data.msg[0]*-1)+'deg) translateY('+(pitch*0.0067 * data.msg[1])+'px)';
 				break;
 				case '_rosImage':
-				console.log(data.msg);
 					var blob = new Blob([new Uint8Array(data.msg)],{type:"image/jpeg"});
 					var urlCreator = window.URL || window.webkitURL;
 					var imageURL = urlCreator.createObjectURL(blob);
 					we.querySelector('#img_ap').src=imageURL;
+				break;
+				case '_logger':
+					let ele = we.querySelector('#textarea_ap');
+					ele.value += data.msg.data;
+					ele.scrollTop = ele.scrollHeight;
 				break;
 				case '_light':
 					we.querySelector('#color_ap').style.backgroundColor = data.msg.data?'#32cd32':'#cd3f32';
@@ -162,11 +172,14 @@ socket.on('telem',function(data){
 		}
   }
 });
+socket.on('fps',(fps)=>{
+	document.getElementById('fps').innerText = 'FPS: '+parseInt(fps);
+});
 socket.on('instanceCount',function(data){
 	if(document.getElementById('instanceCount')) document.getElementById('instanceCount').innerText = 'clients: ' + data;
 });
 socket.on('pong',function(ms){
-	document.getElementById('ping').innerText = 'ping '+ms+'ms';
+	document.getElementById('ping').innerText = 'ping '+('000'+ms).slice(-4)+'ms';
 	if(mainImage.width != lastwidth){
 		repositionThumbs();
 	}
@@ -461,7 +474,6 @@ function updatePanels(elmnt){
 			if(overlaps(a.left,a.top,a.w,a.h,  b.left,b.top,b.w,b.h)){
 				if(!a.childids) a.childids = [];
 				if(!a.childids.includes(elmnt.id)) a.childids.push(elmnt.id);
-				console.log(JSON.stringify(a.childids));
 				
 				get4position(elmnt);
 				useSide(elmnt,a.useLeft,a.useTop);
@@ -471,7 +483,6 @@ function updatePanels(elmnt){
 			}else{
 				if(a.childids && a.childids.includes(elmnt.id)){
 					a.childids.splice(a.childids.indexOf(elmnt.id),1);
-					console.log(JSON.stringify(a.childids));
 				}
 			}
 		}
@@ -496,7 +507,6 @@ function deleteFromPanel(elmntid){
 		let a = widgetArray[i];
 			if(a.childids && a.childids.includes(elmntid)){
 				a.childids.splice(a.childids.indexOf(elmntid),1);
-				console.log(JSON.stringify(a.childids));
 			}
 		}
 	}
@@ -511,7 +521,6 @@ function overlaps(x,y,w,h,  x2,y2,w2,h2){
 	w2=parseInt(w2);
 	h=parseInt(h);
 	h2=parseInt(h2);
-	console.log(x,y,w,h,x2,y2,w2,h2);
 	if(x+w>x2 && x<x2+w2   &&    y+h>y2 && y<y2+h2) return true;
 	return false;
 }
@@ -523,10 +532,8 @@ socket.on('cmdOut',function(data){
 	outputele.scrollTop = outputele.scrollHeight;
 });
 socket.on('removeCmd',function(data){
-	console.log('removing');
 	let p = document.getElementsByClassName('pbutton');
 	for(let i = 0; i < p.length; i++){
-		//console.log(p[i].value,data);
 		if(p[i].value == data) p[i].remove();
 	}
 });
@@ -558,6 +565,7 @@ function stopCmd(e){
 	e.remove();
 }
 socket.on('cmdStopButtons',function(data){
+	console.log('creating buttons');
 	for(let i = 0; i < data.length; i++){
 		createStopButton(data[i]);
 	}
@@ -566,17 +574,18 @@ socket.on('cmdStopButtons',function(data){
 //WIDGET CONFIGURATION PANEL
 //open configuration settings panel for each widget
 function openConfig(e){
-  //load field values with JSON settings
+  //load field values with JSON settingss
   elementOpenInConfig = e.parentElement.parentElement;
   currentID = e.parentElement.parentElement.id;
   currentIndex = indexMap[currentID];
+  let WCI = widgetArray[currentIndex];
   lastChangedAxis = -1;
   lastChangedButton = -1;
-  var type = widgetArray[currentIndex].type;
+  var type = WCI.type;
   //pull generic data from widget array into the settings
   //non ros elements are exempt
   let topicInput = document.getElementById('topicTitle');
-  if(widgetArray[currentIndex].useROS) {
+  if(WCI.useROS) {
 	  topicInput.style.display = 'inline-block';
 	  document.getElementById('topiclabel').style.display = 'block';
   }
@@ -584,83 +593,87 @@ function openConfig(e){
 	  topicInput.style.display = 'none';
 	  document.getElementById('topiclabel').style.display = 'none';
   }
-  topicInput.value = widgetArray[currentIndex]['topic'];
+  topicInput.value = WCI['topic'];
   //delete all the auto generated elements
   var paras = document.getElementsByClassName('specific')
   while(paras[0]) paras[0].parentNode.removeChild(paras[0]);
   switch(type){
     case '_button':
-      createconfigInput('Button Label', '_button-labelText', widgetArray[currentIndex]['label']);
+      createconfigInput('Button Label', '_button-labelText', WCI['label']);
       createText('Copy and Paste Icons: ⬆️➡️⬇️⬅️️ ');
-      createLittleInput('Font Size (px)', 'fontsize', widgetArray[currentIndex]['fontsize'],16);
-      createconfiglinkGamepadButton(widgetArray[currentIndex]);
-      createconfiglinkKeys(widgetArray[currentIndex]);
+      createLittleInput('Font Size (px)', 'fontsize', WCI['fontsize'],16);
+      createconfiglinkGamepadButton(WCI);
+      createconfiglinkKeys(WCI);
     break;
     case '_joystick':
-      createconfiglinkGamepadAxis(widgetArray[currentIndex]);
-      createconfiglinkKeys(widgetArray[currentIndex],['up','left','down','right']);
+      createconfiglinkGamepadAxis(WCI);
+      createconfiglinkKeys(WCI,['up','left','down','right']);
     break;
     case '_checkbox':
-      createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
-      createCheckbox('Initial State', 'initialState', widgetArray[currentIndex]['initial']);
-      createCheckbox('ROS Latching', 'latching', widgetArray[currentIndex]['latching']);
-      createconfiglinkGamepadButton(widgetArray[currentIndex]);
-      createconfiglinkKeys(widgetArray[currentIndex],['hotkey']);
-      createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
+      createconfigInput('Label', 'label', WCI['label']);
+      createCheckbox('Initial State', 'initialState', WCI['initial']);
+      createCheckbox('ROS Latching', 'latching', WCI['latching']);
+      createconfiglinkGamepadButton(WCI);
+      createconfiglinkKeys(WCI,['hotkey']);
+      createColorSelect('Text Color','textColor',WCI.textColor);
     break;
     case '_slider':
-	  createconfigInput('Widget Name', 'name', widgetArray[currentIndex]['name']);
-	  createRange(widgetArray[currentIndex]);
-	  createCheckbox('Orient Vertical', 'vertical', widgetArray[currentIndex]['vertical']);
-	  createCheckbox('ROS Latching', 'latching', widgetArray[currentIndex]['latching']);
-	  createconfigInput('Default/initial value', 'default', widgetArray[currentIndex]['default']);
-	  createconfiglinkKeys(widgetArray[currentIndex],['Decrease','Increase']);
-	  createconfiglinkGamepadButton(widgetArray[currentIndex],['Decrease','Increase']);
-	  createLittleInput('Repeat Delay (ms)', 'repeatdelay', widgetArray[currentIndex]['repeatdelay'],100);
+	  createconfigInput('Widget Name', 'name', WCI['name']);
+	  createRange(WCI);
+	  createCheckbox('Orient Vertical', 'vertical', WCI['vertical']);
+	  createCheckbox('ROS Latching', 'latching', WCI['latching']);
+	  createconfigInput('Default/initial value', 'default', WCI['default']);
+	  createconfiglinkKeys(WCI,['Decrease','Increase']);
+	  createconfiglinkGamepadButton(WCI,['Decrease','Increase']);
+	  createLittleInput('Repeat Delay (ms)', 'repeatdelay', WCI['repeatdelay'],100);
     break;
     case '_inputbox':
-	  createSelect('Message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
+	  createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
     break;
     case '_value':
-      createconfigDataWrapper(widgetArray[currentIndex]);
-      createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
-	  createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
-	  createFormat(widgetArray[currentIndex]);
+      createconfigDataWrapper(WCI);
+      createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
+	  createColorSelect('Text Color','textColor',WCI.textColor);
+	  createFormat(WCI);
     break;
     case '_light':
-    	createconfigInput('Label', 'text', widgetArray[currentIndex]['text']);
+    	createconfigInput('Label', 'text', WCI['text']);
     break;
     case '_gauge':
-		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
-		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
-		createGraph(widgetArray[currentIndex]);
-		createFormat(widgetArray[currentIndex]);
+		createconfigInput('Label', 'label', WCI['label']);
+		createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
+		createGraph(WCI);
+		createFormat(WCI);
     break;
     case '_compass':
-		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
+		createconfigInput('Label', 'label', WCI['label']);
 		createText('0 is north, increasing clockwise in degrees.');
-		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16']);
+		createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16']);
     break;
     case '_horizon':
-		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
+		createconfigInput('Label', 'label', WCI['label']);
 		createText('[0]=Roll,[1]=Pitch in degrees');
-		createSelect('Subscribe to message type', 'msgType', widgetArray[currentIndex]['msgType'] ,['std_msgs/Float64MultiArray','std_msgs/Float32MultiArray']);
+		createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64MultiArray','std_msgs/Float32MultiArray']);
     break;
     case '_rosImage':
-		createconfigInput('Label', 'label', widgetArray[currentIndex]['label']);
+		createconfigInput('Label', 'label', WCI['label']);
 		createText('This widget subscribes to sensor_msgs/CompressedImage and displays a JPEG.');
 	break;
+	case '_logger':
+		createText('Subscribes to std_msgs/String');
+		createCheckbox('ROS Latching', 'latching', WCI['latching']);
+	break;
     case '_audio':
-    	createCheckbox('Hide this widget in drive mode', 'hideondrive', widgetArray[currentIndex]['hideondrive']);
+    	createCheckbox('Hide this widget in drive mode', 'hideondrive', WCI['hideondrive']);
     	createText('Subscribes to an Int16');
     	createSoundsList();
     break;
     case '_text':
-		createconfigInput('Text', 'text', widgetArray[currentIndex]['text']);
-		createColorSelect('Text Color','textColor',widgetArray[currentIndex].textColor);
+		createconfigInput('Text', 'text', WCI['text']);
+		createColorSelect('Text Color','textColor',WCI.textColor);
     break;
     case '_box':
-		createColorSelect('Background Color','bkColor',widgetArray[currentIndex].bkColor);
+		createColorSelect('Background Color','bkColor',WCI.bkColor);
     break;
   }
   mask.style.display='inline';
@@ -670,7 +683,7 @@ function openConfig(e){
 function applyConfigChanges(){
   //the widget were applying settings on
   var localWidget = document.getElementById(currentID);
-  var topic = cleanTopicName(document.getElementById('topicTitle').value);
+  var topic = document.getElementById('topicTitle').value;
   widgetArray[currentIndex].topic = topic;
   var WA = widgetArray[currentIndex];
   var type = WA.type;
@@ -801,6 +814,9 @@ function applyConfigChanges(){
     case '_rosImage':
 		WA['label'] = document.getElementById('label').value;
     break;
+    case '_logger':
+		WA['latching'] = document.getElementById('latching').checked;
+    break;
     case '_text':
       WA['text'] = document.getElementById('text').value;
       WA['textColor'] = document.getElementById('textColor').value;
@@ -818,12 +834,14 @@ function applyConfigChanges(){
   updateTopicMapIndex();
   sendWidgetsArray();
 }
-function cleanTopicName(str){
-	return str;
-}
 function guardTopicName(ele){
-	ele.value = ele.value.replace(/ /g,'_');
-	let firstChar = ele.value.charAt(0);
+	let fstr = ele.value.trim();
+	str='';
+	for(let i = 0; i < fstr.length; i++){
+		if(i==0)str = str+fstr.charAt(i).replace(/[^a-zA-Z~/]/g,'');
+		else str=str+fstr.charAt(i).replace(/[^a-zA-Z0-9_/]/g,'')
+	}
+	ele.value = str;
 }
 //dynamically creates custom config settings. input is the content id ex _button.labelText
 function createSoundsList(){
@@ -1029,7 +1047,7 @@ function createRange(array){
 //KEYBOARD INTERFACING
 var inc; //interval id. also used in gamepad loop
 document.addEventListener('keydown', (e) => {
-	if(!configIsOpen){
+	if(!configIsOpen && !terminalIsOpen){
 		oldKeys = {...keys};
 		keys[e.key] = true;
 		getKeyboardUpdates();
@@ -1120,25 +1138,48 @@ function getKeyboardUpdates(){
   }
 }
 
+let gamepad_index = 0;
 //GAMEPAD INTERFACING
 window.addEventListener("gamepadconnected", function(e) {
+	if(gamepadCount == 0) document.getElementById('gpselect').innerHTML = '';
 	gamepadCount++;
 	console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",e.gamepad.index, e.gamepad.id,e.gamepad.buttons.length, e.gamepad.axes.length);
-    currentGamepad = navigator.getGamepads()[0];
-    oldGamepad = currentGamepad;
-    document.getElementById('gpstatus').src = 'gpon.svg';
-    readGamepadInterval[e.gamepad.id] = setInterval(() => {readGamepadLoop(e.gamepad.id)},30);
+	addGamepadToSelect(e.gamepad.index,e.gamepad.id);
+	currentGamepad = e.gamepad;
+	oldGamepad = currentGamepad;
+	readGamepadInterval = setInterval(() => {readGamepadLoop()},30);
 });
 
 window.addEventListener("gamepaddisconnected", function(e) {
 	gamepadCount--;
     console.log("Gamepad disconnected from index %d: %s",e.gamepad.index, e.gamepad.id);
-    clearInterval(readGamepadInterval[e.gamepad.id]);
-    if(gamepadCount == 0) document.getElementById('gpstatus').src = 'gpoff.svg';
+    removeGamepadFromSelect(e.gamepad.index);
+    if(gamepadCount == 0){
+		clearInterval(readGamepadInterval);
+		document.getElementById('gpselect').innerHTML = '<option>No Gamepad Connected</option>';
+	}
 });
-
+function addGamepadToSelect(index,id){
+	document.getElementById('gpselect').innerHTML += '<option value='+index+'>'+id.substring(0,15)+'...</option>';
+	document.getElementById('gpselect').value = index;
+	gamepad_index = index;
+}
+function removeGamepadFromSelect(index){
+	let ele = document.getElementById('gpselect').options;
+	for(let i = 0; i < ele.length; i++){
+		if(ele[i].value == index) ele[i].remove();
+	}
+	if(ele.length > 1){
+		 document.getElementById('gpselect').value = ele[ele.length-1].value;
+		 gamepad_index = ele[ele.length-1].value;
+	}
+}
+document.getElementById('gpselect').addEventListener('change',()=>{
+	if(Number.isInteger(document.getElementById('gpselect').value)) gamepad_index = document.getElementById('gpselect').value;
+});
 function readGamepadLoop(){
-  currentGamepad = navigator.getGamepads()[0];
+	console.log('looping');
+  currentGamepad = navigator.getGamepads()[gamepad_index];
   for(let i = 0; i < currentGamepad.axes.length; i++){
     if(Math.abs(currentGamepad.axes[i] - oldGamepad.axes[i]) > 0.002){
       if(configIsOpen){
@@ -1288,36 +1329,6 @@ function toggleWidgetHolder(){
     }
   }
 }
-function changeScreen(me){
-  thisScreen = me.value;
-  for(let i = 0; i < widgetArray.length; i++){
-    if(widgetArray[i].screen == thisScreen){
-      widgetFromJson(widgetArray[i]);
-    }
-    else{
-      body.removeChild(document.getElementById(widgetArray[i].id));
-    }
-  }
-  if(thisScreen == 1) {
-	  socket.emit('setScreen1',true);
-	  camStream = document.getElementsByClassName('imageHidden')[0];
-	  if(camStream){
-		camStream.style.visibility = 'visible';
-		camStream.className = 'image';
-	  }
-  }
-  else{
-	  //socket.emit('setScreen1',false);
-	  camStream = document.getElementsByClassName('image')[0];
-	  if(camStream){
-	  camStream.style.visibility = 'hidden';
-	  camStream.className = 'imageHidden';
-	  }
-  }
-  toggleDriveMode();
-  toggleDriveMode();
-  showWidgetHolder();
-}
 function camSelect(me){
   let cams = document.getElementsByClassName('imageTile');
   for(let i = 0; i < cams.length; i++){
@@ -1380,6 +1391,7 @@ function toggleFullscreen(){
 	fullScreen = !fullScreen; 
 }
 function exitServer(d){
+	console.log('exiting server...');
 	socket.emit('exit',d);
 	//uncomment below to reset the web page too
 	//showMessage('Restarting Server...');

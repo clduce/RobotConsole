@@ -99,13 +99,14 @@ body{
 <div class='navBar' id='navBar'>
   <h1 id='header' class="label" style="color: #FFF;margin:5px 40px 5px 10px;">Waiting for server...</h1>
   <button class="navBarButton" onclick="backToConsole()">Back To Console (Apply)</button>
-  <button class="navBarButton" style="background-color: #74bad6"onclick="backToConsole()">Restart Server</button>
+  <button class="navBarButton" style="background-color: #74bad6"onclick="exitServer(1)">Restart Server</button>
 </div>
 <div class='settings'>
 	<button onclick='exportFile()'>Export</button>
 	<input type='file' accept='.json' onchange='loadJsonFile(this)'></input>
   <div id='cams' class='div' style='background-color:beige'>
 	<h1 class='cat' id='camcount'>Cameras</h1>
+	<p style="margin:5px">It's best to set the default resolution low.</p>
   </div>
   <div id='presets' class='div' style='background-color:beige'>
 	<h1 class='cat'>Camera Presets</h1>

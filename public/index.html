@@ -318,6 +318,7 @@ button:focus {outline:0;}
   <div id='infoPanel' style='font-size:10px'>
 	    <h1 class="label" style="color: #FFF;right:10px;position:absolute;margin:0px;top:3px"id='instanceCount'>waiting...</h1>
 		<h1 class="label" style="color: #FFF;right:10px;position:absolute;margin:0px;top:23px"id='ping'>waiting on ping...</h1>
+		<h1 class="label" style="color: #FFF;right:100px;position:absolute;margin:0px;top:3px"id='fps'>FPS</h1>
   </div>
   <button class="navBarButton" id='driveMode' style='display:none' onclick="toggleDriveMode();">Drive Mode</button>
   <button class="navBarButton" onclick="toggleFullscreen()">Toggle Fullscreen</button>
@@ -325,7 +326,7 @@ button:focus {outline:0;}
   <button class="navBarButton" onclick="openTerminal()" id='termButton' style='display:none'>Terminal</button>
   <button class="navBarButton" onclick="closeOtherSockets()">Close Other Clients</button>
   <button class="navBarButton" onclick="exitServer(1)">Restart Server</button>
-  <image id='gpstatus'class='gamepadStatus'src='gpoff.svg'></image>
+  <select class="navBarButton" id='gpselect'><option>no gamepad connected</option></select>
 </div>
 <image class='image' id='mainImage'></image>
 <!-- inside this widget holder is the definitions of each widget -->
@@ -402,6 +403,11 @@ button:focus {outline:0;}
   <div class="panel source" id="_rosImage" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">ROS JPEG Image<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <img class='fsImage showOnDrive'id='img_ap'src="phImg.svg"></img>
+    <img src="resize.png" id="resize"></img>
+  </div>
+  <div class="panel source" id="_logger" style="width:200px;height:100px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <div id="header">Logger<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <textarea id='textarea_ap'class='showOnDrive' style='resize:none;padding:0px; margin:0px; width:calc(100% - 0px); height:calc(100% - 22px);'></textarea>
     <img src="resize.png" id="resize"></img>
   </div>
   
