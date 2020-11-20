@@ -291,22 +291,21 @@ io.sockets.on('connection', function(socket){
   
   //ROS client to server
   socket.on('ROSCTS', function(data){
-    settingsObject['widgets'] = data;
-    var topic = data.topic;
-    switch(data.type){
-		case '_button':
-		case '_checkbox':
-			rospublishers[topic].publish({ data:data.pressed});
-		break;
-		case '_inputbox':
-		case '_slider':
-			rospublishers[topic].publish({ data:data.value});
-		break;
-		case '_joystick':
-			rospublishers[topic].publish({ x:data.x,y:data.y,z:0});
-		break;
-	}
-    console.log('Publish Ros ' + JSON.stringify(data));
+	    var topic = data.topic;
+	    switch(data.type){
+			case '_button':
+			case '_checkbox':
+				rospublishers[topic].publish({ data:data.pressed});
+			break;
+			case '_inputbox':
+			case '_slider':
+				rospublishers[topic].publish({ data:data.value});
+			break;
+			case '_joystick':
+				rospublishers[topic].publish({x:data.x,y:data.y,z:0});
+			break;
+		}
+	    console.log('Publish Ros ' + JSON.stringify(data));
   });
   //remove all subscribers/publishers from topic
   socket.on('shutROS', function(data){

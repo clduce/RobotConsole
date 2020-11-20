@@ -64,14 +64,15 @@ function drawJoystick(c,x,y,type=true){
   if(type){
     let hypot = Math.hypot(x,y);
     if(hypot == 0) hypot = 1;
-    normalPos = {x:0,y:0};
-    normalPos.x = x/hypot;
-    normalPos.y = y/hypot;
+    normalPos = {x:x/hypot,y:y/hypot};
 
     if(hypot > outerRad){
       x = normalPos.x*outerRad;
       y = normalPos.y*outerRad;
     }
+    normalPos = {x:x/outerRad,y:y/outerRad};
+    
+    //console.log('using screen',normalPos);
   }
   else{
     let hypot = Math.hypot(x,y);
