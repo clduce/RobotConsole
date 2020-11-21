@@ -96,13 +96,13 @@ function populateConfig(data){
 }
 function generateConfig(){
 	let data = settings.config;
-	//data['cams'] = {presets:[],camsettings:[]};
 	for(let i = 0; i < document.getElementsByClassName('cams_name').length; i++){
 		data.cams.camsettings[i] = {};
 		data.cams.camsettings[i]['preset'] = document.getElementsByClassName('cams_preset')[i].value;
 		data.cams.camsettings[i]['name'] = document.getElementsByClassName('cams_name')[i].value;
 		data.cams.camsettings[i]['rotation'] = document.getElementsByClassName('cams_rotation')[i].value;
 	}
+	data.cams.presets = [];
 	for(let i = 0; i < document.getElementsByClassName('presets_name').length; i++){
 		data.cams.presets[i] = {};
 		data.cams.presets[i]['name'] = document.getElementsByClassName('presets_name')[i].value;
