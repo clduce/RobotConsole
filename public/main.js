@@ -54,11 +54,11 @@ socket.on('settings',function(data){
 		
 		loadedElements = true;
 		connected = true;
-		hideMessage();
 		for(let i=0;i<configSettings.macros.length;i++) addMacro(configSettings.macros[i].name,configSettings.macros[i].cmd);
 	}else{
 		console.log('already loaded elements');
 	}
+	hideMessage();
 });
 socket.on('hardcoded_settings',function(data){
 	if(data.show_terminal) document.getElementById('termButton').style.display = 'inline';
@@ -1394,7 +1394,7 @@ function exitServer(d){
 	console.log('exiting server...');
 	socket.emit('exit',d);
 	//uncomment below to reset the web page too
-	//showMessage('Restarting Server...');
+	showMessage('Restarting Server...');
 	//location.reload();
 }
 //mobile view support
