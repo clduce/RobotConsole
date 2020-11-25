@@ -80,7 +80,6 @@ var socket = require('socket.io');
 var io = socket(server, {pingInterval: 300, pingTimeout: RESET_SOCKET_AFTER_MS});
 io.set('origins','*:*');
 
-
 function joinRosTopics(){
 	fs.readFile(SETTINGS_PATH, (err, data) => {
 		if (err) throw err;
@@ -223,11 +222,10 @@ io.sockets.on('connection', function(socket){
   socket.on('WCTS', function(data){
     try{
 		if(settingsObject.config.saveWidgets){
-			console.log('WIDGETS:: '+JSON.stringify(data));
 			settingsObject['widgets'] = data;
+			joinRosTopics();
 			fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settingsObject));
 			console.log('recieved updated widget settings from client');
-			joinRosTopics();
 		}
     }
     catch(e){
@@ -296,14 +294,14 @@ io.sockets.on('connection', function(socket){
 	    switch(data.type){
 			case '_button':
 			case '_checkbox':
-				rospublishers[topic].publish({ data:data.pressed});
+				if(rospublishers[topic]) rospublishers[topic].publish({ data:data.pressed});
 			break;
 			case '_inputbox':
 			case '_slider':
-				rospublishers[topic].publish({ data:data.value});
+				if(rospublishers[topic]) rospublishers[topic].publish({ data:data.value});
 			break;
 			case '_joystick':
-				rospublishers[topic].publish({x:data.x,y:data.y,z:0});
+				if(rospublishers[topic]) rospublishers[topic].publish({x:data.x,y:data.y,z:0});
 			break;
 		}
 	    console.log('Publish Ros ' + JSON.stringify(data));

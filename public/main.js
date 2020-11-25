@@ -692,7 +692,7 @@ function applyConfigChanges(){
   widgetArray[currentIndex].topic = topic;
   var WA = widgetArray[currentIndex];
   var type = WA.type;
-
+  var oldlatching = false;
   switch(type){
     case '_button':
       WA['label'] = document.getElementById('_button-labelText').value;
@@ -707,6 +707,7 @@ function applyConfigChanges(){
     case '_checkbox':
       WA['label'] = document.getElementById('label').value;
       WA['initial'] = document.getElementById('initialState').checked;
+      oldlatching = WA['latching'];
       WA['latching'] = document.getElementById('latching').checked;
       WA['textColor'] = document.getElementById('textColor').value;
       localWidget.querySelector('#checkbox_text_ap').innerText = WA['label'];
@@ -730,6 +731,7 @@ function applyConfigChanges(){
       WA['max'] = document.getElementById('max').value;
       WA['step'] = document.getElementById('step').value;
       WA['name'] = document.getElementById('name').value;
+      oldlatching = WA['latching'];
       WA['latching'] = document.getElementById('latching').checked;
       let oldVertical = WA['vertical'];
       WA['vertical'] = document.getElementById('vertical').checked;
@@ -838,6 +840,21 @@ function applyConfigChanges(){
   configIsOpen = false;
   updateTopicMapIndex();
   sendWidgetsArray();
+  
+  //now send initial state if latching:
+  if(oldlatching != WA['latching'] && WA['latching']){
+	  console.log('update latch status');
+	switch(type){
+		case '_checkbox':
+			sendToRos(WA['topic'],{pressed:WA['initial']},'_checkbox');
+			localWidget.querySelector('#checkbox_ap').checked = WA['initial'];
+		break;
+		case '_slider':
+			sendToRos(WA['topic'],{value:WA['default']},'_slider');
+			
+		break;
+	}
+  }
 }
 function guardTopicName(ele){
 	let fstr = ele.value.trim();
