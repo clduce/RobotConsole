@@ -600,17 +600,20 @@ function openConfig(e){
   switch(type){
     case '_button':
       createconfigInput('Button Label', '_button-labelText', WCI['label']);
-      createText('Copy and Paste Icons: ⬆️➡️⬇️⬅️️ ');
+      createText('std_msgs/Bool');
+      createText('Copy and paste icons: ⬆️➡️⬇️⬅️️ ');
       createLittleInput('Font Size (px)', 'fontsize', WCI['fontsize'],16);
       createconfiglinkGamepadButton(WCI);
       createconfiglinkKeys(WCI);
     break;
     case '_joystick':
+	  createText('geometry_msgs/Vector3');
       createconfiglinkGamepadAxis(WCI);
       createconfiglinkKeys(WCI,['up','left','down','right']);
     break;
     case '_checkbox':
       createconfigInput('Label', 'label', WCI['label']);
+      createText('std_msgs/Bool');
       createCheckbox('Initial State', 'initialState', WCI['initial']);
       createCheckbox('ROS Latching', 'latching', WCI['latching']);
       createconfiglinkGamepadButton(WCI);
@@ -619,6 +622,7 @@ function openConfig(e){
     break;
     case '_slider':
 	  createconfigInput('Widget Name', 'name', WCI['name']);
+	  createText('std_msgs/Float64');
 	  createRange(WCI);
 	  createCheckbox('Orient Vertical', 'vertical', WCI['vertical']);
 	  createCheckbox('ROS Latching', 'latching', WCI['latching']);
@@ -637,6 +641,7 @@ function openConfig(e){
 	  createFormat(WCI);
     break;
     case '_light':
+		createText('std_msgs/Bool');
     	createconfigInput('Label', 'text', WCI['text']);
     break;
     case '_gauge':
@@ -660,12 +665,12 @@ function openConfig(e){
 		createText('This widget subscribes to sensor_msgs/CompressedImage and displays a JPEG.');
 	break;
 	case '_logger':
-		createText('Subscribes to std_msgs/String');
+		createText('std_msgs/String');
 		createCheckbox('ROS Latching', 'latching', WCI['latching']);
 	break;
     case '_audio':
+		createText('Subscribes to an Int16');
     	createCheckbox('Hide this widget in drive mode', 'hideondrive', WCI['hideondrive']);
-    	createText('Subscribes to an Int16');
     	createSoundsList();
     break;
     case '_text':
@@ -917,13 +922,13 @@ function createconfiglinkGamepadAxis(array){
   var label = document.createElement("h1");
   label.className = 'settingsLabel specific';
   label.style.margin = '20px 0px 0px 0px';
-  label.innerHTML = 'Use Gamepad Input <input id="useGamepad" type="checkbox"></input>';
+  label.innerHTML = 'Use gamepad input <input id="useGamepad" type="checkbox"></input>';
   label.style.margin.bottom = '0px';
   var axisText = document.createElement("p");
   axisText.className = 'specific';
   axisText.id='replaceWithCAxis';
   axisText.style.margin = '0px';
-  if(array["useAxis"] == -1) axisText.innerHTML = 'wiggle a joystick on the gamepad to link...';
+  if(array["useAxis"] == -1) axisText.innerHTML = 'Wiggle a joystick on the gamepad to link...';
   else axisText.innerHTML = 'Paired to axis: '+array['useAxis'];
   configWindow.appendChild(label);
   configWindow.appendChild(axisText);
@@ -933,7 +938,7 @@ function createconfiglinkGamepadButton(array, opts){
   var label = document.createElement("h1");
   label.className = 'settingsLabel specific';
   label.style.margin = '20px 0px 0px 0px';
-  label.innerHTML = 'Use Gamepad Input <input id="useGamepad" type="checkbox"></input>';
+  label.innerHTML = 'Use gamepad input <input id="useGamepad" type="checkbox"></input>';
   label.style.margin.bottom = '0px';
   configWindow.appendChild(label);
   if(!opts){
@@ -965,7 +970,7 @@ function createconfiglinkKeys(array,keylabels=['hotkey']){
   var label = document.createElement("h1");
   label.className = 'settingsLabel specific';
   label.style.margin = '20px 0px 0px 0px';
-  label.innerHTML = 'Use Keyboard Input <input id="useKeys" type="checkbox"></input>';
+  label.innerHTML = 'Use keyboard input <input id="useKeys" type="checkbox"></input>';
   label.style.margin.bottom = '0px';
   configWindow.appendChild(label);
   var label2 = document.createElement("p");
