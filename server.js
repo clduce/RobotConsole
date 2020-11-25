@@ -223,6 +223,7 @@ io.sockets.on('connection', function(socket){
   socket.on('WCTS', function(data){
     try{
 		if(settingsObject.config.saveWidgets){
+			console.log('WIDGETS:: '+JSON.stringify(data));
 			settingsObject['widgets'] = data;
 			fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settingsObject));
 			console.log('recieved updated widget settings from client');

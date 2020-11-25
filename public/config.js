@@ -7,8 +7,8 @@ socket.on('settings', (data) => {
 	if(!gotSettings){
 		settings = data;
 		gotSettings = true;
-		addPresets(settings.config.cams.presets.length);
-		addMacros(settings.config.macros.length);
+		//addPresets(settings.config.cams.presets.length);
+		//addMacros(settings.config.macros.length);
 	}
 	hideMessage();
 });
@@ -33,39 +33,10 @@ socket.on('makeThumbs',(data) => {
 	document.getElementById('header').innerText = 'Robot Settings';
 });
 
-//fills in the config fields with JSON object data
-/*
- * {
- * 		"consoleName":"Robot Console",
- * 		"loadInEditMode":true,
- * 		"background":"#000",
- * 		"snaptogrid":false,
- * 		"cams":{
- * 			"presets": [
- * 				{
- * 					"width":"320",
- * 					"height":"240",
- * 					"quality":100,
- * 					"name":"low res"
- * 				}
- * 			],
- * 			"camsettings":[
- * 				{
- * 					"preset":0,
- * 					"name":"pi cam"
- * 				}
- * 			]
- * 		}
- * 		"macros":[
- * 			{
- * 		 		"name":"name",
- * 		 		"cmd":"cmd"
- * 		 	}
- * 		]
- * }
-*/
 function populateConfig(data){
 	if(!data['cams']) data['cams'] = {};
+	addPresets(data.cams.presets.length);
+	addMacros(data.macros.length);
 	refreshSelectPresets();
 	for(let i = 0; i < document.getElementsByClassName('cams_name').length; i++){//for each camera
 		if(!data.cams.camsettings[i]) data.cams.camsettings[i] = {preset:0,name:"cam "+i};
@@ -138,6 +109,8 @@ function addCams(c){
 	}
 }
 function addPresets(c){
+	let allDivs = document.getElementById('presets').querySelectorAll('div.presetdiv');
+	for(let i = 0; i < allDivs.length; i++) allDivs[i].remove();
 	for(let i = 0; i < c; i++){
 		let html = "<div class='presetdiv'><p class='inputLabel'>Preset name</p>"+
 		"<input class='presets_name'onkeyup='onPresetNameChage()'></input>"+
@@ -155,6 +128,8 @@ function addPresets(c){
 	}
 }
 function addMacros(c){
+	let allDivs = document.getElementById('macros').querySelectorAll('div.macrodiv');
+	for(let i = 0; i < allDivs.length; i++) allDivs[i].remove();
 	for(let i = 0; i < c; i++){
 		let html = "<div class='macrodiv'><p class='inputLabel'>Macro name</p>"+
 		"<input class='macro_name'></input>"+
@@ -220,13 +195,12 @@ function refreshSelectPresets(){
 function sendToServer(){
 	let data = generateConfig();
 	document.getElementById('header').innerText = 'Sending...';
-	socket.emit('configSettings',data,(confirmation)=>{
-		//socket.emit('WCTS',settings['widgets'],(confirmation)=>{
-			console.log('sent to server');
-			document.getElementById('header').innerText = 'Success';
-			return;
-		//});
-	});
+	socket.emit('configSettings',data);
+	console.log('sent config to server');
+	socket.emit('WCTS',settings['widgets']);
+	console.log('sent widgets to server');
+	document.getElementById('header').innerText = 'Success';
+	return;
 }
 function exportFile(){
 	settings['config'] = generateConfig();
@@ -257,7 +231,8 @@ function loadJsonFile(me){
 		var result = JSON.parse(reader.result);
 		console.log(result);
 		populateConfig(result['config']);
-		settings['widgets']= result['widgets'];
+		settings['widgets'] = result['widgets'];
+		me.value = '';
 	});
 	reader.readAsText(me.files[0]);
 }
