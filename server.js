@@ -4,8 +4,6 @@ const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
 const RESET_SOCKET_AFTER_MS = 900; //if the ping gets above this, the socket and cameras will reset
 var PORT = 3000;
 
-//test comment
-
 var express = require('express');
 const rosnodejs = require('rosnodejs');
 const cv = require('opencv4nodejs');
