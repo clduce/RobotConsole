@@ -284,7 +284,7 @@ function generateUniqueId(index){
 }
 
 function sendToRos(topic,data,type){
-	console.log('ros out',topic,data,type);
+	//console.log('ros out',topic,data,type);
   if(topic != undefined && topic != '/' && topic != ''){
     data.topic = topic;
     data.type = type;

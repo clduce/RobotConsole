@@ -1169,38 +1169,43 @@ window.addEventListener("gamepadconnected", function(e) {
 	addGamepadToSelect(e.gamepad.index,e.gamepad.id);
 	currentGamepad = e.gamepad;
 	oldGamepad = currentGamepad;
-	readGamepadInterval = setInterval(() => {readGamepadLoop()},30);
+	if(readGamepadInterval) clearInterval(readGamepadInterval);
+	readGamepadInterval = setInterval(readGamepadLoop,30);
 });
 
 window.addEventListener("gamepaddisconnected", function(e) {
+	clearInterval(readGamepadInterval);
 	gamepadCount--;
     console.log("Gamepad disconnected from index %d: %s",e.gamepad.index, e.gamepad.id);
     removeGamepadFromSelect(e.gamepad.index);
     if(gamepadCount == 0){
-		clearInterval(readGamepadInterval);
 		document.getElementById('gpselect').innerHTML = '<option>No Gamepad Connected</option>';
+	}else{
+		readGamepadInterval = setInterval(readGamepadLoop,30);
 	}
 });
 function addGamepadToSelect(index,id){
 	document.getElementById('gpselect').innerHTML += '<option value='+index+'>'+id.substring(0,15)+'...</option>';
 	document.getElementById('gpselect').value = index;
 	gamepad_index = index;
+	console.log('gamepad_index CON',gamepad_index);
 }
 function removeGamepadFromSelect(index){
 	let ele = document.getElementById('gpselect').options;
 	for(let i = 0; i < ele.length; i++){
 		if(ele[i].value == index) ele[i].remove();
 	}
-	if(ele.length > 1){
+	if(ele.length >= 1){
 		 document.getElementById('gpselect').value = ele[ele.length-1].value;
 		 gamepad_index = ele[ele.length-1].value;
 	}
+	console.log('gamepad_index DIS',gamepad_index);
 }
 document.getElementById('gpselect').addEventListener('change',()=>{
-	if(Number.isInteger(document.getElementById('gpselect').value)) gamepad_index = document.getElementById('gpselect').value;
+	if(document.getElementById('gpselect').value) gamepad_index = document.getElementById('gpselect').value;
+	console.log('gamepad_index CNG',gamepad_index);
 });
 function readGamepadLoop(){
-	console.log('looping');
   currentGamepad = navigator.getGamepads()[gamepad_index];
   for(let i = 0; i < currentGamepad.axes.length; i++){
     if(Math.abs(currentGamepad.axes[i] - oldGamepad.axes[i]) > 0.002){
