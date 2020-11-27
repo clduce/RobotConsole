@@ -437,7 +437,7 @@ button:focus {outline:0;}
 <div spellcheck="false" id='terminal' class="panel" style="display: none; z-index: 121;width:80%; height:90%; left:10%; top:5%; overflow-y:auto">
 	<div style="position:absolute;width:65%; height:100%; left:0%; top:0px; overflow-y:auto">
 		<h1>Terminal</h1>
-		<input id='cmdValue'style='width:calc(70% + 12px);height:40px; font-size:25px'></input><button onclick='runCmdFromInput()'style='margin:0px;margin-left:10px;height:46px; width:80px; transform:translateY(-3px)'>Run</button>
+		<input id='cmdValue'style='width:calc(70% - 77px);height:40px; font-size:25px'></input><button onclick='runCmdFromInput()'style='margin:0px;margin-left:10px;height:46px; width:80px; transform:translateY(-3px)'>Run</button><button onclick='clearTerminal()'style='margin:0px;margin-left:10px;height:46px; width:80px; transform:translateY(-3px)'>Clear</button>
 		<textarea id='cmdOutput'style='resize:none;width:calc(70% + 105px);height:calc(100% - 235px); margin-top:10px'></textarea>
 	</div>
 	<div style="position:absolute;width:35%; height:100%; left:65%; top:0px; overflow-y:auto">

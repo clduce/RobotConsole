@@ -552,7 +552,13 @@ function runCmdFromInput(){
 	if(v){
 		socket.emit('cmd',v);
 		createStopButton(v);
+		document.getElementById('cmdValue').placeholder = document.getElementById('cmdValue').value;
+		document.getElementById('cmdValue').value = '';
 	}
+}
+function clearTerminal(){
+	document.getElementById('cmdOutput').value = '';
+	document.getElementById('cmdValue').placeholder = '';
 }
 function createStopButton(name){
 	let code = 
