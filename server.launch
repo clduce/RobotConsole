@@ -1,0 +1,4 @@
+<launch>
+	<node name="roboquest_base" pkg="roboquest_core" type="roboquest_base.py"/>
+	<node name="server" pkg="roboquest_ui" type="server.js" required="true" />
+</launch>
