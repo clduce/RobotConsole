@@ -43,6 +43,10 @@ function populateConfig(data){
 		document.getElementsByClassName('cams_preset')[i].value = data.cams.camsettings[i]['preset'];
 		document.getElementsByClassName('cams_name')[i].value = data.cams.camsettings[i]['name'];
 		document.getElementsByClassName('cams_rotation')[i].value = data.cams.camsettings[i]['rotation'] || 0;
+		document.getElementsByClassName('cams_contrast')[i].value = data.cams.camsettings[i]['contrast'] || 0;
+		sliderChangePrevious(document.getElementsByClassName('cams_contrast')[i]);
+		document.getElementsByClassName('cams_brightness')[i].value = data.cams.camsettings[i]['brightness'] || 0;
+		sliderChangePrevious(document.getElementsByClassName('cams_brightness')[i]);
 	}
 	for(let i = 0; i < document.getElementsByClassName('presets_name').length; i++){//for each preset
 		if(!data.cams.presets[i]) data.cams.presets[i] = {name:"default",width:320,height:240,quality:95,fps:20};
@@ -72,6 +76,8 @@ function generateConfig(){
 		data.cams.camsettings[i]['preset'] = document.getElementsByClassName('cams_preset')[i].value;
 		data.cams.camsettings[i]['name'] = document.getElementsByClassName('cams_name')[i].value;
 		data.cams.camsettings[i]['rotation'] = document.getElementsByClassName('cams_rotation')[i].value;
+		data.cams.camsettings[i]['contrast'] = document.getElementsByClassName('cams_contrast')[i].value;
+		data.cams.camsettings[i]['brightness'] = document.getElementsByClassName('cams_brightness')[i].value;
 	}
 	data.cams.presets = [];
 	for(let i = 0; i < document.getElementsByClassName('presets_name').length; i++){
@@ -104,9 +110,20 @@ function addCams(c){
 		"<input class='cams_name'></input>"+
 		"<p class='inputLabel'>Rotation</p>"+
 		"<select class='cams_rotation'><option value='0'>0&deg</option><option value='1'>90&deg</option><option value='2'>180&deg</option><option value='3'>270&deg</option></select>"+
+		"<p class='inputLabel'>Contrast</p>"+
+		"<p class='inputLabel'>(50%)</p>"+
+		"<input oninput='sliderChangePrevious(this)'class='cams_contrast'type='range' min='-127'max='127'/>"+
+		"<p class='inputLabel'>Brightness</p>"+
+		"<p class='inputLabel'>(50%)</p>"+
+		"<input oninput='sliderChangePrevious(this)'class='cams_brightness'type='range' min='-255'max='255'/>"+
 		"<br>";
 		document.getElementById('cams').insertAdjacentHTML('beforeend',html);
 	}
+}
+function sliderChangePrevious(ele){
+	let min = ele.min;
+	let max = ele.max;
+	ele.previousSibling.innerText = '('+(-100*(ele.value-min)/(min-max)).toPrecision(3) + '%)';
 }
 function addPresets(c){
 	let allDivs = document.getElementById('presets').querySelectorAll('div.presetdiv');

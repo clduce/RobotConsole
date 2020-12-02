@@ -28,6 +28,8 @@ let cmds = {};
 var cps = [];
 var mainQuality = 90;
 var mainRotation = 0;
+var mainBrightness = 0; // -255 255
+var mainContrast = 0; // -127 127
 var hardcodedLoaded = false;
 var resolutionStack = {};
 var shutdownFlag = false;
@@ -93,7 +95,7 @@ function joinRosTopics(){
 			//attatch ROS publishers and listeners
 			for(let i = 0; i < widgets.length; i++){
 				let topic = widgets[i].topic;
-				if(topic != '' && topic != '/'){
+				if(topic != '' && topic != '/' && nh){
 					console.log(widgets[i].type + ' connecting to   '+widgets[i].topic);
 					
 					let latch;
@@ -197,9 +199,13 @@ io.sockets.on('connection', function(socket){
 			requestResolutionSet(i,parseInt(camSettings(camJSON,i).width),parseInt(camSettings(camJSON,i).height),parseInt(camSettings(camJSON,i).fps));
 			cps[i] = camJSON.camsettings[i].preset;
 			if(camJSON.camsettings[i].rotation == undefined) camJSON.camsettings[i].rotation = 0;
+			if(camJSON.camsettings[i].contrast == undefined) camJSON.camsettings[i].contrast = 0;
+			if(camJSON.camsettings[i].brightness == undefined) camJSON.camsettings[i].brightness = 0;
 		}
 		mainQuality = parseInt(camSettings(camJSON,camindex).quality);
 		mainRotation = parseInt(camJSON.camsettings[camindex].rotation);
+		mainContrast = parseInt(camJSON.camsettings[camindex].contrast);
+		mainBrightness = parseInt(camJSON.camsettings[camindex].brightness);
     	console.log('main quality is ' + mainQuality);
     	socket.emit('makeThumbs',camArray.length,camindex,cps);
 	}else{
@@ -322,6 +328,8 @@ io.sockets.on('connection', function(socket){
 			if(data.c == camindex){
 				mainQuality = parseInt(camJSON.presets[data.v].quality);
 				mainRotation = parseInt(camJSON.camsettings[data.c].rotation);
+				mainContrast = parseInt(camJSON.camsettings[data.c].contrast);
+				mainBrightness = parseInt(camJSON.camsettings[data.c].brightness);
 			}
 		}
 	}
@@ -331,8 +339,12 @@ io.sockets.on('connection', function(socket){
 		camindex = data;
 		mainQuality = parseInt(camJSON.presets[cps[data]].quality);
 		mainRotation = parseInt(camJSON.camsettings[data].rotation);
+		mainContrast = parseInt(camJSON.camsettings[data].contrast);
+		mainBrightness = parseInt(camJSON.camsettings[data].brightness);
 		rotation = mainRotation;
-		console.log(`Change Camera to ${data} rotation ${mainRotation}`);
+		contrast = mainContrast;
+		brightness = mainBrightness;
+		console.log(`Change Camera to ${data} rotation ${mainRotation} contrast ${mainContrast} brightness ${mainBrightness}`);
 	}
   });
   socket.on('closeOtherSockets', function(data){
@@ -354,12 +366,43 @@ function camSettings(cams, camindex){
 
 let oldtime = 0;
 let rotation = mainRotation;
+let contrast = mainContrast;
+let brightness = mainBrightness;
 let retrieveCam = function(){
 	time = new Date().getTime();
 	let c = camindex;
 	camArray[c].readAsync().then(function(result){
 		if(!result.empty){
 			if(rotation != 0) result = result.rotate(rotation-1);
+			
+			let shadow = 0, highlight = 0, alpha_b = 0, gamma_b = 0,alpha_c = 0, gamma_c = 0, buf;
+			if(brightness != 0){
+				if(brightness > 0){
+					shadow = brightness;
+					highlight = 255;
+				}
+				else{
+					shadow = 0;
+					highlight = 255 + brightness;
+				}
+				alpha_b = (highlight - shadow) / 255;
+				gamma_b = shadow;
+				
+				buf = result.addWeighted(alpha_b,result,0,gamma_b);
+			}
+			else{
+				buf = result.copy();
+			}
+			if(contrast != 0){
+				let f = (131 * (contrast + 127)) / (127 * (131 - contrast));
+				alpha_c = f;
+				gamma_c = 127*(1-f);
+				
+				buf = buf.addWeighted(alpha_c, buf, 0, gamma_c);
+			}
+			
+			result = buf;
+			
 			cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
 				io.emit('image',result.toString('base64'));
 			}).catch((e)=>{console.log(e)});
@@ -369,6 +412,8 @@ let retrieveCam = function(){
 		let keys = Object.keys(resolutionStack);
 		if(keys.length > 0){
 			rotation = mainRotation;
+			contrast = mainContrast;
+			brightness = mainBrightness;
 			for(let i = 0; i < keys.length; i++){
 				camArray[keys[i]].set(cv.CAP_PROP_FRAME_WIDTH,resolutionStack[keys[i]][0]);
 				camArray[keys[i]].set(cv.CAP_PROP_FRAME_HEIGHT,resolutionStack[keys[i]][1]);
