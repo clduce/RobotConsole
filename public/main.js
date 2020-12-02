@@ -164,7 +164,8 @@ socket.on('telem',function(data){
 					ele.scrollTop = ele.scrollHeight;
 				break;
 				case '_light':
-					we.querySelector('#color_ap').style.backgroundColor = data.msg.data?'#32cd32':'#cd3f32';
+					we.querySelector('#color_ap').style.backgroundColor = data.msg.data?c.textColor:c.textColor2;
+					we.querySelector('#text_ap').innerText = data.msg.data?c.text:c.text2;
 				case '_audio':
 					playSound(data.msg.data);
 				break;
@@ -647,8 +648,14 @@ function openConfig(e){
 	  createFormat(WCI);
     break;
     case '_light':
+    	createconfigInput('True label', 'text', WCI['text']);
+		createColorSelect('True color','textColor',WCI.textColor==undefined?'#75FF75':WCI.textColor);
+		createBreak();
+		createBreak();
+		createBreak();
+		createconfigInput('False label', 'text2', (WCI['text2']==undefined || WCI['text2']=='')?WCI['text']:WCI['text2']);
+		createColorSelect('False color','textColor2',WCI.textColor2==undefined?'#FF6666':WCI.textColor2);
 		createText('std_msgs/Bool');
-    	createconfigInput('Label', 'text', WCI['text']);
     break;
     case '_gauge':
 		createconfigInput('Label', 'label', WCI['label']);
@@ -784,6 +791,9 @@ function applyConfigChanges(){
     break;
     case '_light':
       WA['text'] = document.getElementById('text').value;
+      WA['textColor'] = document.getElementById('textColor').value;
+	  WA['text2'] = document.getElementById('text2').value
+	  WA['textColor2'] = document.getElementById('textColor2').value;
       localWidget.querySelector('#text_ap').innerText = WA['text'];
     break;
     case '_audio':
@@ -880,11 +890,14 @@ function createSoundsList(){
 	configWindow.insertAdjacentHTML('beforeend',code);
 }
 function createText(text){
-	var label = document.createElement("h1");
+  var label = document.createElement("h1");
   label.className = 'settingsLabel specific selectable';
   label.style.margin.top = '5px';
   label.innerText = text;
   configWindow.appendChild(label);
+}
+function createBreak(){
+	configWindow.insertAdjacentHTML('beforeend','<br class="specific">');
 }
 function createconfigInput(labelText, inputID, inputvalue){
   var label = document.createElement("h1");
