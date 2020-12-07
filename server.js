@@ -1,7 +1,9 @@
 #! /usr/bin/env node
 const SETTINGS_PATH = __dirname + '/settings.json';
 const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
+const INIT_CAMS_PATH = __dirname + '/initCams.py';
 const RESET_SOCKET_AFTER_MS = 900; //if the ping gets above this, the socket and cameras will reset
+const SUPPORTED_PIXEL_FORMATS = ['JPEG','BGR3','BGR','YUYV','GRAY8','NV12','YV12','I420'];
 var PORT = 3000;
 
 var express = require('express');
@@ -34,45 +36,31 @@ var hardcodedLoaded = false;
 var resolutionStack = {};
 var shutdownFlag = false;
 
-console.log('FINDING ALL VIDEO PATHS...');
-let output = cp.execSync('ls -ltrh /dev/video*',{shell:true});
-console.log(output.toString());
+//get list of video devices
+console.log('\nInit Cameras');
 
-console.log('CONNECTING TO OPENCV...');
-output = output.toString().split(/\r?\n/);
-let devicePaths = {};
-//ignore last element because it's always empty
-//and first 3 elements because their not cameras fsr
-for(let i = 0; i < output.length-1; i++){
-  let tmp_path = output[i].split('/dev/video')[1];
-  let cam_name = cp.execSync('cat /sys/class/video4linux/video'+tmp_path+'/name',{shell:true}).toString().replace('\n','');
-  if(!cam_name.includes('bcm2835-codec')){
-	  if(!devicePaths[cam_name]){
-		   console.log('FOUND DEVCE:',cam_name,tmp_path);
-		   devicePaths[cam_name] = tmp_path;
-	  }
-	  else{
-		  if(Number(devicePaths[cam_name]) > Number(tmp_path)) devicePaths[cam_name] = tmp_path;
-	  }
-  }
-}
-let dv_keys = Object.keys(devicePaths);
-for(let i = 0; i < dv_keys.length; i++){
-	camArray[index] = new cv.VideoCapture('/dev/video'+devicePaths[dv_keys[i]]);
-	try{
-		camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,640);
-		camArray[index].set(cv.CAP_PROP_FRAME_HEIGHT,480);
-		camArray[index].set(cv.CAP_PROP_FPS,25);
-		index++;
-		console.log('camera found at index '+i);
-		cps[index]=0;
-		cameraExists = true;
-	}
-	catch(e){
-		console.log(e);
+let validDevices = [];
+let lines = cp.execSync('python '+INIT_CAMS_PATH,{shell:true}).toString().split(/\r?\n/);
+for(let i = 0; i < lines.length; i++){
+	if(lines[i].includes('/dev/video')){
+		console.log('detected: '+lines[i]);
+		validDevices.push(lines[i]);
 	}
 }
-console.log('total of ' + camArray.length + ' cameras found');
+//connect valid devices to opencv
+for(let i = 0; i < validDevices.length; i++){
+	camArray[i] = new cv.VideoCapture(validDevices[i]);
+	camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,640);
+	camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,480);
+	camArray[i].set(cv.CAP_PROP_FPS,25);
+	console.log('camera found at index '+i);
+	cps[i]=0;
+	cameraExists = true;
+}
+
+
+
+console.log('\ntotal of ' + camArray.length + ' cameras found\n');
 
 function requestResolutionSet(c,w,h,f){
 	resolutionStack[c]=[w,h,f];
@@ -422,7 +410,10 @@ let retrieveCam = function(){
 			resolutionStack = {};
 		}
 		
-		if(shutdownFlag) process.exit(1);
+		if(shutdownFlag){
+			releaseCameras();
+			process.exit(1);
+		}
 		setTimeout(retrieveCam,0);
 		
 	}).catch((e)=>{console.log("can't read camera " + e);});
@@ -431,11 +422,14 @@ let retrieveCam = function(){
 }
 if(cameraExists) setTimeout(retrieveCam,0);
 
+function releaseCameras(){
+	for(let i = 0; i < camArray.length; i++){
+		camArray[i].release();
+		camArray[i].read();
+		console.log('released cam',i);
+	}
+}
 process.on('SIGINT',()=>{
-	//for(let i = 0; i < camArray.length; i++){
-		//camArray[i].release();
-		//console.log(camArray[i]);
-		//console.log('released cam',i);
-	//}
+	releaseCameras();
 });
 
