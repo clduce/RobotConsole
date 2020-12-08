@@ -1,0 +1,7 @@
+1. run sudo visudo
+2. add below to the bottom of the file (use Ctrl+shift+v to paste in the terminal)
+
+#allow usb reset
+ubuntu ALL=(ALL:ALL) NOPASSWD: /home/ubuntu/catkin_ws/src/roboquest_ui/src/initCams.py
+
+3. save and exit file: Ctrl+x y Enter
