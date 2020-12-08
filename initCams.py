@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #run with parameter True to put in verbose mode
 import subprocess, os, sys, time, fcntl
 from subprocess import Popen, PIPE
@@ -51,7 +53,9 @@ def p(c):
 #reset all usb devices (to clean up any cameras that were left open or are in use etc.)
 print('reset usb devices (Resource temporarily unavailable is OK)')
 list = create_usb_list();
-for i in range(len(list)):
+usbCount = len(list)
+for i in range(usbCount):
+	print('resetting USB ' + str(i+1) + ' of ' + str(usbCount))
 	reset_usb_device(list[i])
 #give the kernel time to rebuild the /dev/video directory
 time.sleep(1)

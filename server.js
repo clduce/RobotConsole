@@ -40,14 +40,15 @@ var shutdownFlag = false;
 console.log('\nInit Cameras');
 
 let validDevices = [];
-let lines = cp.execSync('python '+INIT_CAMS_PATH,{shell:true}).toString().split(/\r?\n/);
+let lines = cp.execSync('sudo python '+INIT_CAMS_PATH,{shell:true}).toString().split(/\r?\n/);
 for(let i = 0; i < lines.length; i++){
+	console.log(lines[i]);
 	if(lines[i].includes('/dev/video')){
-		console.log('detected: '+lines[i]);
 		validDevices.push(lines[i]);
 	}
 }
 //connect valid devices to opencv
+console.log('ATTEMPTING TO CONNECT TO ' + validDevices);
 for(let i = 0; i < validDevices.length; i++){
 	camArray[i] = new cv.VideoCapture(validDevices[i]);
 	camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,640);
