@@ -441,7 +441,7 @@ let retrieveCam = function(){
 	io.emit('fps',1000/(time-oldtime));
 	oldtime = time;
 }
-//if(cameraExists) setTimeout(retrieveCam,0);
+if(cameraExists) setTimeout(retrieveCam,0);
 
 function releaseCameras(){
 	for(let i = 0; i < camArray.length; i++){
