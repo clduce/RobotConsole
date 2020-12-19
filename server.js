@@ -1,10 +1,9 @@
 #! /usr/bin/env node
 const SETTINGS_PATH = __dirname + '/settings.json';
 const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
-const INIT_CAMS_PATH = __dirname + '/initCams.py';
 const RESET_SOCKET_AFTER_MS = 900; //if the ping gets above this, the socket and cameras will reset
-const SUPPORTED_PIXEL_FORMATS = ['JPEG','BGR3','BGR','YUYV','GRAY8','NV12','YV12','I420'];
 var PORT = 3000;
+const SUPPORTED_PIXEL_FORMATS = ['JPEG','BGR3','BGR4','BGR','YUYV','GRAY8','NV12','YV12','I420'];
 
 var express = require('express');
 const rosnodejs = require('rosnodejs');
@@ -21,11 +20,10 @@ var settingsObject,hardcoded;
 var rosready = false;
 var nh, rospublishers={}, rossubscribers={};
 var socketsOpen = 0;
-var camArray = [],camJSON={"presets": [{"width":"320","height":"240","quality":100,"name":"low res"}],"camsettings":[{"preset":0,"name":"pi cam"}]};
+var camJSON={"presets": [{"width":"320","height":"240","quality":100,"name":"low res"}],"camsettings":[{"preset":0,"name":"pi cam"}]};
 var camindex = 0;
 app.use(express.static(__dirname + '/public'));
 console.log("server running on port "+ PORT);
-let index = 0;
 let cmds = {};
 var cps = [];
 var mainQuality = 90;
@@ -36,32 +34,53 @@ var hardcodedLoaded = false;
 var resolutionStack = {};
 var shutdownFlag = false;
 
-//get list of video devices
-console.log('\nInit Cameras');
-
-let validDevices = [];
-let lines = cp.execSync('sudo python '+INIT_CAMS_PATH,{shell:true}).toString().split(/\r?\n/);
-for(let i = 0; i < lines.length; i++){
-	console.log(lines[i]);
-	if(lines[i].includes('/dev/video')){
-		validDevices.push(lines[i]);
+console.log('FINDING ALL VIDEO PATHS...');
+let validDevices=[];
+let output = cp.execSync('v4l2-ctl --list-devices || true',{shell:true});
+output = output.toString().split(/\r?\n/);
+let nextIsName = true, namedDevices = {}, lastName = '';
+for(let i = 0; i < output.length; i++){
+	let r = output[i];
+	if(r == ''){
+		nextIsName = true;
+	}
+	else if(nextIsName){
+		namedDevices[r] = [];
+		lastName = r;
+		nextIsName = false;
+	}
+	else{
+		namedDevices[lastName].push(r.replace('\t',''));
 	}
 }
-//connect valid devices to opencv
-console.log('ATTEMPTING TO CONNECT TO ' + validDevices);
+console.log(namedDevices);
+console.log('CHECKING VALIDITY OF V4l2 DEVICES...');
+let dkeys = Object.keys(namedDevices);
+for(let i = 0; i < dkeys.length; i++){
+	let devices = namedDevices[dkeys[i]];
+	if(!dkeys[i].includes('bcm2835-codec')){	//make sure camera is real
+		for(let d = 0; d < devices.length; d++){
+			let output = cp.execSync('v4l2-ctl -d '+devices[d]+' --get-fmt-video || true',{shell:true}).toString().split(/\r?\n/);
+			if(!output[0].includes('Invalid Argument')){ //make sure v4l pixel format is valid
+				validDevices.push(devices[d]);
+				break;
+			}
+		}
+	}
+}
+console.log('(CONNECTING TO OPENCV) VALID DEVICES',validDevices);
+let camArray = [], index = 0;
 for(let i = 0; i < validDevices.length; i++){
-	camArray[i] = new cv.VideoCapture(validDevices[i]);
-	camArray[i].set(cv.CAP_PROP_FRAME_WIDTH,640);
-	camArray[i].set(cv.CAP_PROP_FRAME_HEIGHT,480);
-	camArray[i].set(cv.CAP_PROP_FPS,25);
+	camArray[index] = new cv.VideoCapture(validDevices[i]);
+	camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,640);
+	camArray[index].set(cv.CAP_PROP_FRAME_HEIGHT,480);
+	camArray[index].set(cv.CAP_PROP_FPS,25);
+	index++;
 	console.log('camera found at index '+i);
-	cps[i]=0;
+	cps[index]=0;
 	cameraExists = true;
 }
-
-
-
-console.log('\ntotal of ' + camArray.length + ' cameras found\n');
+console.log('total of ' + camArray.length + ' cameras found');
 
 function requestResolutionSet(c,w,h,f){
 	resolutionStack[c]=[w,h,f];
@@ -123,8 +142,9 @@ function joinRosTopics(){
 								console.log(msg);
 							});
 						break;
+						case '_arm':
 						case '_horizon':
-							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Float64Array';
+							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Float64MultiArray';
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
 								io.emit('telem',{topic:topic,id:i,msg:msg.data});
@@ -421,7 +441,7 @@ let retrieveCam = function(){
 	io.emit('fps',1000/(time-oldtime));
 	oldtime = time;
 }
-if(cameraExists) setTimeout(retrieveCam,0);
+//if(cameraExists) setTimeout(retrieveCam,0);
 
 function releaseCameras(){
 	for(let i = 0; i < camArray.length; i++){
@@ -430,6 +450,7 @@ function releaseCameras(){
 		console.log('released cam',i);
 	}
 }
+
 process.on('SIGINT',()=>{
 	releaseCameras();
 });

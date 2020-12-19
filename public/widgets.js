@@ -57,6 +57,12 @@ function widgetFromJson(json){
       canvas.setAttribute("data-config",JSON.stringify({min:json.min,max:json.max,bigtick:json.bigtick,smalltick:json.smalltick, title:json.label}));
       drawGauge(canvas,json.min,json);
     break;
+	case '_arm':
+      var canvas = tile.querySelector('#arm_ap');
+      canvas.height = parseInt(json['h'])-20;
+      canvas.width = parseInt(json['w']);
+	  drawArm(canvas, json.arms);
+    break;
     case '_text':
 		tile.querySelector('#text_ap').innerText=json['text'];
 		tile.querySelector('#text_ap').style.color = json['textColor'];
@@ -174,6 +180,9 @@ function makeUnique(type,newWidget){
       thisWidget["bigtick"] = 20;
       thisWidget["smalltick"] = 4;
     break;
+	case '_arm':
+		thisWidget.arms = [{mode:1,data:60,armlength:5,color:'#000000'},{mode:1,data:-90,armlength:3,color:'#00FF00'}];
+	break;
     case '_box':
 		thisWidget['useTop'] = true;
 		thisWidget['useLeft'] = true;
@@ -257,6 +266,10 @@ function widgetFromId(id){
   canvas = cln.querySelector('#gauge_ap');
   if(canvas){
     drawGauge(canvas,0);
+  }
+  canvas = cln.querySelector('#arm_ap');
+  if(canvas){
+    drawArm(canvas);
   }
   dragElement(cln);
   document.getElementById("body").appendChild(cln);

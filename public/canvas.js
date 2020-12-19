@@ -198,6 +198,42 @@ function drawGauge(c,v,format){
     ctx.lineWidth = 2;
     ctx.fillStyle = '#548aff';
     ctx.fill();
+	
     ctx.strokeStyle = '#AAA';
     ctx.stroke();
   }
+
+function drawArm(canvas,arms,angleArray){
+	if(arms == undefined) arms = [{mode:1,data:60,armlength:5,color:'#000000'},{mode:1,data:-90,armlength:3,color:'#00FF00'}];
+	c = canvas.getContext("2d");
+	c.clearRect(0,0,canvas.width,canvas.height);
+	let rotation = 0;
+	let endpos = {x:0,y:0};
+	let offset = {x:20,y:canvas.height - 20}
+	for(let i = 0; i < arms.length; i++){
+		let data = 0, armlength = 3; 
+		if(arms[i].mode == 0){ //if using an array index instead of fixed angle
+			if(angleArray != undefined) if(angleArray[arms[i].data] != undefined) data = angleArray[arms[i].data] * -0.01745;
+		}
+		else data = arms[i].data * -0.01745; //convert degrees to radians
+		armlength = arms[i].armlength * 20; //arm length multiplier
+		
+		c.lineWidth = 18;
+		c.lineCap = 'round';
+		c.strokeStyle = arms[i].color;
+		c.beginPath();
+		c.moveTo(offset.x+endpos.x, offset.y+endpos.y);
+		c.lineTo(offset.x+endpos.x+Math.cos(data+rotation)*armlength, offset.y+endpos.y+Math.sin(data+rotation)*armlength);
+		c.stroke();
+
+		c.lineWidth = 7;
+		c.lineCap = 'round';
+		c.beginPath();
+		c.arc(offset.x+endpos.x, offset.y+endpos.y, 12, 0, 2 * Math.PI);
+		c.fill();
+
+		endpos.x += Math.cos(data+rotation)*armlength;
+		endpos.y += Math.sin(data+rotation)*armlength;
+		rotation += data;
+	}
+}

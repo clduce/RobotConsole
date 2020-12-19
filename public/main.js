@@ -152,6 +152,9 @@ socket.on('telem',function(data){
 					if(data.msg[1] < -30) data.msg[1] = -30;
 					pt.style.transform='rotateZ('+(data.msg[0]*-1)+'deg) translateY('+(pitch*0.0067 * data.msg[1])+'px)';
 				break;
+				case '_arm':
+					drawArm(we.querySelector('#arm_ap'),c.arms,data.msg);
+				break;
 				case '_rosImage':
 					var blob = new Blob([new Uint8Array(data.msg)],{type:"image/jpeg"});
 					var urlCreator = window.URL || window.webkitURL;
@@ -195,6 +198,7 @@ socket.on('closeSocket',function(data){
 function closeOtherSockets(){
 	socket.emit('closeOtherSockets');
 }
+
 //initalize all graphical Widgets in source bar
 var canvas = document.getElementById('_joystick').querySelector('#canvas_ap');
 initJoystick(canvas, true);
@@ -202,6 +206,9 @@ drawJoystick(canvas,0,0);
 
 canvas = document.getElementById('_gauge').querySelector('#gauge_ap');
 drawGauge(canvas,0);
+
+canvas = document.getElementById('_arm').querySelector('#arm_ap');
+drawArm(canvas);
 
 //initalize javascript for all source elements:
 var tempList = document.getElementsByClassName('source');
@@ -336,6 +343,12 @@ function dragElement(elmnt) {
       canvas.height = -pos2S-20;
       canvas.width = -pos1S;
       drawGauge(canvas);
+    }
+	else if(elmnt.querySelector('#arm_ap')){
+      var canvas = elmnt.querySelector('#arm_ap');
+      canvas.height = -pos2S-20;
+      canvas.width = -pos1S;
+      drawArm(canvas,WA.arms);
     }
     else if(elmnt.querySelector('#slider_ap')){
       var slider = elmnt.querySelector('#slider_ap');
@@ -578,7 +591,7 @@ socket.on('cmdStopButtons',function(data){
 	}
 });
 
-//WIDGET CONFIGURATION PANEL
+//===================================WIDGET CONFIGURATION PANEL============================================
 //open configuration settings panel for each widget
 function openConfig(e){
   //load field values with JSON settingss
@@ -674,6 +687,11 @@ function openConfig(e){
 		createText('[0]=Roll,[1]=Pitch in degrees');
 		createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64MultiArray','std_msgs/Float32MultiArray']);
     break;
+	case '_arm':
+		createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64MultiArray','std_msgs/Float32MultiArray']);
+		createText('All angles are in degrees');
+		openArmConfig(WCI['arms']);
+    break;
     case '_rosImage':
 		createconfigInput('Label', 'label', WCI['label']);
 		createText('This widget subscribes to sensor_msgs/CompressedImage and displays a JPEG.');
@@ -683,7 +701,7 @@ function openConfig(e){
 		createCheckbox('ROS Latching', 'latching', WCI['latching']);
 	break;
     case '_audio':
-		createText('Subscribes to an Int16');
+		createText('Subscribes to std_msgs/Int16');
     	createCheckbox('Hide this widget in drive mode', 'hideondrive', WCI['hideondrive']);
     	createSoundsList();
     break;
@@ -699,6 +717,7 @@ function openConfig(e){
   configWindow.style.display='inline';
   configIsOpen = true;
 }
+//====================================apply=config=changes=============================
 function applyConfigChanges(){
   //the widget were applying settings on
   var localWidget = document.getElementById(currentID);
@@ -779,6 +798,25 @@ function applyConfigChanges(){
       WA['gp_Decrease'] = document.getElementById('gp_Decrease').value;
       WA['repeatdelay'] = document.getElementById('repeatdelay').value;
     break;
+	case '_arm':
+		WA['msgType'] = document.getElementById('msgType').value;
+		let newArms = [];
+		let armdivs = document.getElementsByClassName('armdiv');
+		let lastUsedIndex = 0;
+		let i = 0;
+		for(let k = 0; k < armdivs.length; k+=1){
+			if(armdivs[k].querySelector('#armmode')){
+				newArms[i] = {};
+				newArms[i].mode = parseInt(armdivs[k].querySelector('#armmode').value);
+				newArms[i].data = Number(armdivs[k].querySelector('#armdata').value);
+				newArms[i].armlength = Number(armdivs[k].querySelector('#armlength').value);
+				newArms[i].color = armdivs[k].querySelector('#armcolor').value;
+				i++;
+			}
+		}
+		WA.arms = newArms;
+		drawArm(localWidget.querySelector('#arm_ap'),WA.arms);
+	break;
     case '_inputbox':
       WA['msgType'] = document.getElementById('msgType').value;
     break;
@@ -882,7 +920,52 @@ function guardTopicName(ele){
 	}
 	ele.value = str;
 }
-//dynamically creates custom config settings. input is the content id ex _button.labelText
+//============================================Specific config javascript-generated html
+//opts include mode, data, length, color
+function returnArmHTML(opts){
+	if(opts == undefined) opts = {mode:0,data:0,armlength:1,color:'#000000'};
+	let html =
+		'<div class="armdiv specific">'+
+			'<select id="armmode" class="armdivselect">'+(opts.mode==1?
+											 '<option value="1">Fixed angle</option><option value="0">Array index</option>':
+											 '<option value="0">Array index</option><option value="1">Fixed angle</option>')+'</select>'+
+			'<input id="armdata" class="armdivinput" value="'+(opts.data || 0)+'">'+
+			'<p class="armdivtext">length</p>'+
+			'<input id="armlength" class="armdivinput" placeholder="inches" value="'+(opts.armlength || 1)+'">'+
+			'<input id="armcolor" type="color" value="'+(opts.color || '#000000')+'">'+
+		'</div><br class="specific armdiv">';
+	return html;
+}
+//add another arm to an arm widget (just the graphical part)
+function removeArmHTML(){
+	let armdivs = document.getElementsByClassName('armdiv');
+	if(armdivs.length > 2){	//keep at least 1 arm
+		armdivs[armdivs.length-1].remove();
+		armdivs[armdivs.length-1].remove();//remove the <br> under the div as well
+	}
+}
+function addArmHTML(){
+	let armdivs = document.getElementsByClassName('armdiv');
+	let lastUsedIndex = 0;
+	for(let i = 0; i < armdivs.length; i++){
+		let s = armdivs[i].querySelector('#armmode');
+		if(s && s.value == 0){
+			let input = armdivs[i].querySelector('#armdata');
+			if(parseInt(input.value) >= lastUsedIndex) lastUsedIndex = parseInt(input.value)+1;
+		}
+	}
+	if(armdivs.length < 6*2) configWindow.insertAdjacentHTML("beforeend",returnArmHTML({data:lastUsedIndex}));//limit to 6 arms, (*2 because each div block has a <br> by the same class
+}
+function openArmConfig(armArray){
+	if(armArray == undefined) armArray = [{mode:1,data:60,armlength:5,color:'#000000'},{mode:1,data:60,armlength:5,color:'#000000'}];
+	console.log('current array', armArray);
+	let html = 
+		'<button class="armdivselect specific" onclick="addArmHTML()">Add arm</button>'+
+		'<button class="armdivselect specific" onclick="removeArmHTML()">Remove arm</button><br class="specific">';
+	for(let i = 0; i < armArray.length; i++) html += returnArmHTML(armArray[i]);
+	configWindow.insertAdjacentHTML('beforeend',html);
+}
+
 function createSoundsList(){
 	let code = '';
 	for(let i = 0; i < sounds.length; i++){
@@ -1086,7 +1169,7 @@ function createRange(array){
   configWindow.appendChild(p);
 }
 
-//KEYBOARD INTERFACING
+//==================================================KEYBOARD INTERFACING
 var inc; //interval id. also used in gamepad loop
 document.addEventListener('keydown', (e) => {
 	if(!configIsOpen && !terminalIsOpen){
@@ -1195,7 +1278,7 @@ function setSliderDirection(value,arr){
 }
 
 let gamepad_index = 0;
-//GAMEPAD INTERFACING
+//=========================================================GAMEPAD INTERFACING
 window.addEventListener("gamepadconnected", function(e) {
 	if(gamepadCount == 0) document.getElementById('gpselect').innerHTML = '';
 	gamepadCount++;
