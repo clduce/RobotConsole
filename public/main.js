@@ -129,6 +129,10 @@ function changePreset(cam,me){
 	socket.emit('setPreset',{c:cam,v:me.value});
 }
 socket.on('telem',function(data){
+	if(data.topic == '__consoleText'){
+		console.log(data);
+		document.getElementById('consoleText').innerText = data.msg.data;
+	}
 	for(let i = widgetArray.length-1; i >= 0; i--){
 		if(widgetArray[i].topic == data.topic){
 			let c = widgetArray[i];
@@ -184,6 +188,11 @@ socket.on('instanceCount',function(data){
 });
 socket.on('pong',function(ms){
 	document.getElementById('ping').innerText = 'ping '+('000'+ms).slice(-4)+'ms';
+	if(ms > 300){
+		document.getElementById('ping').style.color = "#F00";
+	}else {
+		document.getElementById('ping').style.color = "#FFF";
+	}
 	if(mainImage.width != lastwidth){
 		repositionThumbs();
 	}
@@ -1496,6 +1505,13 @@ function repositionThumbs(){
 }
 window.onresize = function(){
 	repositionThumbs();
+	
+	//hide some things if the screen is to slim
+	if(window.innerWidth < 1500) document.getElementById('consoleText').style.visibility = 'hidden';
+	else document.getElementById('consoleText').style.visibility = 'visible';
+	
+	if(window.innerWidth < 1344) document.getElementById('closeOtherSockets').style.display = 'none';
+	else document.getElementById('closeOtherSockets').style.display = 'inline';
 }
 
 function playSound(s){

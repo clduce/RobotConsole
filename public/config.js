@@ -67,6 +67,7 @@ function populateConfig(data){
 	document.getElementsByClassName('background')[0].value = data['background'];
 	document.getElementsByClassName('snaptogrid')[0].checked = data['snaptogrid'];
 	document.getElementsByClassName('saveWidgets')[0].checked = data['saveWidgets'];
+	document.getElementsByClassName('consoleText')[0].value = data['consoleText'] || '';
 	console.log('done loading settings');
 }
 function generateConfig(){
@@ -99,7 +100,17 @@ function generateConfig(){
 	data['background'] = document.getElementsByClassName('background')[0].value
 	data['snaptogrid'] = document.getElementsByClassName('snaptogrid')[0].checked;
 	data['saveWidgets'] = document.getElementsByClassName('saveWidgets')[0].checked;
+	data['consoleText'] = guardTopicName(document.getElementsByClassName('consoleText')[0].value) || '';
 	return data;
+}
+function guardTopicName(name){
+	let fstr = name.trim();
+	str='';
+	for(let i = 0; i < fstr.length; i++){
+		if(i==0)str = str+fstr.charAt(i).replace(/[^a-zA-Z~/]/g,'');
+		else str=str+fstr.charAt(i).replace(/[^a-zA-Z0-9_/]/g,'')
+	}
+	return str;
 }
 //theese functions add the DOM for the dynamic settings. c is number of doms to add
 function addCams(c){

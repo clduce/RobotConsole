@@ -329,24 +329,31 @@ button:focus {outline:0;}
 	display:inline;
 	margin-right:5px;
 }
+#infoPanel{
+	font-size:10px;color:#FFF;
+}
+#consoleText{
+	font-size:20px;color:#FFF;width:200px;margin-top:5px;
+}
 </style>
 
 <body id='body' oncontextmenu="return false;">
 <!-- top nav bar -->
 <div class='navBar' id='navBar'>
-  <h1 class="label" style="color: #FFF;margin:5px 20px 5px 10px;white-space:nowrap"id='consoleName'>Robot Control</h1>
-  <div id='infoPanel' style='font-size:10px'>
-	    <h1 class="label" style="color: #FFF;right:10px;position:absolute;margin:0px;top:3px"id='instanceCount'>waiting...</h1>
-		<h1 class="label" style="color: #FFF;right:10px;position:absolute;margin:0px;top:23px"id='ping'>waiting on ping...</h1>
-		<h1 class="label" style="color: #FFF;right:100px;position:absolute;margin:0px;top:3px"id='fps'>FPS</h1>
+  <h1 class="label" style="color: #FFF;margin:5px 20px 5px 10px;white-space:nowrap" id='consoleName'>Robot Control</h1>
+  <div id='infoPanel'>
+	    <h1 class="label" style="right:10px;position:absolute;margin:0px;top:3px"id='instanceCount'>waiting...</h1>
+		<h1 class="label" style="right:10px;position:absolute;margin:0px;top:23px"id='ping'>waiting on ping...</h1>
+		<h1 class="label" style="right:100px;position:absolute;margin:0px;top:3px"id='fps'>FPS</h1>
   </div>
   <button class="navBarButton" id='driveMode' style='display:none' onclick="toggleDriveMode();">Drive Mode</button>
   <button class="navBarButton" onclick="toggleFullscreen()">Toggle Fullscreen</button>
   <button class="navBarButton" onclick="window.location.href += 'config.html'" id='confButton' style='display:none'>Config Settings</button>
   <button class="navBarButton" onclick="openTerminal()" id='termButton' style='display:none'>Terminal</button>
-  <button class="navBarButton" onclick="closeOtherSockets()">Close Other Clients</button>
+  <button class="navBarButton" id="closeOtherSockets" onclick="closeOtherSockets()">Close Other Clients</button>
   <button class="navBarButton" onclick="exitServer(1)">Restart Server</button>
   <select class="navBarButton" id='gpselect'><option>no gamepad connected</option></select>
+  <h1 class="label" style=""id='consoleText'></h1>
 </div>
 <image class='image' id='mainImage'></image>
 <!-- inside this widget holder is the definitions of each widget -->

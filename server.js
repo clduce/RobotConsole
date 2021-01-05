@@ -178,6 +178,13 @@ function joinRosTopics(){
 					}
 				}
 			}
+			let consoleTextTopic = settingsObject.config.consoleText;
+			if(consoleTextTopic != undefined && consoleTextTopic && != ''){
+				if(rossubscribers.consoleText) rossubscribers.consoleText.shutdown();
+				rossubscribers.consoleText = nh.subscribe(consoleTextTopic, 'std_msgs/String', (msg) => {
+					io.emit('telem',{topic:'__consoleText',msg:msg});
+				});
+			}
 			rosready = true;
 		}
 	});
