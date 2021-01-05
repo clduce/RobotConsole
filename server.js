@@ -12,6 +12,11 @@ const cp = require('child_process');
 var kill = require('tree-kill');
 const fs = require('fs');
 
+//start audio stream from robot to client
+let Mic = require('node-microphone');
+let mic = new Mic();
+let micStream = mic.startRecording();
+
 var app = express();
 var server = app.listen(PORT);
 
@@ -179,7 +184,7 @@ function joinRosTopics(){
 				}
 			}
 			let consoleTextTopic = settingsObject.config.consoleText;
-			if(consoleTextTopic != undefined && consoleTextTopic && != ''){
+			if(consoleTextTopic != undefined && consoleTextTopic && consoleTextTopic != ''){
 				if(rossubscribers.consoleText) rossubscribers.consoleText.shutdown();
 				rossubscribers.consoleText = nh.subscribe(consoleTextTopic, 'std_msgs/String', (msg) => {
 					io.emit('telem',{topic:'__consoleText',msg:msg});
@@ -373,6 +378,21 @@ io.sockets.on('connection', function(socket){
   });
 });
 
+//==================================== MICROPHONE STREAM
+
+//listen for mic debug messages
+mic.on('info', (info) => {
+	console.log(info.toString());
+});
+mic.on('error', (error) => {
+  console.log(error.toString());
+});
+
+//stream microphone data as WAVE 16bit 16000 4000 byte chunks to the client
+micStream.on('data', (chunk) => {
+  io.emit('micData',chunk);
+});
+
 
 //cams is the entire cam json from config
 //cam index is the camera number in the camArray
@@ -439,7 +459,7 @@ let retrieveCam = function(){
 		}
 		
 		if(shutdownFlag){
-			releaseCameras();
+			closeDownServer();
 			process.exit(1);
 		}
 		setTimeout(retrieveCam,0);
@@ -450,15 +470,16 @@ let retrieveCam = function(){
 }
 if(cameraExists) setTimeout(retrieveCam,0);
 
-function releaseCameras(){
+function closeDownServer(){
 	for(let i = 0; i < camArray.length; i++){
 		camArray[i].release();
 		camArray[i].read();
 		console.log('released cam',i);
 	}
+	mic.stopRecording();
 }
 
 process.on('SIGINT',()=>{
-	releaseCameras();
+	closeDownServer();
 });
 

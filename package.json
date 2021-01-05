@@ -12,6 +12,7 @@
   "dependencies": {
     "express": "^4.17.1",
     "node-gyp": "^7.1.0",
+    "node-microphone": "^0.1.5",
     "opencv4nodejs": "^5.6.0",
     "raspberry-pi-camera-native": "0.0.0",
     "rosnodejs": "^3.0.2",

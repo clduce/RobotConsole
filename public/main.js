@@ -23,7 +23,7 @@ let mainImage = document.getElementById('mainImage');
 let gamepadCount = 0;
 //use same IP to connect to socket server as to connect to express
 socket = io(window.location.hostname + ':' + window.location.port);
-
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 //get all config from server
 socket.on('connection',function(){
 	console.log('connect');
@@ -197,6 +197,11 @@ socket.on('pong',function(ms){
 		repositionThumbs();
 	}
 	lastwidth = mainImage.width;
+});
+socket.on('micData', function(data) {
+	if(data.byteLength > 0){
+	  play(data);
+	}
 });
 socket.on('closeSocket',function(data){
 	connected = false;
@@ -1559,6 +1564,23 @@ function exitServer(d){
 	showMessage('Restarting Server...');
 	//location.reload();
 }
+
+//plays an arraybuffer of raw pcm audio data at with bitrate 16000 and 16 bit
+function play(soundBuffer){
+  let sound = new Int8Array(soundBuffer);
+  let frameCount = sound.byteLength/2;
+	var myAudioBuffer = audioCtx.createBuffer(1, frameCount, 16000);
+	var nowBuffering = myAudioBuffer.getChannelData(0,16,16000);
+	for (var i = 0; i < frameCount; i++) {
+		var word = (sound[i * 2] & 0xff) + ((sound[i * 2 + 1] & 0xff) << 8);
+		nowBuffering[i] = ((word + 32768) % 65536 - 32768) / 32768.0;
+	}
+	var source = audioCtx.createBufferSource();
+	source.buffer = myAudioBuffer;
+	source.connect(audioCtx.destination);
+	source.start();
+}
+
 //mobile view support
 function preventBehavior(e) {
     e.preventDefault(); 
