@@ -335,6 +335,13 @@ button:focus {outline:0;}
 #consoleText{
 	font-size:20px;color:#FFF;width:200px;margin-top:5px;
 }
+#toggleMic{
+	width:50px;
+	cursor:pointer;
+	position:absolute;
+	bottom:10px;
+	left:calc(50% - 25px)
+}
 </style>
 
 <body id='body' oncontextmenu="return false;">
@@ -356,6 +363,7 @@ button:focus {outline:0;}
   <h1 class="label" style=""id='consoleText'></h1>
 </div>
 <image class='image' id='mainImage'></image>
+<img id='toggleMic' onclick='toggleMic();' src='unmute.svg'>
 <!-- inside this widget holder is the definitions of each widget -->
 <button class='toggleWidgetHolder' onclick="toggleWidgetHolder()">Show</button>
 <div class='widgetHolder' id='widgetHolder'>
@@ -496,5 +504,6 @@ button:focus {outline:0;}
 <script src="canvas.js" charset="utf-8"></script>
 <script src="widgets.js" charset="utf-8"></script>
 <script src="main.js" charset="utf-8"></script>
+<script src="streamAudio.js"></script>
 </body>
 </html>

@@ -6,19 +6,27 @@ var PORT = 3000;
 const SUPPORTED_PIXEL_FORMATS = ['JPEG','BGR3','BGR4','BGR','YUYV','GRAY8','NV12','YV12','I420'];
 
 var express = require('express');
+const https = require('https');
 const rosnodejs = require('rosnodejs');
 const cv = require('opencv4nodejs');
 const cp = require('child_process');
 var kill = require('tree-kill');
 const fs = require('fs');
 
+//enable audio output from server
+const Speaker = require('speaker');
+const speaker = new Speaker({
+	channels:1,
+	bitDepth:16,
+	sampleRate:22050,
+	samplesPerFrame:1024,
+});
+
+
 //start audio stream from robot to client
 let Mic = require('node-microphone');
 let mic = new Mic();
 let micStream = mic.startRecording();
-
-var app = express();
-var server = app.listen(PORT);
 
 var cameraExists = false;
 var settingsObject,hardcoded;
@@ -27,8 +35,6 @@ var nh, rospublishers={}, rossubscribers={};
 var socketsOpen = 0;
 var camJSON={"presets": [{"width":"320","height":"240","quality":100,"name":"low res"}],"camsettings":[{"preset":0,"name":"pi cam"}]};
 var camindex = 0;
-app.use(express.static(__dirname + '/public'));
-console.log("server running on port "+ PORT);
 let cmds = {};
 var cps = [];
 var mainQuality = 90;
@@ -38,6 +44,22 @@ var mainContrast = 0; // -127 127
 var hardcodedLoaded = false;
 var resolutionStack = {};
 var shutdownFlag = false;
+
+//hosting server
+
+var app = express();
+var server = https.createServer({
+	key:fs.readFileSync(__dirname + '/server.key'),
+	cert:fs.readFileSync(__dirname + '/server.crt'),
+	passphrase:'robotserver'
+},app).listen(PORT,()=>{
+	console.log(`Listening on port ${PORT}`);
+});
+
+
+app.use(express.static(__dirname + '/public'));
+console.log("server running on port "+ PORT);
+
 
 console.log('FINDING ALL VIDEO PATHS...');
 let validDevices=[];
@@ -376,6 +398,11 @@ io.sockets.on('connection', function(socket){
     socketsOpen--;
     io.emit('instanceCount',socketsOpen);
   });
+	
+	//=================================== AUDIO OUTPUT STREAM
+  socket.on('audioPacket', function(data){
+	speaker.write(Buffer.from(data));
+  });
 });
 
 //==================================== MICROPHONE STREAM
@@ -392,7 +419,6 @@ mic.on('error', (error) => {
 micStream.on('data', (chunk) => {
   io.emit('micData',chunk);
 });
-
 
 //cams is the entire cam json from config
 //cam index is the camera number in the camArray
