@@ -1,9 +1,10 @@
 const toggleElement = document.getElementById('toggleMic');
+const roboToggleElement = document.getElementById('toggleRoboMic');
 const UNMUTE_IMAGE = 'unmute.svg', MUTE_IMAGE = 'mute.svg';
 
 let recorder;
 let audioStream;
-let isMuted = true;
+let isMuted = true, roboIsMuted = true;
 if (navigator.getUserMedia)
 {
    navigator.getUserMedia({audio: true}, function(stream){
@@ -48,13 +49,6 @@ recorder.onaudioprocess = function(event){
   const leftChannel = new Float32Array(samples);
   
   const PCM16iSamples = [];
-  //for (let i = 0; i < leftChannel.length; i++)
-  //{
-  //   let val = Math.floor(32767 * leftChannel[i]);
-  //  val = Math.min(32767, val);
-  //   val = Math.max(-32768, val);
-  //   PCM16iSamples.push(val);
-  //}
 	for (let i = 0; i < leftChannel.length; i++)
   	{
     	 let tmp = Math.max(-1,Math.min(1,leftChannel[i]));
@@ -63,7 +57,6 @@ recorder.onaudioprocess = function(event){
     	 PCM16iSamples.push(tmp-256);
   	}
   	socket.emit('audioPacket',PCM16iSamples);
-	console.log(PCM16iSamples);
   };
   // we connect the recorder
   volume.connect(recorder);
@@ -89,3 +82,32 @@ function toggleMic(){
     unmute();
   }
 }
+
+function toggleRoboMic(){
+  if(roboIsMuted) unmuteRobo();
+  else muteRobo();
+}
+function updateRoboImageStatus(){
+  if(roboIsMuted){
+    roboToggleElement.src='robo'+UNMUTE_IMAGE;
+  }
+  else{
+    roboToggleElement.src='robo'+MUTE_IMAGE;
+  }
+}
+function muteRobo(){
+	socket.emit('muteRobot');
+}
+function unmuteRobo(){
+	socket.emit('unmuteRobot');
+}
+socket.on('robotMuted',data=>{
+	roboIsMuted = true;
+	console.log('recieved');
+	updateRoboImageStatus();
+});
+socket.on('robotUnmuted',data=>{
+	roboIsMuted = false;
+	console.log('recieved');
+	updateRoboImageStatus();
+});

@@ -26,7 +26,7 @@ const speaker = new Speaker({
 //start audio stream from robot to client
 let Mic = require('node-microphone');
 let mic = new Mic();
-let micStream = mic.startRecording();
+let micStream;
 
 var cameraExists = false;
 var settingsObject,hardcoded;
@@ -399,6 +399,25 @@ io.sockets.on('connection', function(socket){
     io.emit('instanceCount',socketsOpen);
   });
 	
+  socket.on('unmuteRobot', function(data){
+	//start robot audio stream if possible
+	  micStream = mic.startRecording();
+	  //stream microphone data as WAVE 16bit 16000 4000 byte chunks to the client
+		micStream.on('data', (chunk) => {
+		  io.emit('micData',chunk);
+		});
+	  console.log('unmuted robot mic');
+	 socket.emit('robotUnmuted');
+  });
+  socket.on('muteRobot', function(data){
+	//start robot audio stream if possible
+	  mic.stopRecording();
+	  micStream = undefined;
+	  console.log('muted robot mic');
+	 socket.emit('robotMuted');
+  });
+	
+	
 	//=================================== AUDIO OUTPUT STREAM
   socket.on('audioPacket', function(data){
 	speaker.write(Buffer.from(data));
@@ -414,12 +433,6 @@ mic.on('info', (info) => {
 mic.on('error', (error) => {
   console.log(error.toString());
 });
-
-//stream microphone data as WAVE 16bit 16000 4000 byte chunks to the client
-micStream.on('data', (chunk) => {
-  io.emit('micData',chunk);
-});
-
 //cams is the entire cam json from config
 //cam index is the camera number in the camArray
 function camSettings(cams, camindex){
