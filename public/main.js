@@ -201,6 +201,7 @@ socket.on('pong',function(ms){
 socket.on('micData', function(data) {
 	if(data.byteLength > 0){
 	  play(data);
+		console.log('n');
 	}
 });
 socket.on('closeSocket',function(data){

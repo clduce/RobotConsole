@@ -420,10 +420,9 @@ io.sockets.on('connection', function(socket){
 	
 	//=================================== AUDIO OUTPUT STREAM
   socket.on('audioPacket', function(data){
-	speaker.write(Buffer.from(data));
+	speaker.write(Buffer.from(data,'base64'));
   });
 });
-
 //==================================== MICROPHONE STREAM
 
 //listen for mic debug messages
