@@ -55,6 +55,8 @@ var mainContrast = 0; // -127 127
 var hardcodedLoaded = false;
 var resolutionStack = {};
 var shutdownFlag = false;
+var ismuted = true;//is the robot's mic muted
+var speakerInUse = false;
 
 //hosting server
 
@@ -248,6 +250,8 @@ rosnodejs.initNode('/webserver').then(() => {
 io.sockets.on('connection', function(socket){
 	socketsOpen++;
 	io.emit('instanceCount',socketsOpen);
+	io.emit('muted',ismuted);
+	io.emit('spk',speakerInUse);
     console.log('made connection');
   
   //get settings from json and send to client
@@ -421,26 +425,32 @@ io.sockets.on('connection', function(socket){
 	
   socket.on('unmuteRobot', function(data){
 	//start robot audio stream if possible
-	  micStream = mic.startRecording();
-	  //stream microphone data as WAVE 16bit 16000 4000 byte chunks to the client
-		micStream.on('data', (chunk) => {
-		  io.emit('micData',chunk);
-		});
-	  console.log('unmuted robot mic');
-	 socket.emit('robotUnmuted');
+	  if(ismuted){
+		  micStream = mic.startRecording();
+		  //stream microphone data as WAVE 16bit 16000 4000 byte chunks to the client
+			micStream.on('data', (chunk) => {
+			  io.emit('micData',chunk);
+			});
+		 console.log('unmuted robot mic');
+		 socket.emit('robotUnmuted');
+		  ismuted = false;
+	  }
   });
   socket.on('muteRobot', function(data){
 	//start robot audio stream if possible
-	  mic.stopRecording();
-	  micStream = undefined;
-	  console.log('muted robot mic');
-	 socket.emit('robotMuted');
+	  if(!ismuted){
+		  mic.stopRecording();
+		  micStream = undefined;
+		  console.log('muted robot mic');
+		  socket.emit('robotMuted');
+		  ismuted = true;
+	  }
   });
 	
 	
 	//=================================== AUDIO OUTPUT STREAM
   socket.on('audioPacket', function(data){
-	speaker.write(Buffer.from(data));
+	speaker.write(Buffer.from(data,'base64'));
   });
 });
 

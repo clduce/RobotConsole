@@ -95,6 +95,7 @@ function base64ToArrayBuffer(base64) {
 function mute(){
   if(recorder){
 	  recorder.disconnect();
+	  audioInputBuffer = [];
 	  console.log('the mic is muted');
   }
 }
@@ -131,11 +132,13 @@ function unmuteRobo(){
 }
 socket.on('robotMuted',data=>{
 	roboIsMuted = true;
-	console.log('recieved');
 	updateRoboImageStatus();
 });
 socket.on('robotUnmuted',data=>{
 	roboIsMuted = false;
-	console.log('recieved');
+	updateRoboImageStatus();
+});
+socket.on('muted',data=>{
+	roboIsMuted = data;
 	updateRoboImageStatus();
 });

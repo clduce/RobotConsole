@@ -200,8 +200,7 @@ socket.on('pong',function(ms){
 });
 socket.on('micData', function(data) {
 	if(data.byteLength > 0){
-	  play(data);
-		console.log('n');
+	  writeToAudioPlayer(data);
 	}
 });
 socket.on('closeSocket',function(data){
@@ -213,7 +212,35 @@ socket.on('closeSocket',function(data){
 function closeOtherSockets(){
 	socket.emit('closeOtherSockets');
 }
-
+var audioInputBuffer = [];
+function writeToAudioPlayer(data){
+	audioInputBuffer.splice(0,0,data);
+	console.log(audioInputBuffer,audioInputBuffer.length);
+	playNextChunk();
+}
+//plays an arraybuffer of raw pcm audio data at with bitrate 16000 and 16 bit
+function play(soundBuffer){
+	let sound = new Int8Array(soundBuffer);
+    let frameCount = sound.byteLength/2;
+	var myAudioBuffer = audioCtx.createBuffer(1, frameCount, 16000);
+	var nowBuffering = myAudioBuffer.getChannelData(0,16,16000);
+	for (var i = 0; i < frameCount; i++) {
+		var word = (sound[i * 2] & 0xff) + ((sound[i * 2 + 1] & 0xff) << 8);
+		nowBuffering[i] = ((word + 32768) % 65536 - 32768) / 32768.0;
+	}
+	var source = audioCtx.createBufferSource();
+	source.buffer = myAudioBuffer;
+	source.connect(audioCtx.destination);
+	source.start();
+	source.onended = function(){
+		playNextChunk();
+	}
+}
+function playNextChunk(){
+	if(audioInputBuffer.length > 1){
+		play(audioInputBuffer.pop());
+	}
+}
 //initalize all graphical Widgets in source bar
 var canvas = document.getElementById('_joystick').querySelector('#canvas_ap');
 initJoystick(canvas, true);
@@ -1564,22 +1591,6 @@ function exitServer(d){
 	//uncomment below to reset the web page too
 	showMessage('Restarting Server...\nCould take up to 30s');
 	//location.reload();
-}
-
-//plays an arraybuffer of raw pcm audio data at with bitrate 16000 and 16 bit
-function play(soundBuffer){
-  let sound = new Int8Array(soundBuffer);
-  let frameCount = sound.byteLength/2;
-	var myAudioBuffer = audioCtx.createBuffer(1, frameCount, 16000);
-	var nowBuffering = myAudioBuffer.getChannelData(0,16,16000);
-	for (var i = 0; i < frameCount; i++) {
-		var word = (sound[i * 2] & 0xff) + ((sound[i * 2 + 1] & 0xff) << 8);
-		nowBuffering[i] = ((word + 32768) % 65536 - 32768) / 32768.0;
-	}
-	var source = audioCtx.createBufferSource();
-	source.buffer = myAudioBuffer;
-	source.connect(audioCtx.destination);
-	source.start();
 }
 
 //mobile view support
