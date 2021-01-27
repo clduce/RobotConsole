@@ -432,7 +432,7 @@ io.sockets.on('connection', function(socket){
   socket.on('muteRobot', function(data){
 	//start robot audio stream if possible
 	  mic.stopRecording();
-	  micStream = unde
+	  micStream = undefined;
 	  console.log('muted robot mic');
 	 socket.emit('robotMuted');
   });

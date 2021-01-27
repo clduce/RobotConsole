@@ -1,5 +1,5 @@
 {
-	"show_terminal":false,
+	"show_terminal":true,
 	"show_config_settings":true,
 	"allow_edit_mode":true,
 	"reset_usb_devices_on_boot":true
