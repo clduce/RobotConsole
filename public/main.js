@@ -1562,7 +1562,7 @@ function exitServer(d){
 	console.log('exiting server...');
 	socket.emit('exit',d);
 	//uncomment below to reset the web page too
-	showMessage('Restarting Server...');
+	showMessage('Restarting Server...\nCould take up to 30s');
 	//location.reload();
 }
 

@@ -1,9 +1,20 @@
 #! /usr/bin/env node
+
+/*
+	Created by Mark Skinner 2020-2021 
+	markhskinner@gmail.com
+*/
+
 const SETTINGS_PATH = __dirname + '/settings.json';
 const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
 const RESET_SOCKET_AFTER_MS = 900; //if the ping gets above this, the socket and cameras will reset
 var PORT = 3000;
-const SUPPORTED_PIXEL_FORMATS = ['JPEG','BGR3','BGR4','BGR','YUYV','GRAY8','NV12','YV12','I420'];
+
+//this allows more reliable camera connection, but extends boot time by 5 seconds. It also requires the sudoers rule below
+//use 'sudo visudo' and add this line to the bottom: ubuntu ALL=(root) NOPASSWD: /home/ubuntu/catkin_ws/src/roboquest_ui/src/resetUsbCams.sh
+var RESET_USB_PORTS_ON_BOOT = true;
+
+//const SUPPORTED_PIXEL_FORMATS = ['JPEG','BGR3','BGR4','BGR','YUYV','GRAY8','NV12','YV12','I420'];
 
 var express = require('express');
 const https = require('https');
@@ -60,6 +71,15 @@ var server = https.createServer({
 app.use(express.static(__dirname + '/public'));
 console.log("server running on port "+ PORT);
 
+
+if(RESET_USB_PORTS_ON_BOOT){
+	console.log('RESETTING USB DEVICES (takes 5s)...');
+	if(cp.execSync(`sudo -l`,{shell:true}).toString().includes('resetUsbCams')){
+		cp.execSync(`sudo ${__dirname}/resetUsbCams.sh || true`,{shell:true});
+	}else{
+		console.log("Can't reset usb devices because of permissions. use visudo and add this line to the bottom if it's not there \n ubuntu ALL=(root) NOPASSWD: /home/ubuntu/catkin_ws/src/roboquest_ui/src/resetUsbCams.sh");
+	}
+}
 
 console.log('FINDING ALL VIDEO PATHS...');
 let validDevices=[];
@@ -412,7 +432,7 @@ io.sockets.on('connection', function(socket){
   socket.on('muteRobot', function(data){
 	//start robot audio stream if possible
 	  mic.stopRecording();
-	  micStream = undefined;
+	  micStream = unde
 	  console.log('muted robot mic');
 	 socket.emit('robotMuted');
   });
@@ -420,9 +440,10 @@ io.sockets.on('connection', function(socket){
 	
 	//=================================== AUDIO OUTPUT STREAM
   socket.on('audioPacket', function(data){
-	speaker.write(Buffer.from(data,'base64'));
+	speaker.write(Buffer.from(data));
   });
 });
+
 //==================================== MICROPHONE STREAM
 
 //listen for mic debug messages
