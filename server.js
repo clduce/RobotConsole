@@ -404,10 +404,18 @@ io.sockets.on('connection', function(socket){
   socket.on('setCam', function(data){
 	if(cameraExists){
 		camindex = data;
-		mainQuality = parseInt(camJSON.presets[cps[data]].quality);
-		mainRotation = parseInt(camJSON.camsettings[data].rotation);
-		mainContrast = parseInt(camJSON.camsettings[data].contrast);
-		mainBrightness = parseInt(camJSON.camsettings[data].brightness);
+		if(camJSON.presets[cps[data]] !== undefined){
+			mainQuality = parseInt(camJSON.presets[cps[data]].quality);
+			mainRotation = parseInt(camJSON.camsettings[data].rotation);
+			mainContrast = parseInt(camJSON.camsettings[data].contrast);
+			mainBrightness = parseInt(camJSON.camsettings[data].brightness);
+		}
+		else{
+			mainQuality = 20;
+			mainRotation = 0;
+			mainContrast = 0;
+			mainBrightness = 0;
+		}
 		rotation = mainRotation;
 		contrast = mainContrast;
 		brightness = mainBrightness;
@@ -466,7 +474,8 @@ mic.on('error', (error) => {
 //cams is the entire cam json from config
 //cam index is the camera number in the camArray
 function camSettings(cams, camindex){
-	return cams.presets[cams.camsettings[camindex].preset];
+	//{"name":"Low","width":"640","height":"480","quality":"30","fps":"20"}
+	return Object.assign({"name":"Low","width":"640","height":"480","quality":"30","fps":"20"},cams.presets[cams.camsettings[camindex].preset]);
 }
 
 let oldtime = 0;

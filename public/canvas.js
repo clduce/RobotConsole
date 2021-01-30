@@ -209,7 +209,7 @@ function drawArm(canvas,arms,angleArray){
 	c.clearRect(0,0,canvas.width,canvas.height);
 	let rotation = 0;
 	let endpos = {x:0,y:0};
-	let offset = {x:20,y:canvas.height - 20}
+	let offset = {x:20,y:canvas.height/2 + 20};
 	for(let i = 0; i < arms.length; i++){
 		let data = 0, armlength = 3; 
 		if(arms[i].mode == 0){ //if using an array index instead of fixed angle

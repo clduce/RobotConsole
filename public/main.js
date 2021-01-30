@@ -215,7 +215,6 @@ function closeOtherSockets(){
 var audioInputBuffer = [];
 function writeToAudioPlayer(data){
 	audioInputBuffer.splice(0,0,data);
-	console.log(audioInputBuffer,audioInputBuffer.length);
 	playNextChunk();
 }
 //plays an arraybuffer of raw pcm audio data at with bitrate 16000 and 16 bit

@@ -20,24 +20,13 @@ else
  }
 
 function unmute(){
- // creates the an instance of audioContext
  const context = window.AudioContext;
  const audioContext = new context();
-
- // retrieve the current sample rate of microphone the browser is using
 //const sampleRate = audioContext.sampleRate;
 const sampleRate = 22050;
-// creates a gain node
 const volume = audioContext.createGain();
-
-// creates an audio node from the microphone incoming stream
 const audioInput = audioContext.createMediaStreamSource(audioStream);
 audioInput.connect(volume);
-
-/* From the spec: This value controls how frequently the audioprocess event is
-dispatched and how many sample-frames need to be processed each call.
-Lower values for buffer size will result in a lower (better) latency.
-Higher values will be necessary to avoid audio breakup and glitches */
 const bufferSize = 512;
 recorder = audioContext.createScriptProcessor.call(audioContext,bufferSize,1,1);
 
@@ -56,18 +45,6 @@ recorder.onaudioprocess = function(event){
   	}
   	socket.emit('audioPacket',arrayBufferToBase64(PCM16iSamples));
   };
- /*
- const PCM16iSamples = [];
-	for (let i = 0; i < leftChannel.length; i++)
-  	{
-    	 let tmp = Math.max(-1,Math.min(1,leftChannel[i]));
-    	 tmp = tmp < 0 ? (tmp * 0x8000) : (tmp * 0x7FFF);
-   	  	 tmp = tmp / 256;
-    	 PCM16iSamples.push(tmp-256);
-  	}
-  	socket.emit('audioPacket',PCM16iSamples);
-  };
- */
   // we connect the recorder
   volume.connect(recorder);
   // start recording
