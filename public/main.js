@@ -159,6 +159,9 @@ socket.on('telem',function(data){
 				case '_arm':
 					drawArm(we.querySelector('#arm_ap'),c.arms,data.msg);
 				break;
+				case '_serial':
+					console.log('got serial data to send ' + data.msg);
+				break;
 				case '_rosImage':
 					var blob = new Blob([new Uint8Array(data.msg)],{type:"image/jpeg"});
 					var urlCreator = window.URL || window.webkitURL;
@@ -646,15 +649,17 @@ function openConfig(e){
   //pull generic data from widget array into the settings
   //non ros elements are exempt
   let topicInput = document.getElementById('topicTitle');
+  let topicLabel = document.getElementById('topiclabel');
   if(WCI.useROS) {
 	  topicInput.style.display = 'inline-block';
-	  document.getElementById('topiclabel').style.display = 'block';
+	  topicLabel.style.display = 'block';
   }
   else{
 	  topicInput.style.display = 'none';
-	  document.getElementById('topiclabel').style.display = 'none';
+	  topicLabel.style.display = 'none';
   }
   topicInput.value = WCI['topic'];
+	topicLabel.innerText = 'ROS Topic Name';
   //delete all the auto generated elements
   var paras = document.getElementsByClassName('specific')
   while(paras[0]) paras[0].parentNode.removeChild(paras[0]);
@@ -740,6 +745,11 @@ function openConfig(e){
 	case '_logger':
 		createText('std_msgs/String');
 		createCheckbox('ROS Latching', 'latching', WCI['latching']);
+	break;
+	case '_serial':
+		topicLabel.innerText = 'ROS RX Topic Name';
+		createconfigInput('ROS TX Topic Name', 'topic2', WCI['topic2']);
+		createText('Subscribes and publishes std_msgs/String');
 	break;
     case '_audio':
 		createText('Subscribes to std_msgs/Int16');
@@ -1482,14 +1492,22 @@ function toggleDriveMode(){
   }
 }
 
-function showMessage(text){
+function showMessage(text,showBar){
 	mask.style.display = 'inline';
 	document.getElementById('messagePanel').style.display = 'flex';
-	document.getElementById('messagePanelText').innerText = text;
+	document.getElementById('messagePanelText').innerHTML = text;
+	if(showBar){
+		document.getElementById('pb').style.display = 'flex';
+		document.getElementById('pbm').style.width = '1%';
+		setTimeout(()=>{
+			document.getElementById('pbm').style.width = '100%';
+		},20);
+	}
 }
 function hideMessage(){
 	mask.style.display = 'none';
 	document.getElementById('messagePanel').style.display = 'none';
+	document.getElementById('pbm').style.width = '1%';
 }
 
 function hideWidgetHolder(){
@@ -1588,7 +1606,7 @@ function exitServer(d){
 	console.log('exiting server...');
 	socket.emit('exit',d);
 	//uncomment below to reset the web page too
-	showMessage('Restarting Server...\nCould take up to 30s');
+	showMessage('Restarting Server...',true);
 	//location.reload();
 }
 

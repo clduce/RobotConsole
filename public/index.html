@@ -342,6 +342,22 @@ button:focus {outline:0;}
 	position:absolute;
 	bottom:10px;
 }
+.indbox{
+	border-radius:5px;
+}
+#pb{
+	position:absolute;
+	bottom:20px;
+	width:80%;
+	display:none;
+	background-color: #ddd;
+}
+#pbm{
+	width: 1%;
+	height: 30px;
+	background-color: #F00;
+	transition: all 18s linear;
+}
 </style>
 
 <body id='body' oncontextmenu="return false;">
@@ -457,6 +473,15 @@ button:focus {outline:0;}
     <image id='speaker_ap' class='showOnDrive' src='speaker.svg' style='height:40px;position:absolute:left:0px;top:26px'></image>
     <img src="resize.png" id="resize"></img>
   </div>
+
+  <div class="panel source" id="_serial" style="width:200px;height:70px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <div id="header">Serial Communication<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+	<div class='showOnDrive' id='color_ap' style='background-color:#FFF'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:17px">Port: /dev/usb0</h1></div>
+	<div class='showOnDrive' id='color_ap'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:17px">Status: Connected</h1></div>
+	<div class='showOnDrive' id='color_ap' style='background-color:#FFF;display:inline-table;width:50%'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:17px">RX</h1></div>
+	<div class='showOnDrive' id='color_ap' style='background-color:#FFF;width:50%;float:right'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:17px">TX</h1></div>
+    <img src="resize.png" id="resize"></img>
+  </div>
   
   <h1 class="label" style="text-align:center">Non ROS</h1>
   
@@ -501,6 +526,7 @@ button:focus {outline:0;}
 <!-- socket Connection -->
 <div id='messagePanel' class="panel" style="z-index: 121;width:500px; height:150px; left:calc(50% - 250px); top:calc(50% - 75px); overflow-y:auto; display:flex;align-items:center;justify-content:center">
   <h1 class='settingsLabel' id='messagePanelText' style="margin: 0px;font-size:25px;">Waiting for Socket Connection...</h1>
+	<div id='pb'><div id='pbm'></div></div>
 </div>
 <script src="canvas.js" charset="utf-8"></script>
 <script src="widgets.js" charset="utf-8"></script>

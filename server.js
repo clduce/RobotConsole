@@ -177,6 +177,7 @@ function joinRosTopics(){
 						break;
 						case '_logger':
 						case '_value':
+						case '_serial':
 							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
@@ -223,6 +224,15 @@ function joinRosTopics(){
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
 								io.emit('telem',{topic:topic,id:i,msg:msg});
 							});
+						break;
+					}
+				}
+				let topic2 = widgets[i].topic2;
+				if(topic2 && topic2 != '' && topic2 != '/' && nh){
+					console.log(widgets[i].type + ' connecting to   '+topic2);
+					switch(widgets[i].type){
+						case '_serial':
+							rospublishers[topic2] = nh.advertise(topic2, 'std_msgs/String');
 						break;
 					}
 				}
@@ -375,6 +385,9 @@ io.sockets.on('connection', function(socket){
 			break;
 			case '_joystick':
 				if(rospublishers[topic]) rospublishers[topic].publish({x:data.x,y:data.y,z:0});
+			break;
+			case '_serial':
+				if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
 			break;
 		}
 	    console.log('Publish Ros ' + JSON.stringify(data));
