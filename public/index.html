@@ -476,10 +476,10 @@ button:focus {outline:0;}
 
   <div class="panel source" id="_serial" style="width:200px;height:70px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Serial Communication<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-	<div class='showOnDrive' id='color_ap' style='background-color:#FFF'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:17px">Port: /dev/usb0</h1></div>
-	<div class='showOnDrive' id='color_ap'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:17px">Status: Connected</h1></div>
-	<div class='showOnDrive' id='color_ap' style='background-color:#FFF;display:inline-table;width:50%'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:17px">RX</h1></div>
-	<div class='showOnDrive' id='color_ap' style='background-color:#FFF;width:50%;float:right'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:17px">TX</h1></div>
+	<div class='showOnDrive' id='color_ap' style='background-color:#FFF'><button class='textDisplay' id='button_ap' onclick='connectToSerial(this.parentElement.parentElement);'style="margin:0px;width:100%;font-size:17px">Connect</button></div>
+	<div class='showOnDrive' id='color_ap' style='background-color:#FF0'><h1 class='textDisplay' id='status' style="margin:0px;padding:0px;font-size:17px">Disconnected</h1></div>
+	<div class='showOnDrive' id='color_ap' style='background-color:#FFF;display:inline-table;width:50%'><h1 class='textDisplay' id='RX_ap' style="margin:0px;padding:0px;font-size:17px">RX</h1></div>
+	<div class='showOnDrive' id='color_ap' style='background-color:#FFF;width:50%;float:right'><h1 class='textDisplay' id='TX_ap' style="margin:0px;padding:0px;font-size:17px">TX</h1></div>
     <img src="resize.png" id="resize"></img>
   </div>
   
@@ -532,5 +532,6 @@ button:focus {outline:0;}
 <script src="widgets.js" charset="utf-8"></script>
 <script src="main.js" charset="utf-8"></script>
 <script src="streamAudio.js"></script>
+<script src="serial.js"></script>
 </body>
 </html>

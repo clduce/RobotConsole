@@ -241,6 +241,7 @@ function initFunctionality(type, newWidget,thisID){
       newWidget.querySelector('#inputboxbutton').onmousedown = function(e){
         let jsw = widgetArray[indexMap[thisID]];
         sendToRos(jsw['topic'],{value:newWidget.querySelector('#input_ap').value},jsw['type']);
+		newWidget.querySelector('#input_ap').value = '';
       };
     break;
   }

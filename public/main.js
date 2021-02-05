@@ -160,7 +160,8 @@ socket.on('telem',function(data){
 					drawArm(we.querySelector('#arm_ap'),c.arms,data.msg);
 				break;
 				case '_serial':
-					console.log('got serial data to send ' + data.msg);
+					console.log('got serial data to send ' + data.msg.data);
+					if(we.serialObject) we.serialObject.writeString(data.msg.data);
 				break;
 				case '_rosImage':
 					var blob = new Blob([new Uint8Array(data.msg)],{type:"image/jpeg"});
@@ -438,6 +439,9 @@ function removeWidgetFromScreen(elmnt){
 	if(WA.type == '_box' && WA.childids){
 		deleteList = WA.childids;
 	}
+	if(WA.type == '_serial'){
+		if(elmnt.serialObject) elmnt.serialObject.end();
+	}
 	elmnt.remove();
 	deleteWidget(elmnt.id);
 	deleteFromPanel(elmnt.id);
@@ -446,6 +450,9 @@ function removeWidgetFromScreen(elmnt){
 		elmnt = document.getElementById(deleteList[i]);
 		let WA = widgetArray[indexMap[elmnt.id]];
 		socket.emit('shutROS',WA.topic);
+		if(WA.type == '_serial'){
+			if(elmnt.serialObject) elmnt.serialObject.end();
+		}
 		elmnt.remove();
 		deleteWidget(elmnt.id);
 		deleteFromPanel(elmnt.id);
@@ -747,9 +754,10 @@ function openConfig(e){
 		createCheckbox('ROS Latching', 'latching', WCI['latching']);
 	break;
 	case '_serial':
-		topicLabel.innerText = 'ROS RX Topic Name';
-		createconfigInput('ROS TX Topic Name', 'topic2', WCI['topic2']);
+		topicLabel.innerText = 'ROS to USB topic';
+		createconfigInput('USB to ROS topic', 'topic2', WCI['topic2']);
 		createText('Subscribes and publishes std_msgs/String');
+		createSelect('Baudrate', 'baud', WCI['baud'] ?? 9600,[2400, 4800, 9600, 19200, 38400, 57600, 115200]);
 	break;
     case '_audio':
 		createText('Subscribes to std_msgs/Int16');
@@ -930,6 +938,15 @@ function applyConfigChanges(){
     break;
     case '_logger':
 		WA['latching'] = document.getElementById('latching').checked;
+    break;
+	case '_serial':
+		WA['topic2'] = document.getElementById('topic2').value;
+		if(WA.baud != document.getElementById('baud').value){
+			if(localWidget.serialObject.connected){
+		 	  localWidget.serialObject.end();
+			}
+			WA['baud'] = document.getElementById('baud').value;
+		}
     break;
     case '_text':
       WA['text'] = document.getElementById('text').value;
