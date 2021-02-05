@@ -160,7 +160,6 @@ socket.on('telem',function(data){
 					drawArm(we.querySelector('#arm_ap'),c.arms,data.msg);
 				break;
 				case '_serial':
-					console.log('got serial data to send ' + data.msg.data);
 					if(we.serialObject) we.serialObject.writeString(data.msg.data);
 				break;
 				case '_rosImage':
@@ -942,8 +941,10 @@ function applyConfigChanges(){
 	case '_serial':
 		WA['topic2'] = document.getElementById('topic2').value;
 		if(WA.baud != document.getElementById('baud').value){
-			if(localWidget.serialObject.connected){
-		 	  localWidget.serialObject.end();
+			if(localWidget.serialObject){
+				if(localWidget.serialObject.connected){
+		 		  localWidget.serialObject.end();
+				}
 			}
 			WA['baud'] = document.getElementById('baud').value;
 		}

@@ -1,4 +1,3 @@
-var error;
 async function connectToSerial(serialWidget){
 	if('serial' in navigator){
 		if(serialWidget.serialObject == undefined){
@@ -30,7 +29,6 @@ class SerialObject {
 			await this.port.open({baudRate: parseInt(this.WA.baud) || 9600});
 		}catch(e){
 			console.log(e);
-			error = e;
 			this.status.style.backgroundColor = '#F00';
 			if(e.code == 11){
 				this.status.innerText = "Port already open";
@@ -49,6 +47,31 @@ class SerialObject {
 			this.connected = true;
 		}
 		await sleep(1500); //wait for device to boot
+		//read serial data from 
+		this.buffer = [];
+		try{
+			while(true){
+				const { value, done } = await this.reader.read();
+				if(done){
+					console.log('reader is done');
+					break;
+				}
+				for(let i = 0; i < value.length; i++){
+					if(value[i] == 10 || value[i] == 13){
+						if(this.buffer.length != 0){
+							let str = String.fromCharCode(this.buffer);
+							sendToRos(this.WA['topic2'],{value:str},'_serial');
+							this.flashRX();
+							this.buffer = [];
+						}
+					}
+					else this.buffer.push(value[i]);
+				}
+			}
+		}
+		catch(e){
+			console.log(e);
+		}
 	}
 	end(){
 		console.log('disconnecting serial port');
@@ -96,3 +119,14 @@ class SerialObject {
 function sleep(ms){
 	return new Promise(resolve => setTimeout(resolve,ms));
 }
+var ev;
+navigator.serial.addEventListener("disconnect", (event) => {
+	console.log('serial disconnected');
+	for(let i = 0; i < widgetArray.length; i++){
+		if(widgetArray[i].type == '_serial'){
+			let obj = document.getElementById(widgetArray[i].id).serialObject;
+			if(obj && obj.port.getInfo().usbVendorId == event.port.getInfo().usbVendorId && obj.port.getInfo().usbProductId == event.port.getInfo().usbProductId) obj.end();
+		}
+	}
+	ev = event;
+});
