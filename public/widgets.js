@@ -238,10 +238,18 @@ function initFunctionality(type, newWidget,thisID){
     break;
     case '_inputbox':
       //setup brodcast functionality for element
+	  function send(){
+		  let jsw = widgetArray[indexMap[thisID]];
+          sendToRos(jsw['topic'],{value:newWidget.querySelector('#input_ap').value},jsw['type']);
+		  newWidget.querySelector('#input_ap').value = '';
+	  }
       newWidget.querySelector('#inputboxbutton').onmousedown = function(e){
-        let jsw = widgetArray[indexMap[thisID]];
-        sendToRos(jsw['topic'],{value:newWidget.querySelector('#input_ap').value},jsw['type']);
-		newWidget.querySelector('#input_ap').value = '';
+        send();
+      };
+	  newWidget.querySelector('#input_ap').onkeyup = function(e){
+		if(e.key == 'Enter'){
+        	send();
+		}
       };
     break;
   }

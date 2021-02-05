@@ -757,6 +757,8 @@ function openConfig(e){
 		createconfigInput('USB to ROS topic', 'topic2', WCI['topic2']);
 		createText('Subscribes and publishes std_msgs/String');
 		createSelect('Baudrate', 'baud', WCI['baud'] ?? 9600,[2400, 4800, 9600, 19200, 38400, 57600, 115200]);
+		createSelect('ROS to USB appended line ending', 'rosLE', WCI['rosLE'] ?? 'None',['None','Newline (10)','Carrage Return (13)','NL and CR (10 & 13)']);
+		createSelect('USB to ROS split with', 'usbLE', WCI['usbLE'] ?? 'NL and CR (10 & 13)',['Newline (10)','Carrage Return (13)','NL and/or CR (10 & 13)']);
 	break;
     case '_audio':
 		createText('Subscribes to std_msgs/Int16');
@@ -947,6 +949,14 @@ function applyConfigChanges(){
 				}
 			}
 			WA['baud'] = document.getElementById('baud').value;
+		}
+		WA.rosLE = document.getElementById('rosLE').value;
+		WA.usbLE = document.getElementById('usbLE').value;
+		if(localWidget.serialObject){
+			if(localWidget.serialObject.connected){
+		 		localWidget.serialObject.rosLE = WA.rosLE;
+				localWidget.serialObject.usbLE = WA.usbLE;
+			}
 		}
     break;
     case '_text':
@@ -1597,10 +1607,6 @@ var elem = document.documentElement;
 function openFullscreen() {
   if (elem.requestFullscreen) {
     elem.requestFullscreen();
-  } else if (elem.webkitRequestFullscreen) { /* Safari */
-    elem.webkitRequestFullscreen();
-  } else if (elem.msRequestFullscreen) { /* IE11 */
-    elem.msRequestFullscreen();
   }
 }
 
@@ -1608,10 +1614,6 @@ function openFullscreen() {
 function closeFullscreen() {
   if (document.exitFullscreen) {
     document.exitFullscreen();
-  } else if (document.webkitExitFullscreen) { /* Safari */
-    document.webkitExitFullscreen();
-  } else if (document.msExitFullscreen) { /* IE11 */
-    document.msExitFullscreen();
   }
 }
 
@@ -1633,4 +1635,3 @@ function preventBehavior(e) {
     e.preventDefault(); 
 };
 body.addEventListener("touchmove", preventBehavior, {passive: false});
-//body.addEventListener("touchstart", preventBehavior, {passive: false});

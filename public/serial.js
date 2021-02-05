@@ -19,6 +19,8 @@ class SerialObject {
 	}
 	async start(){
 		this.WA = widgetArray[indexMap[this.serialWidget.id]];
+		this.rosLE = this.WA.rosLE;
+		this.usbLE = this.WA.usbLE;
 		this.status = this.serialWidget.querySelector('#status');
 		this.button = this.serialWidget.querySelector('#button_ap');
 		this.txLight = this.serialWidget.querySelector('#TX_ap');
@@ -57,9 +59,10 @@ class SerialObject {
 					break;
 				}
 				for(let i = 0; i < value.length; i++){
-					if(value[i] == 10 || value[i] == 13){
+					if(this.splitLine(this.usbLE,value[i])){
 						if(this.buffer.length != 0){
 							let str = String.fromCharCode(this.buffer);
+							console.log(this.buffer);
 							sendToRos(this.WA['topic2'],{value:str},'_serial');
 							this.flashRX();
 							this.buffer = [];
@@ -71,6 +74,22 @@ class SerialObject {
 		}
 		catch(e){
 			console.log(e);
+		}
+	}
+	splitLine(code,val){
+		switch(code){
+			case 'Newline (10)':
+				return val == 10;
+			break;
+			case 'Carrage Return (13)':
+				return val == 13;
+			break;
+			case 'NL and/or CR (10 & 13)':
+				return val == 10 || val == 13;
+			break;
+			default:
+				return true;
+			break;
 		}
 	}
 	end(){
@@ -105,6 +124,24 @@ class SerialObject {
 		let l = data.length;
 		for(let i = 0; i < l; i++){
 			this.write(data.charCodeAt(i));
+		}
+		this.writeLE();
+	}
+	writeLE(){
+		switch(this.rosLE){
+			case 'Newline (10)':
+				this.write(10);
+			break;
+			case 'Carrage Return (13)':
+				this.write(13);
+			break;
+			case 'NL and CR (10 & 13)':
+				this.write(10);
+				this.write(13);
+			break;
+			default:
+				return;
+			break;
 		}
 	}
 	flashTX(){
