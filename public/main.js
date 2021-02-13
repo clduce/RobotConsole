@@ -63,6 +63,7 @@ socket.on('settings',function(data){
 });
 socket.on('hardcoded_settings',function(data){
 	hardcoded = data;
+	if(data.allow_edit_mode) document.getElementById('driveMode').style.display = 'inline';
 	if(data.show_terminal) document.getElementById('termButton').style.display = 'inline';
 	if(data.show_config_settings) document.getElementById('confButton').style.display = 'inline';
 	if(data.allow_audio){
