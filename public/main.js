@@ -663,7 +663,8 @@ function openConfig(e){
   //non ros elements are exempt
   let topicInput = document.getElementById('topicTitle');
   let topicLabel = document.getElementById('topiclabel');
-  if(WCI.useROS) {
+  if(!configSettings.lockRos) configSettings.lockRos = false;
+  if(WCI.useROS && !configSettings.lockRos) {
 	  topicInput.style.display = 'inline-block';
 	  topicLabel.style.display = 'block';
   }
@@ -672,39 +673,39 @@ function openConfig(e){
 	  topicLabel.style.display = 'none';
   }
   topicInput.value = WCI['topic'];
-	topicLabel.innerText = 'ROS Topic Name';
+  topicLabel.innerText = 'ROS Topic Name';
   //delete all the auto generated elements
   var paras = document.getElementsByClassName('specific')
   while(paras[0]) paras[0].parentNode.removeChild(paras[0]);
   switch(type){
     case '_button':
       createconfigInput('Button Label', '_button-labelText', WCI['label']);
-      createText('std_msgs/Bool');
+      if(!configSettings.lockRos) createText('std_msgs/Bool');
       createText('Copy and paste icons: ⬆️➡️⬇️⬅️️ ');
       createLittleInput('Font Size (px)', 'fontsize', WCI['fontsize'],16);
       createconfiglinkGamepadButton(WCI);
       createconfiglinkKeys(WCI);
     break;
     case '_joystick':
-	  createText('geometry_msgs/Vector3');
+	  if(!configSettings.lockRos) createText('geometry_msgs/Vector3');
       createconfiglinkGamepadAxis(WCI);
       createconfiglinkKeys(WCI,['up','left','down','right']);
     break;
     case '_checkbox':
       createconfigInput('Label', 'label', WCI['label']);
-      createText('std_msgs/Bool');
+      if(!configSettings.lockRos) createText('std_msgs/Bool');
       createCheckbox('Initial State', 'initialState', WCI['initial']);
-      createCheckbox('ROS Latching', 'latching', WCI['latching']);
+      if(!configSettings.lockRos) createCheckbox('ROS Latching', 'latching', WCI['latching']);
       createconfiglinkGamepadButton(WCI);
       createconfiglinkKeys(WCI,['hotkey']);
       createColorSelect('Text Color','textColor',WCI.textColor);
     break;
     case '_slider':
 	  createconfigInput('Widget Name', 'name', WCI['name']);
-	  createText('std_msgs/Float64');
+	  if(!configSettings.lockRos) createText('std_msgs/Float64');
 	  createRange(WCI);
 	  createCheckbox('Orient Vertical', 'vertical', WCI['vertical']);
-	  createCheckbox('ROS Latching', 'latching', WCI['latching']);
+	  if(!configSettings.lockRos) createCheckbox('ROS Latching', 'latching', WCI['latching']);
 	  createCheckbox('Flip Direction', 'reverse', WCI['reverse']);
 	  createconfigInput('Default/initial value', 'default', WCI['default']);
 	  createconfiglinkKeys(WCI,['Decrease','Increase']);
@@ -712,11 +713,11 @@ function openConfig(e){
 	  createLittleInput('Repeat Delay (ms)', 'repeatdelay', WCI['repeatdelay'],100);
     break;
     case '_inputbox':
-	  createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
+	  if(!configSettings.lockRos) createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
     break;
     case '_value':
       createconfigDataWrapper(WCI);
-      createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
+      if(!configSettings.lockRos) createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
 	  createColorSelect('Text Color','textColor',WCI.textColor);
 	  createFormat(WCI);
     break;
@@ -728,26 +729,26 @@ function openConfig(e){
 		createBreak();
 		createconfigInput('False label', 'text2', (WCI['text2']==undefined || WCI['text2']=='')?WCI['text']:WCI['text2']);
 		createColorSelect('False color','textColor2',WCI.textColor2==undefined?'#FF6666':WCI.textColor2);
-		createText('std_msgs/Bool');
+		if(!configSettings.lockRos) createText('std_msgs/Bool');
     break;
     case '_gauge':
 		createconfigInput('Label', 'label', WCI['label']);
-		createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
+		if(!configSettings.lockRos) createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
 		createGraph(WCI);
 		createFormat(WCI);
     break;
     case '_compass':
 		createconfigInput('Label', 'label', WCI['label']);
 		createText('0 is north, increasing clockwise in degrees.');
-		createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16']);
+		if(!configSettings.lockRos) createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64','std_msgs/Float32','std_msgs/Int16']);
     break;
     case '_horizon':
 		createconfigInput('Label', 'label', WCI['label']);
 		createText('[0]=Roll,[1]=Pitch in degrees');
-		createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64MultiArray','std_msgs/Float32MultiArray']);
+		if(!configSettings.lockRos) createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64MultiArray','std_msgs/Float32MultiArray']);
     break;
 	case '_arm':
-		createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64MultiArray','std_msgs/Float32MultiArray']);
+		if(!configSettings.lockRos) createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64MultiArray','std_msgs/Float32MultiArray']);
 		createText('All angles are in degrees');
 		openArmConfig(WCI['arms']);
     break;
@@ -756,19 +757,23 @@ function openConfig(e){
 		createText('This widget subscribes to sensor_msgs/CompressedImage and displays a JPEG.');
 	break;
 	case '_logger':
-		createText('std_msgs/String');
-		createCheckbox('ROS Latching', 'latching', WCI['latching']);
+		if(!configSettings.lockRos){
+			createText('std_msgs/String');
+			createCheckbox('ROS Latching', 'latching', WCI['latching']);
+		}
 	break;
 	case '_serial':
 		topicLabel.innerText = 'ROS to USB topic';
-		createconfigInput('USB to ROS topic', 'topic2', WCI['topic2']);
-		createText('Subscribes and publishes std_msgs/String');
+		if(!configSettings.lockRos) {
+			createconfigInput('USB to ROS topic', 'topic2', WCI['topic2']);
+			createText('Subscribes and publishes std_msgs/String');
+		}
 		createSelect('Baudrate', 'baud', WCI['baud'] ?? 9600,[2400, 4800, 9600, 19200, 38400, 57600, 115200]);
 		createSelect('ROS to USB appended line ending', 'rosLE', WCI['rosLE'] ?? 'None',['None','Newline (10)','Carrage Return (13)','NL and CR (10 & 13)']);
-		createSelect('USB to ROS split with', 'usbLE', WCI['usbLE'] ?? 'NL and CR (10 & 13)',['Newline (10)','Carrage Return (13)','NL and/or CR (10 & 13)']);
+		createSelect('USB to ROS split with', 'usbLE', WCI['usbLE'] ?? 'NL and/or CR (10 & 13)',['Newline (10)','Carrage Return (13)','NL and/or CR (10 & 13)']);
 	break;
     case '_audio':
-		createText('Subscribes to std_msgs/Int16');
+		if(!configSettings.lockRos) createText('Subscribes to std_msgs/Int16');
     	createCheckbox('Hide this widget in drive mode', 'hideondrive', WCI['hideondrive']);
     	createSoundsList();
     break;
@@ -807,8 +812,10 @@ function applyConfigChanges(){
     case '_checkbox':
       WA['label'] = document.getElementById('label').value;
       WA['initial'] = document.getElementById('initialState').checked;
-      oldlatching = WA['latching'];
-      WA['latching'] = document.getElementById('latching').checked;
+      if(!configSettings.lockRos){
+		oldlatching = WA['latching'];
+      	WA['latching'] = document.getElementById('latching').checked;
+  	  }
       WA['textColor'] = document.getElementById('textColor').value;
       localWidget.querySelector('#checkbox_text_ap').innerText = WA['label'];
       WA['useGamepad'] = document.getElementById('useGamepad').checked;
@@ -831,8 +838,10 @@ function applyConfigChanges(){
       WA['max'] = document.getElementById('max').value;
       WA['step'] = document.getElementById('step').value;
       WA['name'] = document.getElementById('name').value;
-      oldlatching = WA['latching'];
-      WA['latching'] = document.getElementById('latching').checked;
+      if(!configSettings.lockRos){
+	  	oldlatching = WA['latching'];
+      	WA['latching'] = document.getElementById('latching').checked;
+	  }
 	  WA['reverse'] = document.getElementById('reverse').checked;
       let oldVertical = WA['vertical'];
       WA['vertical'] = document.getElementById('vertical').checked;
@@ -866,7 +875,7 @@ function applyConfigChanges(){
       WA['repeatdelay'] = document.getElementById('repeatdelay').value;
     break;
 	case '_arm':
-		WA['msgType'] = document.getElementById('msgType').value;
+		if(!configSettings.lockRos) WA['msgType'] = document.getElementById('msgType').value;
 		let newArms = [];
 		let armdivs = document.getElementsByClassName('armdiv');
 		let lastUsedIndex = 0;
@@ -885,12 +894,12 @@ function applyConfigChanges(){
 		drawArm(localWidget.querySelector('#arm_ap'),WA.arms);
 	break;
     case '_inputbox':
-      WA['msgType'] = document.getElementById('msgType').value;
+      if(!configSettings.lockRos) WA['msgType'] = document.getElementById('msgType').value;
     break;
     case '_value':
       WA['prefix'] = document.getElementById('textInput1').value;
       WA['postfix'] = document.getElementById('textInput2').value;
-      WA['msgType'] = document.getElementById('msgType').value;
+      if(!configSettings.lockRos) WA['msgType'] = document.getElementById('msgType').value;
       WA['textColor'] = document.getElementById('textColor').value;
       WA['formatmode'] = document.getElementById('formatmode').value;
       WA['formatvalue'] = document.getElementById('formatvalue').value;
@@ -926,7 +935,7 @@ function applyConfigChanges(){
       if(Number(WA.smalltick) > 100) WA['smalltick'] = 100;
       if(Number(WA.smalltick) < 0) WA['smalltick'] = 0;
       WA['label'] = document.getElementById('label').value;
-      WA['msgType'] = document.getElementById('msgType').value;
+      if(!configSettings.lockRos) WA['msgType'] = document.getElementById('msgType').value;
       WA['formatmode'] = document.getElementById('formatmode').value;
       WA['formatvalue'] = document.getElementById('formatvalue').value;
       let obj = JSON.stringify({min:WA.min,max:WA.max,bigtick:WA.bigtick,smalltick:WA.smalltick, title:WA.label});
@@ -934,28 +943,30 @@ function applyConfigChanges(){
       drawGauge(localWidget.querySelector('#gauge_ap'),WA.min,WA);
     break;
     case '_compass':
-      WA['msgType'] = document.getElementById('msgType').value;
+      if(!configSettings.lockRos) WA['msgType'] = document.getElementById('msgType').value;
       WA['label'] = document.getElementById('label').value;
     break;
     case '_horizon':
-      WA['msgType'] = document.getElementById('msgType').value;
+      if(!configSettings.lockRos) WA['msgType'] = document.getElementById('msgType').value;
       WA['label'] = document.getElementById('label').value;
     break;
     case '_rosImage':
 		WA['label'] = document.getElementById('label').value;
     break;
     case '_logger':
-		WA['latching'] = document.getElementById('latching').checked;
+		if(!configSettings.lockRos) WA['latching'] = document.getElementById('latching').checked;
     break;
 	case '_serial':
-		WA['topic2'] = document.getElementById('topic2').value;
-		if(WA.baud != document.getElementById('baud').value){
-			if(localWidget.serialObject){
-				if(localWidget.serialObject.connected){
-		 		  localWidget.serialObject.end();
+		if(!configSettings.lockRos){
+			WA['topic2'] = document.getElementById('topic2').value;
+			if(WA.baud != document.getElementById('baud').value){
+				if(localWidget.serialObject){
+					if(localWidget.serialObject.connected){
+					  localWidget.serialObject.end();
+					}
 				}
+				WA['baud'] = document.getElementById('baud').value;
 			}
-			WA['baud'] = document.getElementById('baud').value;
 		}
 		WA.rosLE = document.getElementById('rosLE').value;
 		WA.usbLE = document.getElementById('usbLE').value;
@@ -984,7 +995,7 @@ function applyConfigChanges(){
   sendWidgetsArray();
   
   //now send initial state if latching:
-  if(oldlatching != WA['latching'] && WA['latching']){
+  if(oldlatching != WA['latching'] && WA['latching'] && !configSettings.lockRos){
 	  console.log('update latch status');
 	switch(type){
 		case '_checkbox':

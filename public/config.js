@@ -67,6 +67,7 @@ function populateConfig(data){
 	document.getElementsByClassName('background')[0].value = data['background'];
 	document.getElementsByClassName('snaptogrid')[0].checked = data['snaptogrid'];
 	document.getElementsByClassName('saveWidgets')[0].checked = data['saveWidgets'];
+	document.getElementsByClassName('lockRos')[0].checked = data['lockRos'];
 	document.getElementsByClassName('consoleText')[0].value = data['consoleText'] || '';
 	console.log('done loading settings');
 }
@@ -100,6 +101,7 @@ function generateConfig(){
 	data['background'] = document.getElementsByClassName('background')[0].value
 	data['snaptogrid'] = document.getElementsByClassName('snaptogrid')[0].checked;
 	data['saveWidgets'] = document.getElementsByClassName('saveWidgets')[0].checked;
+	data['lockRos'] = document.getElementsByClassName('lockRos')[0].checked;
 	data['consoleText'] = guardTopicName(document.getElementsByClassName('consoleText')[0].value) || '';
 	return data;
 }
