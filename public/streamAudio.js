@@ -5,20 +5,24 @@ const UNMUTE_IMAGE = 'unmute.svg', MUTE_IMAGE = 'mute.svg';
 let recorder;
 let audioStream;
 let isMuted = true, roboIsMuted = true;
-if (navigator.getUserMedia)
-{
-   navigator.getUserMedia({audio: true}, function(stream){
-       audioStream = stream;
-       console.log('audio stream', audioStream);
-   }, function(error){
-       alert('Error capturing audio.');
-   });
-}
-else
-{
-   alert('getUserMedia not supported in this browser.');
- }
 
+function initAudio(){
+	if (navigator.getUserMedia)
+	{
+		if(allow_audio){
+		   navigator.getUserMedia({audio: true}, function(stream){
+			   audioStream = stream;
+			   console.log('audio stream', audioStream);
+		   }, function(error){
+			   alert('Error capturing audio.');
+		   });
+		}
+	}
+	else
+	{
+	   if(allow_audio) alert('getUserMedia not supported in this browser.');
+	}
+}
 function unmute(){
  const context = window.AudioContext;
  const audioContext = new context();

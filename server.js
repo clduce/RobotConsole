@@ -8,16 +8,17 @@
 const SETTINGS_PATH = __dirname + '/settings.json';
 const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
 const RESET_SOCKET_AFTER_MS = 900; //if the ping gets above this, the socket and cameras will reset
-var PORT = 3000;
+var HTTPS_PORT = 3000,
+	HTTP_PORT = 3030;
 
 //this allows more reliable camera connection, but extends boot time by 5 seconds. It also requires the sudoers rule below
 //use 'sudo visudo' and add this line to the bottom: ubuntu ALL=(root) NOPASSWD: /home/ubuntu/catkin_ws/src/roboquest_ui/src/resetUsbCams.sh
 var RESET_USB_PORTS_ON_BOOT = true;
 
-//const SUPPORTED_PIXEL_FORMATS = ['JPEG','BGR3','BGR4','BGR','YUYV','GRAY8','NV12','YV12','I420'];
 
 var express = require('express');
 const https = require('https');
+const http = require('http');
 const rosnodejs = require('rosnodejs');
 const cv = require('opencv4nodejs');
 const cp = require('child_process');
@@ -65,13 +66,14 @@ var server = https.createServer({
 	key:fs.readFileSync(__dirname + '/server.key'),
 	cert:fs.readFileSync(__dirname + '/server.crt'),
 	passphrase:'robotserver'
-},app).listen(PORT,()=>{
-	console.log(`Listening on port ${PORT}`);
-});
-
-
+},app).listen(HTTPS_PORT);
 app.use(express.static(__dirname + '/public'));
-console.log("server running on port "+ PORT);
+console.log("server running on port "+ HTTPS_PORT);
+
+http.createServer((req,res)=>{
+	res.writeHead(301, {"location": "https://" + req.headers['host'] + req.url });
+	res.end();
+}).listen(HTTP_PORT);
 
 
 if(RESET_USB_PORTS_ON_BOOT){

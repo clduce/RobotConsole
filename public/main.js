@@ -13,6 +13,7 @@ var loadedElements = false;//flag to check if elements have been constructed fro
 var madeThumbs = false;
 var readGamepadInterval,currentGamepad,oldGamepad,lastChangedAxis;
 var thisScreen = 1;
+var allow_audio = false;
 var keys = {};
 var oldKeys = {};
 var time = new Date();
@@ -58,12 +59,18 @@ socket.on('settings',function(data){
 	}else{
 		console.log('already loaded elements');
 	}
-	hideMessage();
+	if(!configIsOpen && !terminalIsOpen) hideMessage();
 });
 socket.on('hardcoded_settings',function(data){
+	hardcoded = data;
 	if(data.show_terminal) document.getElementById('termButton').style.display = 'inline';
 	if(data.show_config_settings) document.getElementById('confButton').style.display = 'inline';
-	if(data.allow_edit_mode) document.getElementById('driveMode').style.display = 'inline';
+	if(data.allow_audio){
+		allow_audio = true;
+		initAudio();
+		document.getElementById('toggleMic').style.display = 'inline';
+		document.getElementById('toggleRoboMic').style.display = 'inline';
+	}
 });
 
 //on video feed recieve
@@ -1212,6 +1219,7 @@ function createFormat(array){
   '<h3 class="specific" style="margin:20px 0px 5px 0px">Number Formatting</h1><select id="formatmode" class="specific">'+
   '<option value="0">Fixed decimal points</option>'+
   '<option value="1">Precision (digits)</option>'+
+  '<option value="2">None</option>'+
   '</select><input id="formatvalue" class="specific" style="width:50px; margin-left:5px"></input>';
   configWindow.insertAdjacentHTML('beforeend',code);
   document.getElementById('formatmode').value=formatmode;
@@ -1597,8 +1605,11 @@ function playSound(s){
 }
 //opts = bool mode, value
 function formatNumber(data,opts){
-	if(opts.formatmode==0) return Number(data).toFixed(parseInt(opts.formatvalue));
-	if(opts.formatmode==1) return Number(data).toPrecision(parseInt(opts.formatvalue));
+	if(Number(data)){
+		if(opts.formatmode==0) return Number(data).toFixed(parseInt(opts.formatvalue));
+		if(opts.formatmode==1) return Number(data).toPrecision(parseInt(opts.formatvalue));
+		if(opts.formatmode==2) return Number(data);
+	}
 	return data;
 }
 
