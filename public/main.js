@@ -199,7 +199,8 @@ socket.on('instanceCount',function(data){
 });
 socket.on('pong',function(ms){
 	document.getElementById('ping').innerText = 'ping '+('000'+ms).slice(-4)+'ms';
-	if(ms > 300){
+	if(configSettings.heartbeat) socket.emit('hb',ms); //emit ping as a ros message if applicable
+	if(ms > 400){
 		document.getElementById('ping').style.color = "#F00";
 	}else {
 		document.getElementById('ping').style.color = "#FFF";

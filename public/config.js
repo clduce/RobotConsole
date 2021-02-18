@@ -69,6 +69,7 @@ function populateConfig(data){
 	document.getElementsByClassName('saveWidgets')[0].checked = data['saveWidgets'];
 	document.getElementsByClassName('lockRos')[0].checked = data['lockRos'];
 	document.getElementsByClassName('consoleText')[0].value = data['consoleText'] || '';
+	document.getElementsByClassName('heartbeat')[0].value = data['heartbeat'] || '';
 	console.log('done loading settings');
 }
 function generateConfig(){
@@ -103,6 +104,7 @@ function generateConfig(){
 	data['saveWidgets'] = document.getElementsByClassName('saveWidgets')[0].checked;
 	data['lockRos'] = document.getElementsByClassName('lockRos')[0].checked;
 	data['consoleText'] = guardTopicName(document.getElementsByClassName('consoleText')[0].value) || '';
+	data['heartbeat'] = guardTopicName(document.getElementsByClassName('heartbeat')[0].value) || '';
 	return data;
 }
 function guardTopicName(name){

@@ -138,7 +138,7 @@ function requestResolutionSet(c,w,h,f){
 }
 
 var socket = require('socket.io');
-var io = socket(server, {pingInterval: 300, pingTimeout: RESET_SOCKET_AFTER_MS});
+var io = socket(server, {pingInterval: 400, pingTimeout: RESET_SOCKET_AFTER_MS});
 io.set('origins','*:*');
 
 function joinRosTopics(){
@@ -246,6 +246,11 @@ function joinRosTopics(){
 					io.emit('telem',{topic:'__consoleText',msg:msg});
 				});
 			}
+			let heartbeat = settingsObject.config.heartbeat;
+			if(heartbeat != undefined && heartbeat && heartbeat != ''){
+				if(rospublishers.heartbeat) rospublishers.heartbeat.shutdown();
+				rospublishers.heartbeat = nh.advertise(heartbeat, 'std_msgs/Int16');
+			}
 			rosready = true;
 		}
 	});
@@ -258,7 +263,7 @@ rosnodejs.initNode('/webserver').then(() => {
 	console.log('Error connecting to ROS: ' + e);
 });
 
-
+var lastSocketId = undefined;
 io.sockets.on('connection', function(socket){
 	socketsOpen++;
 	io.emit('instanceCount',socketsOpen);
@@ -372,7 +377,11 @@ io.sockets.on('connection', function(socket){
 	  if(cameraExists) shutdownFlag = true;
 	  else process.exit(1);
 	});
-  
+    //send a 
+  socket.on('hb',ping => {
+	  if(!lastSocketId) lastSocketId = socket.id;
+	  if(rospublishers.heartbeat && socket.id == lastSocketId) rospublishers.heartbeat.publish({data:ping});
+  });
   //ROS client to server
   socket.on('ROSCTS', function(data){
 	    var topic = data.topic;
@@ -443,6 +452,7 @@ io.sockets.on('connection', function(socket){
   socket.on('disconnect', function(data){
 	socket.disconnect();
     socketsOpen--;
+	lastSocketId = undefined;
     io.emit('instanceCount',socketsOpen);
   });
 	
