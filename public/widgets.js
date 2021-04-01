@@ -1,7 +1,7 @@
 //parses json into widgets
 //contains functionality for all Widgets
 //a hashtable like array that stores indexes at different id's
-var indexMap, topicMapIndex, useUDPRos = true;
+var indexMap, topicMapIndex;
 // TODO: add details for all types of widgets
 function widgetFromJson(json){
   var type = json['type'];
@@ -312,7 +312,9 @@ function sendToRos(topic,data,type){
   if(topic != undefined && topic != '/' && topic != ''){
     data.topic = topic;
     data.type = type;
-    if(useUDPRos && udpReady) channel.emit('ROSCTS',data);
+    if(configSettings.useUDPRos && udpReady){
+		channel.emit('ROSCTS',data);
+	}
 	else socket.emit('ROSCTS',data);//ros client to server
   }
 }

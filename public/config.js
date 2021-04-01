@@ -70,6 +70,8 @@ function populateConfig(data){
 	document.getElementsByClassName('lockRos')[0].checked = data['lockRos'];
 	document.getElementsByClassName('consoleText')[0].value = data['consoleText'] || '';
 	document.getElementsByClassName('heartbeat')[0].value = data['heartbeat'] || '';
+	document.getElementsByClassName('useUDPVideo')[0].checked = data['useUDPVideo'] || false;
+	document.getElementsByClassName('useUDPRos')[0].checked = data['useUDPRos'] || false;
 	console.log('done loading settings');
 }
 function generateConfig(){
@@ -105,6 +107,8 @@ function generateConfig(){
 	data['lockRos'] = document.getElementsByClassName('lockRos')[0].checked;
 	data['consoleText'] = guardTopicName(document.getElementsByClassName('consoleText')[0].value) || '';
 	data['heartbeat'] = guardTopicName(document.getElementsByClassName('heartbeat')[0].value) || '';
+	data['useUDPVideo'] = document.getElementsByClassName('useUDPVideo')[0].checked || false;
+	data['useUDPRos'] = document.getElementsByClassName('useUDPRos')[0].checked || false;
 	return data;
 }
 function guardTopicName(name){

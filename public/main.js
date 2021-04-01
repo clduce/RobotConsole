@@ -142,6 +142,12 @@ function changePreset(cam,me){
 	socket.emit('setPreset',{c:cam,v:me.value});
 }
 socket.on('telem',function(data){
+	handleTelem(data);
+});
+channel.on('telem',function(data){
+	handleTelem(data);
+});
+function handleTelem(data){
 	if(data.topic == '__consoleText'){
 		console.log(data);
 		document.getElementById('consoleText').innerText = data.msg.data;
@@ -193,7 +199,7 @@ socket.on('telem',function(data){
 			}
 		}
   }
-});
+};
 socket.on('fps',(fps)=>{
 	document.getElementById('fps').innerText = 'FPS: '+parseInt(fps);
 });

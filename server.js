@@ -41,7 +41,7 @@ var mainContrast = 0; // -127 127
 var hardcodedLoaded = false;
 var resolutionStack = {};
 var shutdownFlag = false;
-var useUDPVideo = true;
+var useUDPVideo = false;
 var udpReady = false;
 //hosting server
 
@@ -114,17 +114,15 @@ function requestResolutionSet(c,w,h,f){
 
 var socket = require('socket.io');
 var io = socket(server, {pingInterval: 400, pingTimeout: RESET_SOCKET_AFTER_MS});
-
 function joinRosTopics(){
 	fs.readFile(SETTINGS_PATH, (err, data) => {
 		if (err) throw err;
-		let settingsObject;
 		try{
 			settingsObject = JSON.parse(data);
 		}catch(e){console.log(e);}
 		if(settingsObject){
 			let widgets = settingsObject['widgets'];
-			
+			useUDPVideo = settingsObject.config.useUDPVideo || false;
 			//attatch ROS publishers and listeners
 			for(let i = 0; i < widgets.length; i++){
 				let topic = widgets[i].topic;
@@ -243,7 +241,6 @@ udpGeckos.onConnection(channel => {
 	});
 	channel.on('ROSCTS', function(data){
 	  	handleRosCTS(data);
-		console.log('send to ros using UDP');
   	});
 });
 
@@ -497,8 +494,10 @@ let retrieveCam = function(){
 			result = buf;
 			
 			cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
-				if(useUDPVideo) udpGeckos.emit('image',result.toString('base64'));
-				//else io.emit('image',result.toString('base64'));
+				if(udpReady && useUDPVideo){
+					udpGeckos.emit('image',result.toString('base64'));
+				}
+				else io.emit('image',result.toString('base64'));
 			}).catch((e)=>{console.log(e)});
 		}
 		
@@ -523,8 +522,8 @@ let retrieveCam = function(){
 		setTimeout(retrieveCam,0);
 		
 	}).catch((e)=>{console.log("can't read camera " + e);});
-	if(useUDPVideo) udpGeckos.emit('fps',1000/(time-oldtime));
-	//else io.emit('fps',1000/(time-oldtime));
+	if(useUDPVideo && udpReady) udpGeckos.emit('fps',1000/(time-oldtime));
+	else io.emit('fps',1000/(time-oldtime));
 	oldtime = time;
 }
 if(cameraExists) setTimeout(retrieveCam,0);
