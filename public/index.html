@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title id='title'>Robot Console</title>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="geckos.io-client.1.7.2.min.js"></script>
 </head>
 
 <style>
@@ -335,14 +336,6 @@ button:focus {outline:0;}
 #consoleText{
 	font-size:20px;color:#FFF;width:200px;margin-top:5px;
 }
-#toggleMic,
-#toggleRoboMic{
-	width:50px;
-	cursor:pointer;
-	position:absolute;
-	bottom:10px;
-	display:none;
-}
 .indbox{
 	border-radius:5px;
 }
@@ -380,8 +373,6 @@ button:focus {outline:0;}
   <h1 class="label" style=""id='consoleText'></h1>
 </div>
 <image class='image' id='mainImage'></image>
-<img style='left:calc(50% - 55px)' id='toggleMic' onclick='toggleMic();' src='unmute.svg'>
-<img style='left:calc(50% + 15px)'id='toggleRoboMic' onclick='toggleRoboMic();' src='robounmute.svg'>
 <!-- inside this widget holder is the definitions of each widget -->
 <button class='toggleWidgetHolder' onclick="toggleWidgetHolder()">Show</button>
 <div class='widgetHolder' id='widgetHolder'>
@@ -474,15 +465,6 @@ button:focus {outline:0;}
     <image id='speaker_ap' class='showOnDrive' src='speaker.svg' style='height:40px;position:absolute:left:0px;top:26px'></image>
     <img src="resize.png" id="resize"></img>
   </div>
-
-  <div class="panel source" id="_serial" style="width:200px;height:70px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
-    <div id="header">Serial Communication<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-	<div class='showOnDrive' id='color_ap' style='background-color:#FFF'><button class='textDisplay' id='button_ap' onclick='connectToSerial(this.parentElement.parentElement);'style="margin:0px;width:100%;font-size:17px">Connect</button></div>
-	<div class='showOnDrive' id='color_ap' style='background-color:#FF0'><h1 class='textDisplay' id='status' style="margin:0px;padding:0px;font-size:17px">Disconnected</h1></div>
-	<div class='showOnDrive' id='color_ap' style='background-color:#FFF;display:inline-table;width:50%'><h1 class='textDisplay' id='RX_ap' style="margin:0px;padding:0px;font-size:17px">RX</h1></div>
-	<div class='showOnDrive' id='color_ap' style='background-color:#FFF;width:50%;float:right'><h1 class='textDisplay' id='TX_ap' style="margin:0px;padding:0px;font-size:17px">TX</h1></div>
-    <img src="resize.png" id="resize"></img>
-  </div>
   
   <h1 class="label" style="text-align:center">Non ROS</h1>
   
@@ -532,7 +514,5 @@ button:focus {outline:0;}
 <script src="canvas.js" charset="utf-8"></script>
 <script src="widgets.js" charset="utf-8"></script>
 <script src="main.js" charset="utf-8"></script>
-<script src="streamAudio.js"></script>
-<script src="serial.js"></script>
 </body>
 </html>

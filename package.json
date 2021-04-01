@@ -10,6 +10,7 @@
   "author": "Mark Skinner",
   "license": "ISC",
   "dependencies": {
+    "@geckos.io/server": "^1.7.2",
     "express": "^4.17.1",
     "node-gyp": "^7.1.2",
     "node-microphone": "^0.1.5",
@@ -17,7 +18,7 @@
     "raspberry-pi-camera-native": "0.0.0",
     "rebuild": "^0.1.2",
     "rosnodejs": "^3.0.2",
-    "socket.io": "^2.3.0",
+    "socket.io": "^2.4.1",
     "speaker": "^0.5.2",
     "tree-kill": "^1.2.2"
   },

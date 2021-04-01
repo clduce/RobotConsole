@@ -8,37 +8,22 @@
 const SETTINGS_PATH = __dirname + '/settings.json';
 const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
 const RESET_SOCKET_AFTER_MS = 900; //if the ping gets above this, the socket and cameras will reset
-var HTTPS_PORT = 3000,
-	HTTP_PORT = 3030;
+var PORT = 3000, UDPPORT = 3030;
 
 //this allows more reliable camera connection, but extends boot time by 5 seconds. It also requires the sudoers rule below
 //use 'sudo visudo' and add this line to the bottom: ubuntu ALL=(root) NOPASSWD: /home/ubuntu/catkin_ws/src/roboquest_ui/src/resetUsbCams.sh
-var RESET_USB_PORTS_ON_BOOT = true;
+var RESET_USB_PORTS_ON_BOOT = false;
 
 
 var express = require('express');
-const https = require('https');
-const http = require('http');
 const rosnodejs = require('rosnodejs');
 const cv = require('opencv4nodejs');
 const cp = require('child_process');
 var kill = require('tree-kill');
 const fs = require('fs');
-
-//enable audio output from server
-const Speaker = require('speaker');
-const speaker = new Speaker({
-	channels:1,
-	bitDepth:16,
-	sampleRate:22050,
-	samplesPerFrame:1024,
-});
-
-
-//start audio stream from robot to client
-let Mic = require('node-microphone');
-let mic = new Mic();
-let micStream;
+const geckos = require('@geckos.io/server').default;
+const udpGeckos = geckos();
+udpGeckos.listen(UDPPORT);
 
 var cameraExists = false;
 var settingsObject,hardcoded;
@@ -56,24 +41,14 @@ var mainContrast = 0; // -127 127
 var hardcodedLoaded = false;
 var resolutionStack = {};
 var shutdownFlag = false;
-var ismuted = true;//is the robot's mic muted
-var speakerInUse = false;
-
+var useUDPVideo = true;
+var udpReady = false;
 //hosting server
 
 var app = express();
-var server = https.createServer({
-	key:fs.readFileSync(__dirname + '/server.key'),
-	cert:fs.readFileSync(__dirname + '/server.crt'),
-	passphrase:'robotserver'
-},app).listen(HTTPS_PORT);
+var server = app.listen(PORT);
 app.use(express.static(__dirname + '/public'));
-console.log("server running on port "+ HTTPS_PORT);
-
-http.createServer((req,res)=>{
-	res.writeHead(301, {"location": "https://" + req.headers['host'] + req.url });
-	res.end();
-}).listen(HTTP_PORT);
+console.log("server running on port "+ PORT);
 
 
 if(RESET_USB_PORTS_ON_BOOT){
@@ -139,7 +114,6 @@ function requestResolutionSet(c,w,h,f){
 
 var socket = require('socket.io');
 var io = socket(server, {pingInterval: 400, pingTimeout: RESET_SOCKET_AFTER_MS});
-io.set('origins','*:*');
 
 function joinRosTopics(){
 	fs.readFile(SETTINGS_PATH, (err, data) => {
@@ -263,12 +237,20 @@ rosnodejs.initNode('/webserver').then(() => {
 	console.log('Error connecting to ROS: ' + e);
 });
 
+udpGeckos.onConnection(channel => {
+	channel.on('data', data => {
+		console.log(`got "${data}" from UDP transport`);
+	});
+	channel.on('ROSCTS', function(data){
+	  	handleRosCTS(data);
+		console.log('send to ros using UDP');
+  	});
+});
+
 var lastSocketId = undefined;
 io.sockets.on('connection', function(socket){
 	socketsOpen++;
 	io.emit('instanceCount',socketsOpen);
-	io.emit('muted',ismuted);
-	io.emit('spk',speakerInUse);
     console.log('made connection');
   
   //get settings from json and send to client
@@ -321,6 +303,10 @@ io.sockets.on('connection', function(socket){
     catch(e){
       console.log(e);
     }
+  });
+  socket.on('udpReady', ()=>{
+	  console.log('UDP IS READY');
+	  udpReady = true;
   });
   //config settings client to server
   socket.on('configSettings', function(data){
@@ -384,24 +370,7 @@ io.sockets.on('connection', function(socket){
   });
   //ROS client to server
   socket.on('ROSCTS', function(data){
-	    var topic = data.topic;
-	    switch(data.type){
-			case '_button':
-			case '_checkbox':
-				if(rospublishers[topic]) rospublishers[topic].publish({ data:data.pressed});
-			break;
-			case '_inputbox':
-			case '_slider':
-				if(rospublishers[topic]) rospublishers[topic].publish({ data:data.value});
-			break;
-			case '_joystick':
-				if(rospublishers[topic]) rospublishers[topic].publish({x:data.x,y:data.y,z:0});
-			break;
-			case '_serial':
-				if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
-			break;
-		}
-	    console.log('Publish Ros ' + JSON.stringify(data));
+	  	handleRosCTS(data);
   });
   //remove all subscribers/publishers from topic
   socket.on('shutROS', function(data){
@@ -455,47 +424,32 @@ io.sockets.on('connection', function(socket){
 	lastSocketId = undefined;
     io.emit('instanceCount',socketsOpen);
   });
-	
-  socket.on('unmuteRobot', function(data){
-	//start robot audio stream if possible
-	  if(ismuted){
-		  micStream = mic.startRecording();
-		  //stream microphone data as WAVE 16bit 16000 4000 byte chunks to the client
-			micStream.on('data', (chunk) => {
-			  io.emit('micData',chunk);
-			});
-		 console.log('unmuted robot mic');
-		 socket.emit('robotUnmuted');
-		  ismuted = false;
-	  }
-  });
-  socket.on('muteRobot', function(data){
-	//start robot audio stream if possible
-	  if(!ismuted){
-		  mic.stopRecording();
-		  micStream = undefined;
-		  console.log('muted robot mic');
-		  socket.emit('robotMuted');
-		  ismuted = true;
-	  }
-  });
-	
-	
-	//=================================== AUDIO OUTPUT STREAM
-  socket.on('audioPacket', function(data){
-	speaker.write(Buffer.from(data,'base64'));
-  });
 });
 
-//==================================== MICROPHONE STREAM
 
-//listen for mic debug messages
-mic.on('info', (info) => {
-	console.log(info.toString());
-});
-mic.on('error', (error) => {
-  console.log(error.toString());
-});
+
+function handleRosCTS(data){
+	var topic = data.topic;
+	switch(data.type){
+		case '_button':
+		case '_checkbox':
+			if(rospublishers[topic]) rospublishers[topic].publish({ data:data.pressed});
+		break;
+		case '_inputbox':
+		case '_slider':
+			if(rospublishers[topic]) rospublishers[topic].publish({ data:data.value});
+		break;
+		case '_joystick':
+			if(rospublishers[topic]) rospublishers[topic].publish({x:data.x,y:data.y,z:0});
+		break;
+		case '_serial':
+			if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
+		break;
+	}
+	console.log('Publish Ros ' + JSON.stringify(data));
+}
+
+
 //cams is the entire cam json from config
 //cam index is the camera number in the camArray
 function camSettings(cams, camindex){
@@ -543,7 +497,8 @@ let retrieveCam = function(){
 			result = buf;
 			
 			cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
-				io.emit('image',result.toString('base64'));
+				if(useUDPVideo) udpGeckos.emit('image',result.toString('base64'));
+				//else io.emit('image',result.toString('base64'));
 			}).catch((e)=>{console.log(e)});
 		}
 		
@@ -568,7 +523,8 @@ let retrieveCam = function(){
 		setTimeout(retrieveCam,0);
 		
 	}).catch((e)=>{console.log("can't read camera " + e);});
-	io.emit('fps',1000/(time-oldtime));
+	if(useUDPVideo) udpGeckos.emit('fps',1000/(time-oldtime));
+	//else io.emit('fps',1000/(time-oldtime));
 	oldtime = time;
 }
 if(cameraExists) setTimeout(retrieveCam,0);
@@ -579,7 +535,6 @@ function closeDownServer(){
 		camArray[i].read();
 		console.log('released cam',i);
 	}
-	mic.stopRecording();
 }
 
 process.on('SIGINT',()=>{

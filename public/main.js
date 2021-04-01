@@ -18,14 +18,24 @@ var keys = {};
 var oldKeys = {};
 var time = new Date();
 var lastwidth = 0;
+var udpReady = false;
 let sounds = ['bells.mp3','warning.mp3','message.mp3','info.mp3','xylo.mp3'];//change only this to add or remove sounds
 const THUMBWIDTH = 150;
 let mainImage = document.getElementById('mainImage');
 let gamepadCount = 0;
 //use same IP to connect to socket server as to connect to express
 socket = io(window.location.hostname + ':' + window.location.port);
+const channel = geckos({port : 3030});
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 //get all config from server
+channel.onConnect(error => {
+	if(error) console.log(error);
+	else{
+		console.log('connected to UDP socket');
+		socket.emit('udpReady');
+		udpReady = true;
+	}
+});
 socket.on('connection',function(){
 	console.log('connect');
 });
@@ -66,16 +76,11 @@ socket.on('hardcoded_settings',function(data){
 	if(data.allow_edit_mode) document.getElementById('driveMode').style.display = 'inline';
 	if(data.show_terminal) document.getElementById('termButton').style.display = 'inline';
 	if(data.show_config_settings) document.getElementById('confButton').style.display = 'inline';
-	if(data.allow_audio){
-		allow_audio = true;
-		initAudio();
-		document.getElementById('toggleMic').style.display = 'inline';
-		document.getElementById('toggleRoboMic').style.display = 'inline';
-	}
 });
 
 //on video feed recieve
 socket.on('image',function(data){mainImage.src=`data:image/jpeg;base64,${data}`;});
+channel.on('image',function(data){mainImage.src=`data:image/jpeg;base64,${data}`;});
 function refreshSelectPresets(){
 	let selects = document.getElementsByClassName('cam_presets');
 	for(let i = 0; i < selects.length; i++){
@@ -167,8 +172,6 @@ socket.on('telem',function(data){
 				case '_arm':
 					drawArm(we.querySelector('#arm_ap'),c.arms,data.msg);
 				break;
-				case '_serial':
-					if(we.serialObject) we.serialObject.writeString(data.msg.data);
 				break;
 				case '_rosImage':
 					var blob = new Blob([new Uint8Array(data.msg)],{type:"image/jpeg"});
@@ -194,6 +197,9 @@ socket.on('telem',function(data){
 socket.on('fps',(fps)=>{
 	document.getElementById('fps').innerText = 'FPS: '+parseInt(fps);
 });
+channel.on('fps',(fps)=>{
+	document.getElementById('fps').innerText = 'FPS: '+parseInt(fps);
+});
 socket.on('instanceCount',function(data){
 	if(document.getElementById('instanceCount')) document.getElementById('instanceCount').innerText = 'clients: ' + data;
 });
@@ -210,11 +216,6 @@ socket.on('pong',function(ms){
 	}
 	lastwidth = mainImage.width;
 });
-socket.on('micData', function(data) {
-	if(data.byteLength > 0){
-	  writeToAudioPlayer(data);
-	}
-});
 socket.on('closeSocket',function(data){
 	connected = false;
 	showMessage('Socket was closed. Reload page to reopen');
@@ -223,34 +224,6 @@ socket.on('closeSocket',function(data){
 });
 function closeOtherSockets(){
 	socket.emit('closeOtherSockets');
-}
-var audioInputBuffer = [];
-function writeToAudioPlayer(data){
-	audioInputBuffer.splice(0,0,data);
-	playNextChunk();
-}
-//plays an arraybuffer of raw pcm audio data at with bitrate 16000 and 16 bit
-function play(soundBuffer){
-	let sound = new Int8Array(soundBuffer);
-    let frameCount = sound.byteLength/2;
-	var myAudioBuffer = audioCtx.createBuffer(1, frameCount, 16000);
-	var nowBuffering = myAudioBuffer.getChannelData(0,16,16000);
-	for (var i = 0; i < frameCount; i++) {
-		var word = (sound[i * 2] & 0xff) + ((sound[i * 2 + 1] & 0xff) << 8);
-		nowBuffering[i] = ((word + 32768) % 65536 - 32768) / 32768.0;
-	}
-	var source = audioCtx.createBufferSource();
-	source.buffer = myAudioBuffer;
-	source.connect(audioCtx.destination);
-	source.start();
-	source.onended = function(){
-		playNextChunk();
-	}
-}
-function playNextChunk(){
-	if(audioInputBuffer.length > 1){
-		play(audioInputBuffer.pop());
-	}
 }
 //initalize all graphical Widgets in source bar
 var canvas = document.getElementById('_joystick').querySelector('#canvas_ap');
@@ -447,9 +420,6 @@ function removeWidgetFromScreen(elmnt){
 	if(WA.type == '_box' && WA.childids){
 		deleteList = WA.childids;
 	}
-	if(WA.type == '_serial'){
-		if(elmnt.serialObject) elmnt.serialObject.end();
-	}
 	elmnt.remove();
 	deleteWidget(elmnt.id);
 	deleteFromPanel(elmnt.id);
@@ -458,9 +428,6 @@ function removeWidgetFromScreen(elmnt){
 		elmnt = document.getElementById(deleteList[i]);
 		let WA = widgetArray[indexMap[elmnt.id]];
 		socket.emit('shutROS',WA.topic);
-		if(WA.type == '_serial'){
-			if(elmnt.serialObject) elmnt.serialObject.end();
-		}
 		elmnt.remove();
 		deleteWidget(elmnt.id);
 		deleteFromPanel(elmnt.id);
@@ -764,16 +731,6 @@ function openConfig(e){
 			createCheckbox('ROS Latching', 'latching', WCI['latching']);
 		}
 	break;
-	case '_serial':
-		topicLabel.innerText = 'ROS to USB topic';
-		if(!configSettings.lockRos) {
-			createconfigInput('USB to ROS topic', 'topic2', WCI['topic2']);
-			createText('Subscribes and publishes std_msgs/String');
-		}
-		createSelect('Baudrate', 'baud', WCI['baud'] || 9600,[2400, 4800, 9600, 19200, 38400, 57600, 115200]);
-		createSelect('ROS to USB appended line ending', 'rosLE', WCI['rosLE'] || 'None',['None','Newline (10)','Carrage Return (13)','NL and CR (10 & 13)']);
-		createSelect('USB to ROS split with', 'usbLE', WCI['usbLE'] || 'NL and/or CR (10 & 13)',['Newline (10)','Carrage Return (13)','NL and/or CR (10 & 13)']);
-	break;
     case '_audio':
 		if(!configSettings.lockRos) createText('Subscribes to std_msgs/Int16');
     	createCheckbox('Hide this widget in drive mode', 'hideondrive', WCI['hideondrive']);
@@ -957,27 +914,6 @@ function applyConfigChanges(){
     break;
     case '_logger':
 		if(!configSettings.lockRos) WA['latching'] = document.getElementById('latching').checked;
-    break;
-	case '_serial':
-		if(!configSettings.lockRos){
-			WA['topic2'] = document.getElementById('topic2').value;
-			if(WA.baud != document.getElementById('baud').value){
-				if(localWidget.serialObject){
-					if(localWidget.serialObject.connected){
-					  localWidget.serialObject.end();
-					}
-				}
-				WA['baud'] = document.getElementById('baud').value;
-			}
-		}
-		WA.rosLE = document.getElementById('rosLE').value;
-		WA.usbLE = document.getElementById('usbLE').value;
-		if(localWidget.serialObject){
-			if(localWidget.serialObject.connected){
-		 		localWidget.serialObject.rosLE = WA.rosLE;
-				localWidget.serialObject.usbLE = WA.usbLE;
-			}
-		}
     break;
     case '_text':
       WA['text'] = document.getElementById('text').value;
