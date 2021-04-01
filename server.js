@@ -7,7 +7,7 @@
 
 const SETTINGS_PATH = __dirname + '/settings.json';
 const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
-const RESET_SOCKET_AFTER_MS = 900; //if the ping gets above this, the socket and cameras will reset
+const RESET_SOCKET_AFTER_MS = 2000; //if the ping gets above this, the socket and cameras will reset
 var PORT = 3000, UDPPORT = 3030;
 
 //this allows more reliable camera connection, but extends boot time by 5 seconds. It also requires the sudoers rule below
@@ -41,7 +41,7 @@ var mainContrast = 0; // -127 127
 var hardcodedLoaded = false;
 var resolutionStack = {};
 var shutdownFlag = false;
-var useUDPVideo = false;
+var useUDPVideo = false, useUDPRos = false;
 var udpReady = false;
 //hosting server
 
@@ -123,6 +123,7 @@ function joinRosTopics(){
 		if(settingsObject){
 			let widgets = settingsObject['widgets'];
 			useUDPVideo = settingsObject.config.useUDPVideo || false;
+			useUDPRos = settingsObject.config.useUDPRos || false;
 			//attatch ROS publishers and listeners
 			for(let i = 0; i < widgets.length; i++){
 				let topic = widgets[i].topic;
@@ -155,14 +156,14 @@ function joinRosTopics(){
 							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/String';
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
-								io.emit('telem',{topic:topic,id:i,msg:msg});
+								sendTelem({topic:topic,id:i,msg:msg});
 							});
 						break;
 						case '_compass':
 							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Int16';
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
-								io.emit('telem',{topic:topic,id:i,msg:msg});
+								sendTelem({topic:topic,id:i,msg:msg});
 								console.log(msg);
 							});
 						break;
@@ -171,32 +172,32 @@ function joinRosTopics(){
 							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Float64MultiArray';
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
-								io.emit('telem',{topic:topic,id:i,msg:msg.data});
+								sendTelem({topic:topic,id:i,msg:msg.data});
 							});
 						break;
 						case '_rosImage':
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, 'sensor_msgs/CompressedImage', (msg) => {
-								io.emit('telem',{topic:topic,id:i,msg:msg.data});
+								sendTelem({topic:topic,id:i,msg:msg.data});
 							});
 						break;
 						case '_light':
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, 'std_msgs/Bool', (msg) => {
-								io.emit('telem',{topic:topic,id:i,msg:msg});
+								sendTelem({topic:topic,id:i,msg:msg});
 							});
 						break;
 						case '_audio':
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, 'std_msgs/Int16', (msg) => {
-								io.emit('telem',{topic:topic,id:i,msg:msg});
+								sendTelem({topic:topic,id:i,msg:msg});
 							});
 						break;
 						case '_gauge':
 							if(widgets[i]['msgType'] == undefined) widgets[i]['msgType'] = 'std_msgs/Float64';
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
-								io.emit('telem',{topic:topic,id:i,msg:msg});
+								sendTelem({topic:topic,id:i,msg:msg});
 							});
 						break;
 					}
@@ -215,7 +216,7 @@ function joinRosTopics(){
 			if(consoleTextTopic != undefined && consoleTextTopic && consoleTextTopic != ''){
 				if(rossubscribers.consoleText) rossubscribers.consoleText.shutdown();
 				rossubscribers.consoleText = nh.subscribe(consoleTextTopic, 'std_msgs/String', (msg) => {
-					io.emit('telem',{topic:'__consoleText',msg:msg});
+					sendTelem({topic:'__consoleText',msg:msg});
 				});
 			}
 			let heartbeat = settingsObject.config.heartbeat;
@@ -227,7 +228,13 @@ function joinRosTopics(){
 		}
 	});
 }
-  
+function sendTelem(data){
+	if(udpReady && useUDPRos){
+		udpGeckos.emit('telem',data);
+		console.log('using UDP to send ros data to client');
+	}
+	else io.emit('telem',data);
+}
 rosnodejs.initNode('/webserver').then(() => {
 	nh = rosnodejs.nh;
 	joinRosTopics();
