@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 /*
-	Created by Mark Skinner 2020-2021 
+	Created by Mark Skinner 2020-2021
 	markhskinner@gmail.com
 */
 
@@ -129,7 +129,7 @@ function joinRosTopics(){
 				let topic = widgets[i].topic;
 				if(topic != '' && topic != '/' && nh){
 					console.log(widgets[i].type + ' connecting to   '+widgets[i].topic);
-					
+
 					let latch;
 					if(widgets[i].latching) latch = widgets[i].latching;
 					else latch = false;
@@ -256,7 +256,7 @@ io.sockets.on('connection', function(socket){
 	socketsOpen++;
 	io.emit('instanceCount',socketsOpen);
     console.log('made connection');
-  
+
   //get settings from json and send to client
   fs.readFile(SETTINGS_PATH, (err, data) => {
     if (err) throw err;
@@ -281,7 +281,7 @@ io.sockets.on('connection', function(socket){
 	}else{
 		socket.emit('makeThumbs');
 	}
-    
+
     io.emit('cmdStopButtons',Object.keys(cmds));
     console.log('number of widgets: ' + settingsObject.widgets.length);
   });
@@ -367,7 +367,7 @@ io.sockets.on('connection', function(socket){
 	  if(cameraExists) shutdownFlag = true;
 	  else process.exit(1);
 	});
-    //send a 
+    //send a
   socket.on('hb',ping => {
 	  if(!lastSocketId) lastSocketId = socket.id;
 	  if(rospublishers.heartbeat && socket.id == lastSocketId) rospublishers.heartbeat.publish({data:ping});
@@ -471,7 +471,7 @@ let retrieveCam = function(){
 	camArray[c].readAsync().then(function(result){
 		if(!result.empty){
 			if(rotation != 0) result = result.rotate(rotation-1);
-			
+
 			let shadow = 0, highlight = 0, alpha_b = 0, gamma_b = 0,alpha_c = 0, gamma_c = 0, buf;
 			if(brightness != 0){
 				if(brightness > 0){
@@ -484,7 +484,7 @@ let retrieveCam = function(){
 				}
 				alpha_b = (highlight - shadow) / 255;
 				gamma_b = shadow;
-				
+
 				buf = result.addWeighted(alpha_b,result,0,gamma_b);
 			}
 			else{
@@ -494,20 +494,20 @@ let retrieveCam = function(){
 				let f = (131 * (contrast + 127)) / (127 * (131 - contrast));
 				alpha_c = f;
 				gamma_c = 127*(1-f);
-				
+
 				buf = buf.addWeighted(alpha_c, buf, 0, gamma_c);
 			}
-			
+
 			result = buf;
-			
+
 			cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
 				if(udpReady && useUDPVideo){
-					udpGeckos.emit('image',result.toString('base64'));
+					udpGeckos.emit('image',result);
 				}
-				else io.emit('image',result.toString('base64'));
+				else io.emit('image',result); //encode it here result.toString('base64')
 			}).catch((e)=>{console.log(e)});
 		}
-		
+
 		//update resolutions
 		let keys = Object.keys(resolutionStack);
 		if(keys.length > 0){
@@ -521,13 +521,13 @@ let retrieveCam = function(){
 			}
 			resolutionStack = {};
 		}
-		
+
 		if(shutdownFlag){
 			closeDownServer();
 			process.exit(1);
 		}
 		setTimeout(retrieveCam,0);
-		
+
 	}).catch((e)=>{console.log("can't read camera " + e);});
 	if(useUDPVideo && udpReady) udpGeckos.emit('fps',1000/(time-oldtime));
 	else io.emit('fps',1000/(time-oldtime));
@@ -546,4 +546,3 @@ function closeDownServer(){
 process.on('SIGINT',()=>{
 	closeDownServer();
 });
-

@@ -62,7 +62,7 @@ socket.on('settings',function(data){
 		}
 		if(!data.config['loadInEditMode']) toggleDriveMode();
 		else showWidgetHolder();
-		
+
 		loadedElements = true;
 		connected = true;
 		for(let i=0;i<configSettings.macros.length;i++) addMacro(configSettings.macros[i].name,configSettings.macros[i].cmd);
@@ -79,8 +79,25 @@ socket.on('hardcoded_settings',function(data){
 });
 
 //on video feed recieve
-socket.on('image',function(data){mainImage.src=`data:image/jpeg;base64,${data}`;});
-channel.on('image',function(data){mainImage.src=`data:image/jpeg;base64,${data}`;});
+socket.on('image',function(data){
+	renderImage(data);
+});
+channel.on('image',function(data){
+	renderImage(data);
+});
+const renderImage = (data) => {
+	// console.log(_arrayBufferToBase64(data));
+	mainImage.src=`data:image/jpeg;base64,${_arrayBufferToBase64(data)}`;
+}
+function _arrayBufferToBase64( buffer ) {
+    var binary = '';
+    var bytes = new Uint8Array( buffer );
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+    return window.btoa( binary );
+}
 function refreshSelectPresets(){
 	let selects = document.getElementsByClassName('cam_presets');
 	for(let i = 0; i < selects.length; i++){
@@ -282,11 +299,11 @@ function dragElement(elmnt) {
     pos4 = e.clientY;
     editing = true;
     WA = widgetArray[indexMap[elmnt.id]];
-    
+
 	get4position(elmnt);
 	useSide(elmnt,true,true);
 	set4style(elmnt);
-    
+
     document.onmouseup = closeDragElement;
     document.onmousemove = elementDrag;
   }
@@ -295,11 +312,11 @@ function dragElement(elmnt) {
     e.preventDefault();
     pos1 = pos3 - e.clientX;
     pos2 = pos4 - e.clientY;
-    
+
     if(elmnt.offsetTop - pos2 < 50) elmnt.style.top = '50px';
     else elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
     elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-	
+
 	if(WA.childids) for(let i = 0; i < WA.childids.length; i++){
 		let c = document.getElementById(WA.childids[i]);
 		get4position(c);
@@ -308,7 +325,7 @@ function dragElement(elmnt) {
 		c.style.left = (parseInt(c.style.left) - pos1) + 'px';
 		c.style.top = (parseInt(c.style.top) - pos2) + 'px';
 	}
-	
+
 	pos3 = e.clientX;
     pos4 = e.clientY;
   }
@@ -322,13 +339,13 @@ function dragElement(elmnt) {
     else{
 		elmnt.style.left = snapX(parseInt(elmnt.style.left)) + 'px';
 		elmnt.style.top = snapY(parseInt(elmnt.style.top)) + 'px';
-		
+
 		if(WA.childids) for(let i = 0; i < WA.childids.length; i++){
 			let c = document.getElementById(WA.childids[i]);
 			c.style.left = snapX(parseInt(c.style.left) - pos1) + 'px';
 			c.style.top = snapY(parseInt(c.style.top) - pos2) + 'px';
 		}
-		
+
 		moveWidget({id:elmnt.id,x:elmnt.style.left,y:elmnt.style.top});
 		get4position(elmnt);
 		useClosest(elmnt);
@@ -337,19 +354,19 @@ function dragElement(elmnt) {
     }
     sendWidgetsArray();
   }
-  
+
   function scaleMouseDown(e) {
     e = e || window.event;
     e.preventDefault();
-    
+
     WA = widgetArray[indexMap[elmnt.id]];
     pos3S = e.clientX-parseInt(elmnt.style.width);
     pos4S = e.clientY-parseInt(elmnt.style.height);
-    
+
     get4position(elmnt);
 	useSide(elmnt,true,true);
 	set4style(elmnt);
-	
+
     document.onmouseup = closeScaleElement;
     document.onmousemove = elementScale;
   }
@@ -358,13 +375,13 @@ function dragElement(elmnt) {
     e.preventDefault();
     pos1S = pos3S - e.clientX;
     pos2S = pos4S - e.clientY;
-    
+
     if(pos1S > -76) pos1S = -76;
     if(pos2S > -61) pos2S = -61;
-    
+
     let newHeight = snapY(-pos2S) + "px";
     let newWidth = snapX(-pos1S) + "px";
-    
+
     if(elmnt.querySelector('#canvas_ap')){
       var canvas = elmnt.querySelector('#canvas_ap');
       canvas.height = -pos2S-20;
@@ -404,7 +421,7 @@ function dragElement(elmnt) {
 		}
 	  }
     }
-    
+
     elmnt.style.height = newHeight;
     elmnt.style.width = newWidth;
   }
@@ -429,7 +446,7 @@ function removeWidgetFromScreen(elmnt){
 	elmnt.remove();
 	deleteWidget(elmnt.id);
 	deleteFromPanel(elmnt.id);
-	
+
 	for(let i = 0;i < deleteList.length; i++){
 		elmnt = document.getElementById(deleteList[i]);
 		let WA = widgetArray[indexMap[elmnt.id]];
@@ -494,7 +511,7 @@ function sourceElement(elmnt) {
       get4position(newElement);
       useClosest(newElement);
       set4style(newElement);
-      
+
       updatePanels(newElement);
     }
     sendWidgetsArray();
@@ -520,11 +537,11 @@ function updatePanels(elmnt){
 			if(overlaps(a.left,a.top,a.w,a.h,  b.left,b.top,b.w,b.h)){
 				if(!a.childids) a.childids = [];
 				if(!a.childids.includes(elmnt.id)) a.childids.push(elmnt.id);
-				
+
 				get4position(elmnt);
 				useSide(elmnt,a.useLeft,a.useTop);
 				set4style(elmnt);
-				
+
 				break;
 			}else{
 				if(a.childids && a.childids.includes(elmnt.id)){
@@ -607,7 +624,7 @@ function clearTerminal(){
 	document.getElementById('cmdValue').placeholder = '';
 }
 function createStopButton(name){
-	let code = 
+	let code =
 	'<button class="pbutton"style="width:90%;height:40px;display:block;margin-left:5%;margin-top:5px;"onclick="stopCmd(this)"value="'+name+'">'+
 	name+'</button>';
 	document.getElementById('processes').insertAdjacentHTML('beforeend',code);
@@ -937,7 +954,7 @@ function applyConfigChanges(){
   configIsOpen = false;
   updateTopicMapIndex();
   sendWidgetsArray();
-  
+
   //now send initial state if latching:
   if(oldlatching != WA['latching'] && WA['latching'] && !configSettings.lockRos){
 	  console.log('update latch status');
@@ -1000,7 +1017,7 @@ function addArmHTML(){
 function openArmConfig(armArray){
 	if(armArray == undefined) armArray = [{mode:1,data:60,armlength:5,color:'#000000'},{mode:1,data:60,armlength:5,color:'#000000'}];
 	console.log('current array', armArray);
-	let html = 
+	let html =
 		'<button class="armdivselect specific" onclick="addArmHTML()">Add arm</button>'+
 		'<button class="armdivselect specific" onclick="removeArmHTML()">Remove arm</button><br class="specific">';
 	for(let i = 0; i < armArray.length; i++) html += returnArmHTML(armArray[i]);
@@ -1170,7 +1187,7 @@ function createFormat(array){
 	let formatvalue = array.formatvalue;
   if(formatmode == undefined) formatmode = 0;
   if(formatvalue == undefined) formatvalue = 2;
-  let code = 
+  let code =
   '<h3 class="specific" style="margin:20px 0px 5px 0px">Number Formatting</h1><select id="formatmode" class="specific">'+
   '<option value="0">Fixed decimal points</option>'+
   '<option value="1">Precision (digits)</option>'+
@@ -1419,7 +1436,7 @@ function readGamepadLoop(){
           }
           else{
             if(inc)clearInterval(inc);
-          } 
+          }
         }
         else if(widgetArray[w].screen == thisScreen && widgetArray[w].type == '_slider' && widgetArray[w].useGamepad && 'gp_Decrease' in widgetArray[w] && widgetArray[w]['gp_Decrease'] == i){
           var ele = document.getElementById(widgetArray[w].id).querySelector('#slider_ap');
@@ -1546,11 +1563,11 @@ function repositionThumbs(){
 }
 window.onresize = function(){
 	repositionThumbs();
-	
+
 	//hide some things if the screen is to slim
 	if(window.innerWidth < 1500) document.getElementById('consoleText').style.visibility = 'hidden';
 	else document.getElementById('consoleText').style.visibility = 'visible';
-	
+
 	if(window.innerWidth < 1344) document.getElementById('closeOtherSockets').style.display = 'none';
 	else document.getElementById('closeOtherSockets').style.display = 'inline';
 }
@@ -1586,7 +1603,7 @@ function closeFullscreen() {
 function toggleFullscreen(){
 	if(fullScreen) closeFullscreen();
 	else openFullscreen();
-	fullScreen = !fullScreen; 
+	fullScreen = !fullScreen;
 }
 function exitServer(d){
 	console.log('exiting server...');
@@ -1598,6 +1615,6 @@ function exitServer(d){
 
 //mobile view support
 function preventBehavior(e) {
-    e.preventDefault(); 
+    e.preventDefault();
 };
 body.addEventListener("touchmove", preventBehavior, {passive: false});
