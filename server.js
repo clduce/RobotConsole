@@ -502,7 +502,7 @@ let retrieveCam = function(){
 
 			cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
 				if(udpReady && useUDPVideo){
-					udpGeckos.emit('image',result);
+					udpGeckos.emit('image',result.toString('base64'));
 				}
 				else io.emit('image',result); //encode it here result.toString('base64')
 			}).catch((e)=>{console.log(e)});

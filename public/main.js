@@ -80,15 +80,11 @@ socket.on('hardcoded_settings',function(data){
 
 //on video feed recieve
 socket.on('image',function(data){
-	renderImage(data);
+	mainImage.src=`data:image/jpeg;base64,${_arrayBufferToBase64(data)}`;
 });
 channel.on('image',function(data){
-	renderImage(data);
+	mainImage.src=`data:image/jpeg;base64,${data}`;
 });
-const renderImage = (data) => {
-	// console.log(_arrayBufferToBase64(data));
-	mainImage.src=`data:image/jpeg;base64,${_arrayBufferToBase64(data)}`;
-}
 function _arrayBufferToBase64( buffer ) {
     var binary = '';
     var bytes = new Uint8Array( buffer );
