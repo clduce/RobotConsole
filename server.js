@@ -118,7 +118,8 @@ function requestResolutionSet(c,w,h,f){
 }
 
 var socket = require('socket.io');
-var io = socket(server, {pingInterval: 400, pingTimeout: RESET_SOCKET_AFTER_MS});
+// var io = socket(server, {pingInterval: 400, pingTimeout: RESET_SOCKET_AFTER_MS});
+var io = socket(server, {pingInterval: 1000});
 function joinRosTopics(){
 	fs.readFile(SETTINGS_PATH, (err, data) => {
 		if (err) throw err;
