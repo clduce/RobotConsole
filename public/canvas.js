@@ -20,6 +20,7 @@ function initJoystick(c,nel = false){
     mouse = getStick(e);
     drawJoystick(c,mouse.x,mouse.y);
     document.onmousemove = move;
+	document.ontouchmove = touchmove;
   });
   document.addEventListener('mouseup', e => {
 	if(pendingMouseup){
@@ -35,8 +36,14 @@ function initJoystick(c,nel = false){
 		drawJoystick(c,mouse.x,mouse.y);
 	}
   }
+  function touchmove(e){
+	  console.log(e);
+	//mouse = getStick(e);
+	//if(mouse.pressed){
+	//	drawJoystick(c,mouse.x,mouse.y);
+	//}
+  }
 }
-
  function getStick(e){
     if(e.buttons == 1){
       var rect = c.getBoundingClientRect();

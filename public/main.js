@@ -240,6 +240,7 @@ socket.on('closeSocket',function(data){
 	showMessage('Socket was closed. Reload page to reopen');
 	console.log('manual disconnect');
 	socket.disconnect(true);
+	channel.close();
 });
 function closeOtherSockets(){
 	socket.emit('closeOtherSockets');

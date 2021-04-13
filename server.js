@@ -7,7 +7,8 @@
 
 const SETTINGS_PATH = __dirname + '/settings.json';
 const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
-const RESET_SOCKET_AFTER_MS = 2000; //if the ping gets above this, the socket and cameras will reset
+const RESET_SOCKET_AFTER_MS = 30000; //if the ping gets above this, the socket and cameras will reset
+const VIDEO_PATHS = [];
 var PORT = 3000, UDPPORT = 3030;
 
 //this allows more reliable camera connection, but extends boot time by 5 seconds. It also requires the sudoers rule below
@@ -62,38 +63,42 @@ if(RESET_USB_PORTS_ON_BOOT){
 
 console.log('FINDING ALL VIDEO PATHS...');
 let validDevices=[];
-let output = cp.execSync('v4l2-ctl --list-devices || true',{shell:true});
-output = output.toString().split(/\r?\n/);
-let nextIsName = true, namedDevices = {}, lastName = '';
-for(let i = 0; i < output.length; i++){
-	let r = output[i];
-	if(r == ''){
-		nextIsName = true;
+if(VIDEO_PATHS.length == 0){
+	let output = cp.execSync('v4l2-ctl --list-devices || true',{shell:true});
+	output = output.toString().split(/\r?\n/);
+	let nextIsName = true, namedDevices = {}, lastName = '';
+	for(let i = 0; i < output.length; i++){
+		let r = output[i];
+		if(r == ''){
+			nextIsName = true;
+		}
+		else if(nextIsName){
+			namedDevices[r] = [];
+			lastName = r;
+			nextIsName = false;
+		}
+		else{
+			namedDevices[lastName].push(r.replace('\t',''));
+		}
 	}
-	else if(nextIsName){
-		namedDevices[r] = [];
-		lastName = r;
-		nextIsName = false;
-	}
-	else{
-		namedDevices[lastName].push(r.replace('\t',''));
-	}
-}
-console.log(namedDevices);
-console.log('CHECKING VALIDITY OF V4l2 DEVICES...');
-let dkeys = Object.keys(namedDevices);
-for(let i = 0; i < dkeys.length; i++){
-	let devices = namedDevices[dkeys[i]];
-	if(!dkeys[i].includes('bcm2835-codec')){	//make sure camera is real
-		for(let d = 0; d < devices.length; d++){
-			let output = cp.execSync('v4l2-ctl -d '+devices[d]+' --get-fmt-video || true',{shell:true}).toString().split(/\r?\n/);
-			if(!output[0].includes('Invalid Argument')){ //make sure v4l pixel format is valid
-				validDevices.push(devices[d]);
-				break;
+	console.log(namedDevices);
+
+	console.log('CHECKING VALIDITY OF V4l2 DEVICES...');
+	let dkeys = Object.keys(namedDevices);
+	for(let i = 0; i < dkeys.length; i++){
+		let devices = namedDevices[dkeys[i]];
+		if(!dkeys[i].includes('bcm2835-codec')){	//make sure camera is real
+			for(let d = 0; d < devices.length; d++){
+				let output = cp.execSync('v4l2-ctl -d '+devices[d]+' --get-fmt-video || true',{shell:true}).toString().split(/\r?\n/);
+				if(!output[0].includes('Invalid Argument')){ //make sure v4l pixel format is valid
+					validDevices.push(devices[d]);
+					break;
+				}
 			}
 		}
 	}
 }
+if(VIDEO_PATHS.length > 0) validDevices = VIDEO_PATHS;
 console.log('(CONNECTING TO OPENCV) VALID DEVICES',validDevices);
 let camArray = [], index = 0;
 for(let i = 0; i < validDevices.length; i++){
