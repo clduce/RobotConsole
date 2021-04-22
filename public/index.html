@@ -352,6 +352,11 @@ button:focus {outline:0;}
 	background-color: #548499;
 	transition: all 18s linear;
 }
+.dropdown_widget{
+	width:100%;
+	height:calc(100% - 20px);
+	font-size:16px;
+}
 </style>
 
 <body id='body' oncontextmenu="return false;">
@@ -405,6 +410,15 @@ button:focus {outline:0;}
   <div class="panel source" id="_inputbox" style="width:200px;height:57px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Input Box<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <input placeholder='type something...' id='input_ap' class='showOnDrive'></input><button id='inputboxbutton' class='showOnDrive'>Send</button>
+    <img src="resize.png" id="resize"></img>
+  </div>
+
+  <div class="panel source" id="_dropdown" style="width:200px;height:49px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <div id="header">Dropdown Select<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <select onchange = 'submitDropdownChange(this)' id='selector_ap' class='dropdown_widget showOnDrive'>
+		<option value='Demo Option 1'>Demo Option 1</option>
+		<option value='Demo Option 2'>Demo Option 2</option>
+	</select>
     <img src="resize.png" id="resize"></img>
   </div>
 

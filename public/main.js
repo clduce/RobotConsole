@@ -418,6 +418,9 @@ function dragElement(elmnt) {
 		}
 	  }
     }
+	else if(elmnt.querySelector('.dropdown_widget')){
+      newHeight = '49px';
+    }
 
     elmnt.style.height = newHeight;
     elmnt.style.width = newWidth;
@@ -455,7 +458,7 @@ function removeWidgetFromScreen(elmnt){
 }
 //turn element into source:
 //the _type convention is used to determime
-//what dragable item to create
+//what dragable item to createlet WA = widgetArray[indexMap[elmnt.id]];
 function sourceElement(elmnt) {
   var newElement;
   var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
@@ -704,6 +707,11 @@ function openConfig(e){
     case '_inputbox':
 	  if(!configSettings.lockRos) createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
     break;
+	case '_dropdown':
+		if(!configSettings.lockRos) createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
+		if(!configSettings.lockRos) createCheckbox('ROS Latching', 'latching', WCI['latching']);
+		openDropdownConfig(WCI.dropdowns);
+    break;
     case '_value':
       createconfigDataWrapper(WCI);
       if(!configSettings.lockRos) createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64','std_msgs/Bool']);
@@ -853,12 +861,33 @@ function applyConfigChanges(){
       WA['gp_Decrease'] = document.getElementById('gp_Decrease').value;
       WA['repeatdelay'] = document.getElementById('repeatdelay').value;
     break;
+	case '_dropdown':
+		if(!configSettings.lockRos){
+			WA['msgType'] = document.getElementById('msgType').value;
+	  		oldlatching = WA['latching'];
+      		WA['latching'] = document.getElementById('latching').checked;
+	 	}
+		let dropdowns = [];
+		let newDropdowns = document.getElementsByClassName('armdiv'); //shares the same css, and arms never coexist with dropdowns
+		var lastUsedIndex = 0;
+		var i = 0;
+		for(let k = 0; k < newDropdowns.length; k+=1){
+			if(newDropdowns[k].querySelector('#dropdowntext')){
+				dropdowns[i] = {};
+				dropdowns[i].text = newDropdowns[k].querySelector('#dropdowntext').value;
+				i++;
+			}
+		}
+		WA.dropdowns = dropdowns;
+		  console.log(localWidget);
+		localWidget.querySelector('#selector_ap').innerHTML = generateSelectorOptions(dropdowns);
+	break;
 	case '_arm':
 		if(!configSettings.lockRos) WA['msgType'] = document.getElementById('msgType').value;
 		let newArms = [];
 		let armdivs = document.getElementsByClassName('armdiv');
-		let lastUsedIndex = 0;
-		let i = 0;
+		var lastUsedIndex = 0;
+		var i = 0;
 		for(let k = 0; k < armdivs.length; k+=1){
 			if(armdivs[k].querySelector('#armmode')){
 				newArms[i] = {};
@@ -976,6 +1005,13 @@ function guardTopicName(ele){
 	ele.value = str;
 }
 //============================================Specific config javascript-generated html
+function generateSelectorOptions(opts){
+	var html = '';
+	for(let i = 0; i < opts.length; i++){
+		html += `<option value='${opts[i].text}'>${opts[i].text}</option>`;
+	}
+	return html;
+}
 //opts include mode, data, length, color
 function returnArmHTML(opts){
 	if(opts == undefined) opts = {mode:0,data:0,armlength:1,color:'#000000'};
@@ -991,6 +1027,15 @@ function returnArmHTML(opts){
 		'</div><br class="specific armdiv">';
 	return html;
 }
+function returnDropdownHTML(opts){
+	if(opts == undefined) opts = {text:'Option 1'};
+	let html =
+		'<div class="armdiv specific">'+
+			'<p class="armdivtext">Value: </p>'+
+			'<input style="width:300px"id="dropdowntext" class="armdivinput" value="'+(opts.text || '')+'">'+
+		'</div><br class="specific armdiv">';
+	return html;
+}
 //add another arm to an arm widget (just the graphical part)
 function removeArmHTML(){
 	let armdivs = document.getElementsByClassName('armdiv');
@@ -998,6 +1043,18 @@ function removeArmHTML(){
 		armdivs[armdivs.length-1].remove();
 		armdivs[armdivs.length-1].remove();//remove the <br> under the div as well
 	}
+}
+//dropdown and arm share class names sometimes to prevent repetitive css
+function removeDropdownHTML(){
+	let armdivs = document.getElementsByClassName('armdiv');
+	if(armdivs.length > 2){	//keep at least 1 dropdown
+		armdivs[armdivs.length-1].remove();
+		armdivs[armdivs.length-1].remove();//remove the <br> under the div as well
+	}
+}
+function addDropdownHTML(){
+	let armdivs = document.getElementsByClassName('armdiv');
+	if(armdivs.length < 6*2) configWindow.insertAdjacentHTML("beforeend",returnDropdownHTML({text:'New option'}));//limit to 6 arms, (*2 because each div block has a <br> by the same class
 }
 function addArmHTML(){
 	let armdivs = document.getElementsByClassName('armdiv');
@@ -1018,6 +1075,14 @@ function openArmConfig(armArray){
 		'<button class="armdivselect specific" onclick="addArmHTML()">Add arm</button>'+
 		'<button class="armdivselect specific" onclick="removeArmHTML()">Remove arm</button><br class="specific">';
 	for(let i = 0; i < armArray.length; i++) html += returnArmHTML(armArray[i]);
+	configWindow.insertAdjacentHTML('beforeend',html);
+}
+function openDropdownConfig(dropdownArray){
+	if(dropdownArray == undefined) dropdownArray = [{text:'Option 1'},{text:'Option 2'}];
+	let html =
+		'<br><button class="armdivselect specific" onclick="addDropdownHTML()">Add another option</button>'+
+		'<button class="armdivselect specific" onclick="removeDropdownHTML()">Remove option</button><br class="specific">';
+	for(let i = 0; i < dropdownArray.length; i++) html += returnDropdownHTML(dropdownArray[i]);
 	configWindow.insertAdjacentHTML('beforeend',html);
 }
 
@@ -1571,6 +1636,10 @@ window.onresize = function(){
 
 function playSound(s){
 	if(sounds[s]) new Audio('sounds/'+sounds[s]).play();
+}
+function submitDropdownChange(t){
+	let WA = widgetArray[indexMap[t.parentElement.id]];
+	sendToRos(WA['topic'],{value:t.value},'_dropdown');
 }
 //opts = bool mode, value
 function formatNumber(data,opts){

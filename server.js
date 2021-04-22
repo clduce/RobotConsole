@@ -136,9 +136,8 @@ function joinRosTopics(){
 				if(topic != '' && topic != '/' && nh){
 					console.log(widgets[i].type + ' connecting to   '+widgets[i].topic);
 
-					let latch;
+					let latch = false;
 					if(widgets[i].latching) latch = widgets[i].latching;
-					else latch = false;
 					switch(widgets[i].type){
 						case '_button':
 						case '_checkbox':
@@ -151,10 +150,11 @@ function joinRosTopics(){
 							rospublishers[topic] = nh.advertise(topic, 'std_msgs/Float64',{latching:latch});
 						break;
 						case '_inputbox':
+						case '_dropdown':
 							let msgType = widgets[i]['msgType'];
 							if(msgType == undefined) msgType = 'std_msgs/String';
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
-							rospublishers[topic] = nh.advertise(topic, msgType);
+							rospublishers[topic] = nh.advertise(topic, msgType,{latching:latch});
 						break;
 						case '_logger':
 						case '_value':
@@ -445,6 +445,7 @@ function handleRosCTS(data){
 		case '_checkbox':
 			if(rospublishers[topic]) rospublishers[topic].publish({ data:data.pressed});
 		break;
+		case '_dropdown':
 		case '_inputbox':
 		case '_slider':
 			if(rospublishers[topic]) rospublishers[topic].publish({ data:data.value});

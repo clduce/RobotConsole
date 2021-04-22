@@ -63,6 +63,9 @@ function widgetFromJson(json){
       canvas.width = parseInt(json['w']);
 	  drawArm(canvas, json.arms);
     break;
+	case '_dropdown':
+      tile.querySelector('#selector_ap').innerHTML = generateSelectorOptions(json.dropdowns);
+    break;
     case '_text':
 		tile.querySelector('#text_ap').innerText=json['text'];
 		tile.querySelector('#text_ap').style.color = json['textColor'];
