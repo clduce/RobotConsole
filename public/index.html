@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="initial-scale=1, user-scalable=no">
   <meta charset="utf-8">
   <title id='title'>Robot Console</title>
   <script src="/socket.io/socket.io.js"></script>
@@ -201,9 +202,7 @@ button:focus {outline:0;}
   height: 25px; /* Specified height */
   background: #d3d3d3; /* Grey background */
   outline: none; /* Remove outline */
-  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
-  -webkit-transition: .2s; /* 0.2 seconds transition on hover */
-  transition: opacity .2s;
+
 }
 .vertical{
 	position:absolute;
@@ -213,10 +212,7 @@ button:focus {outline:0;}
 	bottom:-22px;
 	width:100px;
 }
-/* Mouse-over effects */
-.slider:hover {
-  opacity: 1; /* Fully shown on mouse-over */
-}
+
 
 /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
 .slider::-webkit-slider-thumb {
@@ -369,7 +365,7 @@ button:focus {outline:0;}
 		<h1 class="label" style="right:100px;position:absolute;margin:0px;top:3px"id='fps'>FPS</h1>
   </div>
   <button class="navBarButton" id='driveMode' style='display:none' onclick="toggleDriveMode();">Drive Mode</button>
-  <button class="navBarButton" onclick="toggleFullscreen()">Toggle Fullscreen</button>
+  <button class="navBarButton" id='togFullScreen'onclick="toggleFullscreen()">Toggle Fullscreen</button>
   <button class="navBarButton" onclick="window.location.href += 'config.html'" id='confButton' style='display:none'>Config Settings</button>
   <button class="navBarButton" onclick="openTerminal()" id='termButton' style='display:none'>Terminal</button>
   <button class="navBarButton" id="closeOtherSockets" onclick="closeOtherSockets()">Close Other Clients</button>
@@ -517,8 +513,14 @@ button:focus {outline:0;}
 <div id='configWindow' class="panel" style="display: none;z-index: 121;width:50%; height:80%; left:25%; top:10%; overflow-y:auto">
   <h1 class='settingsLabel' id='topiclabel' style="margin-top: 20px;">ROS Topic Name</h1>
   <input class="settingInput" id='topicTitle' onchange='guardTopicName(this)'></input>
-  <button onclick="applyConfigChanges();removeWidgetFromScreen(elementOpenInConfig);" class="label darken" style="font-size: 20px;background-color:#fc9d9d; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;left:10px;">Delete</button>
-  <button onclick="applyConfigChanges();" class="label darken" style="font-size: 20px;background-color:#9de7fc; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:10px;">Done</button>
+  <button onclick="toggleHelp()" class="label darken" style="font-size: 20px;background-color:gainsboro; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:140px;">Info</button>
+  <button onclick="applyConfigChanges();removeWidgetFromScreen(elementOpenInConfig);hideHelp();" class="label darken" style="font-size: 20px;background-color:#fc9d9d; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;left:10px;">Delete</button>
+  <button onclick="applyConfigChanges();hideHelp()" class="label darken" style="font-size: 20px;background-color:#9de7fc; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:10px;">Done</button>
+</div>
+<div id='helpWindow' class="panel" style="display: none;z-index: 122;width:44%; height:80%; left:2%; top:10%; overflow-y:auto">
+  <h1 class='settingsLabel' id='topiclabel' style="margin-top: 20px;">Info</h1>
+	<div id='helpArea' style='text-align:left;padding:10px; font-size:22px'></div>
+  <button onclick="hideHelp();" class="label darken" style="font-size: 20px;background-color:gainsboro; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:10px;">Hide</button>
 </div>
 <!-- socket Connection -->
 <div id='messagePanel' class="panel" style="z-index: 121;width:500px; height:150px; left:calc(50% - 250px); top:calc(50% - 75px); overflow-y:auto; display:flex;align-items:center;justify-content:center">
@@ -527,6 +529,7 @@ button:focus {outline:0;}
 </div>
 <script src="canvas.js" charset="utf-8"></script>
 <script src="widgets.js" charset="utf-8"></script>
+<script src="help.js" charset="utf-8"></script>
 <script src="main.js" charset="utf-8"></script>
 </body>
 </html>

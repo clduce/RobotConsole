@@ -60,7 +60,7 @@ socket.on('settings',function(data){
 			//generate HTML element for each widget
 			if(a.screen == thisScreen) widgetFromJson(a);
 		}
-		if(!data.config['loadInEditMode']) toggleDriveMode();
+		if(!data.config['loadInEditMode'] || isMobile()) toggleDriveMode();
 		else showWidgetHolder();
 
 		loadedElements = true;
@@ -73,11 +73,15 @@ socket.on('settings',function(data){
 });
 socket.on('hardcoded_settings',function(data){
 	hardcoded = data;
-	if(data.allow_edit_mode) document.getElementById('driveMode').style.display = 'inline';
+	if(data.allow_edit_mode && !isMobile()) document.getElementById('driveMode').style.display = 'inline';
 	if(data.show_terminal) document.getElementById('termButton').style.display = 'inline';
-	if(data.show_config_settings) document.getElementById('confButton').style.display = 'inline';
+	if(data.show_config_settings && !isMobile()) document.getElementById('confButton').style.display = 'inline';
+	if(isMobile()) document.getElementById('togFullScreen').style.display = 'none';
+	if(isMobile()) document.getElementById('gpselect').style.display = 'none';
 });
-
+function isMobile(){
+	return 'ontouchend' in document;
+}
 //on video feed recieve
 socket.on('image',function(data){
 	mainImage.src=`data:image/jpeg;base64,${_arrayBufferToBase64(data)}`;
@@ -651,6 +655,7 @@ function openConfig(e){
   lastChangedAxis = -1;
   lastChangedButton = -1;
   var type = WCI.type;
+  updateHelpWindow(type);
   //pull generic data from widget array into the settings
   //non ros elements are exempt
   let topicInput = document.getElementById('topicTitle');
@@ -1683,4 +1688,3 @@ function exitServer(d){
 function preventBehavior(e) {
     e.preventDefault();
 };
-body.addEventListener("touchmove", preventBehavior, {passive: false});

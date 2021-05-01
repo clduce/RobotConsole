@@ -20,13 +20,36 @@ function initJoystick(c,nel = false){
     mouse = getStick(e);
     drawJoystick(c,mouse.x,mouse.y);
     document.onmousemove = move;
-	document.ontouchmove = touchmove;
   });
   document.addEventListener('mouseup', e => {
 	if(pendingMouseup){
 		pendingMouseup = false;
 		drawJoystick(c,0,0);
 		document.onmousemove = null;
+	}
+  });
+  //touch
+  c.addEventListener('touchstart', e => {
+	pendingMouseup = true;
+    if(c.parentNode.id != '_joystick') myTopic = widgetArray[indexMap[c.parentNode.id]]['topic'];
+	for(let i = 0; i < e.touches.length; i++) if(e.touches[i].target.parentElement.id == c.parentElement.id){
+		mouse = getTouch(e,i);
+		break;
+	}
+    drawJoystick(c,mouse.x,mouse.y);
+   	document.ontouchmove = touchmove;
+	console.log('touch start',e);
+  });
+	  
+  document.addEventListener('touchend', e => {
+	if(e.srcElement.parentElement.id == c.parentElement.id){
+		if(pendingMouseup){
+			e.preventDefault();
+			pendingMouseup = false;
+			drawJoystick(c,0,0);
+			document.addEventListener('touchmove',e => touchmove(e));
+		}
+		console.log('touch end',e);
 	}
   });
   
@@ -37,17 +60,34 @@ function initJoystick(c,nel = false){
 	}
   }
   function touchmove(e){
-	  console.log(e);
-	//mouse = getStick(e);
-	//if(mouse.pressed){
-	//	drawJoystick(c,mouse.x,mouse.y);
-	//}
-  }
+	for(let i = 0; i < e.touches.length; i++){
+		if(e.touches[i].target.parentElement.id == c.parentElement.id){
+			 e.preventDefault();
+			mouse = getTouch(e,i);
+			console.log('touchmove',mouse);
+			if(mouse.pressed){
+				drawJoystick(c,mouse.x,mouse.y);
+			}
+			break;
+		}
+  	}
+	}
 }
  function getStick(e){
     if(e.buttons == 1){
-      var rect = c.getBoundingClientRect();
+		var rect = c.getBoundingClientRect();
       let m = {x:e.clientX-rect.left-c.width/2,y:e.clientY-rect.top-c.height/2,pressed:true};
+      return(m);
+    }
+    else{
+      return({x:0,y:0});
+    }
+  }
+function getTouch(e,i){
+    if(e.touches.length >= 1){
+      var rect = c.getBoundingClientRect();
+		var f = e.touches[i || 0];
+      let m = {x:f.clientX-rect.left-c.width/2,y:f.clientY-rect.top-c.height/2,pressed:true};
       return(m);
     }
     else{
