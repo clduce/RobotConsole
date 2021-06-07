@@ -677,8 +677,11 @@ function openConfig(e){
   switch(type){
     case '_button':
       createconfigInput('Button Label', '_button-labelText', WCI['label']);
-      if(!configSettings.lockRos) createText('std_msgs/Bool');
-      createText('Copy and paste icons: ⬆️➡️⬇️⬅️️ ');
+      if(!configSettings.lockRos){
+		 createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/Bool','std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
+	 	 createconfigInput('Value to send on press', 'onPress', WCI['onPress']);
+	 	 createconfigInput('Value to send on release', 'onRelease', WCI['onRelease']);
+	  }
       createLittleInput('Font Size (px)', 'fontsize', WCI['fontsize'],16);
       createconfiglinkGamepadButton(WCI);
       createconfiglinkKeys(WCI);
@@ -690,7 +693,11 @@ function openConfig(e){
     break;
     case '_checkbox':
       createconfigInput('Label', 'label', WCI['label']);
-      if(!configSettings.lockRos) createText('std_msgs/Bool');
+      if(!configSettings.lockRos){
+		 createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/Bool','std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
+	 	 createconfigInput('Value to send when checked', 'onPress', WCI['onPress']);
+	 	 createconfigInput('Value to send when unchecked', 'onRelease', WCI['onRelease']);
+	  }
       createCheckbox('Initial State', 'initialState', WCI['initial']);
       if(!configSettings.lockRos) createCheckbox('ROS Latching', 'latching', WCI['latching']);
       createconfiglinkGamepadButton(WCI);
@@ -794,6 +801,12 @@ function applyConfigChanges(){
     case '_button':
       WA['label'] = document.getElementById('_button-labelText').value;
       localWidget.querySelector('#button_ap').innerText = WA['label'];
+		  
+	  if(!configSettings.lockRos){
+		WA['onPress'] = document.getElementById('onPress').value || "true";
+		WA['onRelease'] = document.getElementById('onRelease').value || "false";
+		WA['msgType'] = document.getElementById('msgType').value;
+	  }
       WA['useGamepad'] = document.getElementById('useGamepad').checked;
       WA['useKeys'] = document.getElementById('useKeys').checked;
       WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
@@ -807,6 +820,9 @@ function applyConfigChanges(){
       if(!configSettings.lockRos){
 		oldlatching = WA['latching'];
       	WA['latching'] = document.getElementById('latching').checked;
+		WA['onPress'] = document.getElementById('onPress').value || "true";
+		WA['onRelease'] = document.getElementById('onRelease').value || "false";
+		WA['msgType'] = document.getElementById('msgType').value;
   	  }
       WA['textColor'] = document.getElementById('textColor').value;
       localWidget.querySelector('#checkbox_text_ap').innerText = WA['label'];
@@ -991,7 +1007,7 @@ function applyConfigChanges(){
 	  console.log('update latch status');
 	switch(type){
 		case '_checkbox':
-			sendToRos(WA['topic'],{pressed:WA['initial']},'_checkbox');
+			sendToRos(WA['topic'],{value:WA['initial'] ? WA['onPress'] : WA['onRelease']},'_checkbox');
 			localWidget.querySelector('#checkbox_ap').checked = WA['initial'];
 		break;
 		case '_slider':
@@ -1354,7 +1370,7 @@ function getKeyboardUpdates(){
         let ele = document.getElementById(widgetArray[w].id).querySelector('#checkbox_ap');
         if(keys[ck[0]]){
           ele.checked = !ele.checked;
-          sendToRos(widgetArray[w].topic,{pressed:ele.checked},widgetArray[w].type);
+          sendToRos(widgetArray[w].topic,{value:ele.checked ? widgetArray[w].onPress : widgetArray[w].onRelease},widgetArray[w].type);
         }
       }
     }
@@ -1488,7 +1504,7 @@ function readGamepadLoop(){
           var ele = document.getElementById(widgetArray[w].id).querySelector('#checkbox_ap');
           if(currentGamepad.buttons[i].pressed){
             ele.checked = !ele.checked;
-            sendToRos(widgetArray[w].topic,{pressed:ele.checked},widgetArray[w].type);
+            sendToRos(widgetArray[w].topic,{value:ele.checked ? widgetArray[w].onPress : widgetArray[w].onRelease},widgetArray[w].type);
           }
         }
         let dat = 0;

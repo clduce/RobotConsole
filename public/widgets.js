@@ -25,7 +25,7 @@ function widgetFromJson(json){
       tile.querySelector('#checkbox_text_ap').innerText = json['label'];
       tile.querySelector('#checkbox_ap').checked = json['initial'];
       tile.querySelector('#checkbox_text_ap').style.color = json['textColor'];
-      if(json['latching']) sendToRos(json['topic'],{pressed:json['initial']},'_checkbox');
+      if(json['latching']) sendToRos(json['topic'],{value:json['initial'] ? json['onPress'] : json['onRelease']},'_checkbox');
     break;
     case '_joystick':
       var canvas = tile.querySelector('#canvas_ap');
@@ -208,18 +208,18 @@ function initFunctionality(type, newWidget,thisID){
       //setup brodcast functionality for element
       newWidget.querySelector('#button_ap').onmousedown = function(){
         let jsw = widgetArray[indexMap[thisID]];
-        sendToRos(jsw['topic'],{pressed:true},jsw['type']);
+        sendToRos(jsw['topic'],{value:jsw['onPress'] || true},jsw['type']);
       };
       newWidget.querySelector('#button_ap').onmouseup = function(){
 		let jsw = widgetArray[indexMap[thisID]];
-        sendToRos(jsw['topic'],{pressed:false},jsw['type']);
+        sendToRos(jsw['topic'],{value:jsw['onRelease'] || false},jsw['type']);
       };
     break;
     case '_checkbox':
       //setup brodcast functionality for element
       newWidget.querySelector('#checkbox_ap').onchange = function(e){
         let jsw = widgetArray[indexMap[thisID]];
-        sendToRos(jsw['topic'],{pressed:e.target.checked},jsw['type']);
+        sendToRos(jsw['topic'],{value:e.target.checked ? jsw['onPress'] : jsw['onRelease']},jsw['type']);
       };
     break;
     case '_slider':

@@ -141,7 +141,7 @@ function joinRosTopics(){
 					switch(widgets[i].type){
 						case '_button':
 						case '_checkbox':
-							rospublishers[topic] = nh.advertise(topic, 'std_msgs/Bool',{latching:latch});
+							rospublishers[topic] = nh.advertise(topic, widgets[i]['msgType'] || 'std_msgs/Bool',{latching:latch});
 						break;
 						case '_joystick':
 							rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
@@ -443,7 +443,12 @@ function handleRosCTS(data){
 	switch(data.type){
 		case '_button':
 		case '_checkbox':
-			if(rospublishers[topic]) rospublishers[topic].publish({ data:data.pressed});
+			console.log(data);
+			if(data.value && data.type == '_button'){
+				if(data.value == 'false') data.value = false;
+				if(data.value == 'true') data.value = true;
+			}
+			if(rospublishers[topic]) rospublishers[topic].publish({ data:data.value});
 		break;
 		case '_dropdown':
 		case '_inputbox':
