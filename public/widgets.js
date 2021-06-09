@@ -5,8 +5,16 @@ var indexMap, topicMapIndex;
 // TODO: add details for all types of widgets
 function widgetFromJson(json){
   var type = json['type'];
-  console.log('creating widget: '+type)
+  if(!type){
+	  console.log(json,'widget does not have a type and cannot be created');
+	  return;
+  }
+  console.log('creating widget: '+type);
   var tile = widgetFromId(type);
+  if(!tile){
+	  console.log(`widget type ${type} doesn't exist in this version of UI`);
+	  return;
+  }
   tile.id = json['id'];
   tile.style.zIndex = 20;
   if(type == '_box') tile.style.zIndex = 5;
@@ -72,6 +80,10 @@ function widgetFromJson(json){
 	break;
 	case '_box':
 		tile.querySelector('#panel_ap').style.backgroundColor = json['bkColor'];
+	break;
+	default:
+		  console.log(`widget type ${type} doesn't exist in this version of UI`);
+		  return;
 	break;
   }
 
@@ -260,6 +272,10 @@ function initFunctionality(type, newWidget,thisID){
 //returns the widget-clone as a dragable object
 function widgetFromId(id){
   let itm = document.getElementById(id);
+  if(!itm){
+	console.log(`widget type ${id} doesn't exist in this version of UI`);
+	return;
+  }
   let cln = itm.cloneNode(true);
   cln.className = 'panel dragable';
   cln.style.zIndex=60;

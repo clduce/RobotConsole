@@ -444,11 +444,11 @@ function handleRosCTS(data){
 		case '_button':
 		case '_checkbox':
 			console.log(data);
-			if(data.value && data.type == '_button'){
-				if(data.value == 'false') data.value = false;
-				if(data.value == 'true') data.value = true;
+			if(data.hasOwnProperty("value")){
+				if(data.value == 'false' || data.value == 'False') data.value = false;
+				if(data.value == 'true' || data.value == 'True') data.value = true;
+				if(rospublishers[topic]) rospublishers[topic].publish({ data:data.value});
 			}
-			if(rospublishers[topic]) rospublishers[topic].publish({ data:data.value});
 		break;
 		case '_dropdown':
 		case '_inputbox':

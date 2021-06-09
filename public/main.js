@@ -679,8 +679,8 @@ function openConfig(e){
       createconfigInput('Button Label', '_button-labelText', WCI['label']);
       if(!configSettings.lockRos){
 		 createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/Bool','std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
-	 	 createconfigInput('Value to send on press', 'onPress', WCI['onPress']);
-	 	 createconfigInput('Value to send on release', 'onRelease', WCI['onRelease']);
+	 	 createconfigInput('Value to send on press', 'onPress', WCI['onPress'] || 'true');
+	 	 createconfigInput('Value to send on release', 'onRelease', WCI['onRelease'] || 'false');
 	  }
       createLittleInput('Font Size (px)', 'fontsize', WCI['fontsize'],16);
       createconfiglinkGamepadButton(WCI);
@@ -695,8 +695,8 @@ function openConfig(e){
       createconfigInput('Label', 'label', WCI['label']);
       if(!configSettings.lockRos){
 		 createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/Bool','std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
-	 	 createconfigInput('Value to send when checked', 'onPress', WCI['onPress']);
-	 	 createconfigInput('Value to send when unchecked', 'onRelease', WCI['onRelease']);
+	 	 createconfigInput('Value to send when checked', 'onPress', WCI['onPress'] || 'true');
+	 	 createconfigInput('Value to send when unchecked', 'onRelease', WCI['onRelease'] || 'false');
 	  }
       createCheckbox('Initial State', 'initialState', WCI['initial']);
       if(!configSettings.lockRos) createCheckbox('ROS Latching', 'latching', WCI['latching']);
