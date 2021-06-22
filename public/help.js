@@ -1,4 +1,5 @@
 //Provides help messages for widgets and other things
+//Created by Mark Skinner, May 2021
 
 function showHelp(){
 	document.getElementById('configWindow').style.left = '48%';
@@ -22,9 +23,9 @@ const generalMsg = {
 }
 
 const helpMessages = {
-	'_button':toParagraph('On press, the button sends "true" on the ROS topic. On release, the button sends "false."'),
+	'_button':toParagraph('Once you have entered a ROS topic name, you can choose the values to be sent on button press and release. If the type is std_msgs/Bool, only false and False will be interpreted as false. Anything else will be interpreted as true'),
 	'_joystick':toParagraph('Sends a geometry_msgs/Vector3 message where X is the horizontal joystic value from -1 to 1, and Y is the vertical joystick value from -1 to 1. the Z component is not used. A message is only sent when the joystick moves.'),
-	'_checkbox':toParagraph('Checking sends "true" on the ROS topic, and unchecking sends "false." '+generalMsg.latch+' If the initial state is checked, the checkbox will start out checked.'),
+	'_checkbox':toParagraph("Once you have entered a ROS topic name, you can choose the values to be sent on button press and release. Like the button, if the type is std_msgs/Bool, only false and False will be interpreted as false. Anything else will be interpreted as true. " +generalMsg.latch+' If the initial state is checked, the checkbox will start out checked.'),
 	'_slider':toParagraph('If orient vertical is checked, the slider will apear vertically with the lowest value on the bottom. '+generalMsg.latch+' Flip direction will make left/down be the max instead. The default value should be a natural number within the min and max. The repeat delay is the ammount of time in ms when a key or gamepad must be held before moving the slider again.'),
 	'_inputbox':toParagraph('Very usefull for testing.'),
 	'_dropdown':toParagraph("Sends it's new value when the dropdown menu changes "+generalMsg.latch+' The uppermost option will be the default. Remove option removes from the bottom up. Add another option adds to the bottom.'),

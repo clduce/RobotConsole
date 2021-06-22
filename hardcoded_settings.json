@@ -3,5 +3,6 @@
 	"show_config_settings":true,
 	"allow_edit_mode":true,
 	"reset_usb_devices_on_boot":false,
-	"allow_audio":false
+	"allow_audio":false,
+	"use_https":false
 }

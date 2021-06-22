@@ -1246,6 +1246,7 @@ function createconfiglinkKeys(array,keylabels=['hotkey']){
   label2.innerHTML = innerhtml;
   label2.style.margin.bottom = '0px';
   configWindow.appendChild(label2);
+  if(array["useKeys"] == undefined) array["useKeys"] = true;
   document.getElementById('useKeys').checked = array["useKeys"];
   let allHotkeys = document.getElementsByClassName('hotkeys');
   for(let i = 0; i < keylabels.length; i++){
@@ -1672,9 +1673,9 @@ function formatNumber(data,opts){
 	return data;
 }
 
-var elem = document.documentElement;
 /* View in fullscreen */
 function openFullscreen() {
+  let elem = document.documentElement;
   if (elem.requestFullscreen) {
     elem.requestFullscreen();
   }
@@ -1695,9 +1696,7 @@ function toggleFullscreen(){
 function exitServer(d){
 	console.log('exiting server...');
 	socket.emit('exit',d);
-	//uncomment below to reset the web page too
 	showMessage('Restarting Server...',true);
-	//location.reload();
 }
 
 //mobile view support

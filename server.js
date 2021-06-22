@@ -4,23 +4,27 @@
 	Created by Mark Skinner 2020-2021
 	markhskinner@gmail.com
 */
+const RESET_SOCKET_AFTER_MS = 30000; //if the ping gets above this, the socket will reset
 
-const SETTINGS_PATH = __dirname + '/settings.json';
-const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
-const RESET_SOCKET_AFTER_MS = 30000; //if the ping gets above this, the socket and cameras will reset
+//hardcode your own video paths into this array.
+//if you do this, the server will not search for additional video devices.
+//eg. ["/dev/video0", "/dev/video1"]
 const VIDEO_PATHS = [];
+
 var PORT = 3000, UDPPORT = 3030;
 
 //this allows more reliable camera connection, but extends boot time by 5 seconds. It also requires the sudoers rule below
 //use 'sudo visudo' and add this line to the bottom: ubuntu ALL=(root) NOPASSWD: /home/ubuntu/catkin_ws/src/roboquest_ui/src/resetUsbCams.sh
-var RESET_USB_PORTS_ON_BOOT = false;
 
+const SETTINGS_PATH = __dirname + '/settings.json';
+const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
 
 var express = require('express');
 const rosnodejs = require('rosnodejs');
 const cv = require('opencv4nodejs');
 const cp = require('child_process');
 var kill = require('tree-kill');
+const https = require('https');
 const fs = require('fs');
 const geckos = require('@geckos.io/server').default;
 const udpGeckos = geckos();
@@ -39,15 +43,37 @@ var mainQuality = 90;
 var mainRotation = 0;
 var mainBrightness = 0; // -255 255
 var mainContrast = 0; // -127 127
-var hardcodedLoaded = false;
 var resolutionStack = {};
 var shutdownFlag = false;
 var useUDPVideo = false, useUDPRos = false;
 var udpReady = false;
-//hosting server
 
-var app = express();
-var server = app.listen(PORT);
+hardcoded = {
+	"show_terminal":false,
+	"show_config_settings":false,
+	"allow_edit_mode":false,
+	"reset_usb_devices_on_boot":false,
+	"allow_audio":false,
+	"use_https":false,
+};
+
+//get settings from json and send to client
+hardcoded = JSON.parse(fs.readFileSync(HARDCODED_SETTINGS_PATH));
+var RESET_USB_PORTS_ON_BOOT = hardcoded.reset_usb_devices_on_boot || false;
+
+//hosting server
+var app,server;
+app = express();
+if(hardcoded.use_https){
+		server = https.createServer({
+		key:fs.readFileSync(__dirname + '/key.pem'),
+		cert:fs.readFileSync(__dirname + '/cert.pem'),
+	},app).listen(PORT);
+}
+else{
+	server = app.listen(PORT);
+}
+
 app.use(express.static(__dirname + '/public'));
 console.log("server running on port "+ PORT);
 
@@ -61,6 +87,7 @@ if(RESET_USB_PORTS_ON_BOOT){
 	}
 }
 
+//Find and open video cameras
 console.log('FINDING ALL VIDEO PATHS...');
 let validDevices=[];
 if(VIDEO_PATHS.length == 0){
@@ -117,9 +144,10 @@ function requestResolutionSet(c,w,h,f){
 	resolutionStack[c]=[w,h,f];
 }
 
+//bind socket server with express app
 var socket = require('socket.io');
 var io = socket(server, {pingInterval: 400, pingTimeout: RESET_SOCKET_AFTER_MS});
-// var io = socket(server, {pingInterval: 1000});
+
 function joinRosTopics(){
 	fs.readFile(SETTINGS_PATH, (err, data) => {
 		if (err) throw err;
@@ -130,6 +158,7 @@ function joinRosTopics(){
 			let widgets = settingsObject['widgets'];
 			useUDPVideo = settingsObject.config.useUDPVideo || false;
 			useUDPRos = settingsObject.config.useUDPRos || false;
+			
 			//attatch ROS publishers and listeners
 			for(let i = 0; i < widgets.length; i++){
 				let topic = widgets[i].topic;
@@ -249,9 +278,9 @@ rosnodejs.initNode('/webserver').then(() => {
 });
 
 udpGeckos.onConnection(channel => {
-	channel.on('data', data => {
-		console.log(`got "${data}" from UDP transport`);
-	});
+	//channel.on('data', data => {
+	//	console.log(`got "${data}" from UDP transport`);
+	//});
 	channel.on('ROSCTS', function(data){
 	  	handleRosCTS(data);
   	});
@@ -269,6 +298,7 @@ io.sockets.on('connection', function(socket){
     settingsObject = JSON.parse(data);
     camJSON = settingsObject.config.cams;
     socket.emit('settings',settingsObject);
+	  
     //set initial resolutions for cameras
     if(cameraExists){
 		for(let i = 0; i < Math.min(camArray.length,camJSON.camsettings.length); i++){
@@ -291,14 +321,9 @@ io.sockets.on('connection', function(socket){
     io.emit('cmdStopButtons',Object.keys(cmds));
     console.log('number of widgets: ' + settingsObject.widgets.length);
   });
+	
   //get settings from json and send to client
-  fs.readFile(HARDCODED_SETTINGS_PATH, (err, data) => {
-    if (err) throw err;
-    hardcoded = JSON.parse(data);
-    console.log(JSON.stringify(hardcoded));
-    socket.emit('hardcoded_settings',hardcoded);
-    hardcodedLoaded=true;
-  });
+  socket.emit('hardcoded_settings',hardcoded);
 
   //widgets client to server
   socket.on('WCTS', function(data){
@@ -318,6 +343,7 @@ io.sockets.on('connection', function(socket){
 	  console.log('UDP IS READY');
 	  udpReady = true;
   });
+	
   //config settings client to server
   socket.on('configSettings', function(data){
 	if(data){
@@ -339,9 +365,10 @@ io.sockets.on('connection', function(socket){
 	    }
 	}
   });
+	
   //start a child process
   socket.on('cmd', function(data){
-	if(hardcodedLoaded && hardcoded.show_terminal){
+	if(hardcoded.show_terminal){
 		cmds[data] = cp.spawn(data,[],{shell:true});
 		cmds[data].stdout.on('data', stdout => {
 			socket.emit('cmdOut',stdout.toString());
@@ -362,7 +389,7 @@ io.sockets.on('connection', function(socket){
 	}
   });
   socket.on('stopcmd', function(data){
-	  if(hardcodedLoaded && hardcoded.show_terminal && cmds[data]){
+	  if(hardcoded.show_terminal && cmds[data]){
 		console.log('stopping '+data);
 		kill(cmds[data].pid);
 		delete cmds[data];
@@ -373,20 +400,24 @@ io.sockets.on('connection', function(socket){
 	  if(cameraExists) shutdownFlag = true;
 	  else process.exit(1);
 	});
-    //send a
+	
+  //send a heartbeat message
   socket.on('hb',ping => {
 	  if(!lastSocketId) lastSocketId = socket.id;
 	  if(rospublishers.heartbeat && socket.id == lastSocketId) rospublishers.heartbeat.publish({data:ping});
   });
+	
   //ROS client to server
   socket.on('ROSCTS', function(data){
 	  	handleRosCTS(data);
   });
+	
   //remove all subscribers/publishers from topic
   socket.on('shutROS', function(data){
 	  if(rossubscribers[data]) rossubscribers[data].shutdown();
 	  if(rospublishers[data]) rospublishers[data].shutdown();
   });
+	
   //change resolution of camera. c is camera, v is preset value (index)
   socket.on('setPreset', function(data){
 	if(cameraExists){
@@ -435,8 +466,6 @@ io.sockets.on('connection', function(socket){
     io.emit('instanceCount',socketsOpen);
   });
 });
-
-
 
 function handleRosCTS(data){
 	var topic = data.topic;
@@ -550,7 +579,6 @@ if(cameraExists) setTimeout(retrieveCam,0);
 function closeDownServer(){
 	for(let i = 0; i < camArray.length; i++){
 		camArray[i].release();
-		camArray[i].read();
 		console.log('released cam',i);
 	}
 }
