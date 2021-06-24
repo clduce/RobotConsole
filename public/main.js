@@ -204,6 +204,10 @@ function handleTelem(data){
 				break;
 				case '_logger':
 					let ele = we.querySelector('#textarea_ap');
+					if(ele.value.length > 4000) {
+						console.log('substringing');
+						ele.value = ele.value.substring(ele.value.length-4000);
+					}
 					ele.value += data.msg.data;
 					ele.scrollTop = ele.scrollHeight;
 				break;
@@ -1066,7 +1070,7 @@ function guardTopicName(ele){
 	ele.value = str;
 }
 //============================================Specific config javascript-generated html
-function generateSelectorOptions(opts){
+function generateSelectorOptions(opts = [{text:'Option 1',value:'Option 1'},{text:'Option 2',value:'Option 2'}]){
 	var html = '';
 	for(let i = 0; i < opts.length; i++){
 		html += `<option value='${opts[i].text}'>${opts[i].text}</option>`;

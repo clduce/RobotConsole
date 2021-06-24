@@ -47,6 +47,7 @@ var resolutionStack = {};
 var shutdownFlag = false;
 var useUDPVideo = false, useUDPRos = false;
 var udpReady = false;
+var datatypeOnTopic = [];
 
 hardcoded = {
 	"show_terminal":false,
@@ -170,12 +171,16 @@ function joinRosTopics(){
 					switch(widgets[i].type){
 						case '_button':
 						case '_checkbox':
-							rospublishers[topic] = nh.advertise(topic, widgets[i]['msgType'] || 'std_msgs/Bool',{latching:latch});
+							datatypeOnTopic[topic] = widgets[i]['msgType'] || 'std_msgs/Bool';
+							if(rospublishers[topic]) rospublishers[topic].shutdown();
+							rospublishers[topic] = nh.advertise(topic, datatypeOnTopic[topic],{latching:latch});
 						break;
 						case '_joystick':
+							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
 						break;
 						case '_slider':
+							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, 'std_msgs/Float64',{latching:latch});
 						break;
 						case '_inputbox':
@@ -474,8 +479,10 @@ function handleRosCTS(data){
 		case '_checkbox':
 			console.log(data);
 			if(data.hasOwnProperty("value")){
-				if(data.value == 'false' || data.value == 'False') data.value = false;
-				if(data.value == 'true' || data.value == 'True') data.value = true;
+				if(datatypeOnTopic[topic] == 'std_msgs/Bool'){
+					if(data.value == 'false' || data.value == 'False') data.value = false;
+					if(data.value == 'true' || data.value == 'True') data.value = true;
+				}
 				if(rospublishers[topic]) rospublishers[topic].publish({ data:data.value});
 			}
 		break;

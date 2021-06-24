@@ -65,6 +65,12 @@ function widgetFromJson(json){
       canvas.setAttribute("data-config",JSON.stringify({min:json.min,max:json.max,bigtick:json.bigtick,smalltick:json.smalltick, title:json.label}));
       drawGauge(canvas,json.min,json);
     break;
+	case '_compass':
+	break;
+	case '_horizon':
+	break;
+	case '_rosImage':
+	break;
 	case '_arm':
       var canvas = tile.querySelector('#arm_ap');
       canvas.height = parseInt(json['h'])-20;
@@ -80,6 +86,12 @@ function widgetFromJson(json){
 	break;
 	case '_box':
 		tile.querySelector('#panel_ap').style.backgroundColor = json['bkColor'];
+	break;
+    case '_logger':
+	break;
+    case '_inputbox':
+	break;
+	case  '_panel':
 	break;
 	default:
 		  console.log(`widget type ${type} doesn't exist in this version of UI`);
