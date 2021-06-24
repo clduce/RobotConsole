@@ -35,7 +35,8 @@ const helpMessages = {
 	'_arm':toParagraph('If the segment is using a fixed angle, put the desired angle next to it. If the segment is using an array element, put an array index beside it. Arms are added and removed from the bottom.'),
 	'_logger':toParagraph(generalMsg.latch+'. This widget stores its data.'),
 	'_audio':toParagraph('This widget plays the sound of the recieved integer index'),
-	'_box':toParagraph('When a widget is placed into the panel, it becomes a child of the panel, moves with it, and gets deleted if the panel is deleted. when a panel is moved under a widget, it does nothing.')
+	'_box':toParagraph('When a widget is placed into the panel, it becomes a child of the panel, moves with it, and gets deleted if the panel is deleted. when a panel is moved under a widget, it does nothing.'),
+	'_serial':(toParagraph('ROS to USB is the topic name used to send data from your ROS node across the network and out the serial port. Any string you publish to this topic will be concatenated with the ROS to USB line ending and sent as chars out the serial port.')+toParagraph('You subscribe to the USB to ROS topic to get outbound data from the serial port. this data is stored in a buffer untill a USB to ROS split with char is found. The char/chars will be stripped and the resulting string will be published on that topic.'))
 }
 
 //returns string as pagargraph element

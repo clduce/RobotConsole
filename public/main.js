@@ -213,6 +213,9 @@ function handleTelem(data){
 				case '_audio':
 					playSound(data.msg.data);
 				break;
+				case '_serial':
+					if(we.serialObject) we.serialObject.writeString(data.msg.data);
+				break;
 			}
 		}
   }
@@ -447,6 +450,9 @@ function removeWidgetFromScreen(elmnt){
 	if(WA.type == '_box' && WA.childids){
 		deleteList = WA.childids;
 	}
+	if(WA.type == '_serial'){
+		if(elmnt.serialObject) elmnt.serialObject.end();
+	}
 	elmnt.remove();
 	deleteWidget(elmnt.id);
 	deleteFromPanel(elmnt.id);
@@ -455,6 +461,9 @@ function removeWidgetFromScreen(elmnt){
 		elmnt = document.getElementById(deleteList[i]);
 		let WA = widgetArray[indexMap[elmnt.id]];
 		socket.emit('shutROS',WA.topic);
+		if(WA.type == '_serial'){
+			if(elmnt.serialObject) elmnt.serialObject.end();
+		}
 		elmnt.remove();
 		deleteWidget(elmnt.id);
 		deleteFromPanel(elmnt.id);
@@ -776,6 +785,16 @@ function openConfig(e){
     	createCheckbox('Hide this widget in drive mode', 'hideondrive', WCI['hideondrive']);
     	createSoundsList();
     break;
+	case '_serial':
+			topicLabel.innerText = 'ROS to USB topic';
+			if(!configSettings.lockRos) {
+				createconfigInput('USB to ROS topic', 'topic2', WCI['topic2']);
+				createText('Subscribes and publishes std_msgs/String');
+			}
+			createSelect('Baudrate', 'baud', WCI['baud'] || 9600,[2400, 4800, 9600, 19200, 38400, 57600, 115200]);
+			createSelect('ROS to USB appended line ending', 'rosLE', WCI['rosLE'] || 'None',['None','Newline (10)','Carrage Return (13)','NL and CR (10 & 13)']);
+			createSelect('USB to ROS split with', 'usbLE', WCI['usbLE'] || 'NL and/or CR (10 & 13)',['Newline (10)','Carrage Return (13)','NL and/or CR (10 & 13)']);
+	break;
     case '_text':
 		createconfigInput('Text', 'text', WCI['text']);
 		createColorSelect('Text Color','textColor',WCI.textColor);
@@ -985,6 +1004,27 @@ function applyConfigChanges(){
     case '_logger':
 		if(!configSettings.lockRos) WA['latching'] = document.getElementById('latching').checked;
     break;
+	case '_serial':
+		if(!configSettings.lockRos){
+			WA['topic2'] = document.getElementById('topic2').value;
+			if(WA.baud != document.getElementById('baud').value){
+				if(localWidget.serialObject){
+					if(localWidget.serialObject.connected){
+					  localWidget.serialObject.end();
+					}
+				}
+				WA['baud'] = document.getElementById('baud').value;
+			}
+		}
+		WA.rosLE = document.getElementById('rosLE').value;
+		WA.usbLE = document.getElementById('usbLE').value;
+		if(localWidget.serialObject){
+			if(localWidget.serialObject.connected){
+		 		localWidget.serialObject.rosLE = WA.rosLE;
+				localWidget.serialObject.usbLE = WA.usbLE;
+			}
+		}
+	break;
     case '_text':
       WA['text'] = document.getElementById('text').value;
       WA['textColor'] = document.getElementById('textColor').value;
