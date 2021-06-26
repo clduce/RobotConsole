@@ -21,6 +21,7 @@ const HARDCODED_SETTINGS_PATH = __dirname + '/hardcoded_settings.json';
 
 var express = require('express');
 const rosnodejs = require('rosnodejs');
+const std_msgs = rosnodejs.require('std_msgs');
 const cv = require('opencv4nodejs');
 const cp = require('child_process');
 var kill = require('tree-kill');
@@ -178,6 +179,10 @@ function joinRosTopics(){
 						case '_joystick':
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
+						break;
+						case '_mic':
+							if(rospublishers[topic]) rospublishers[topic].shutdown();
+							rospublishers[topic] = nh.advertise(topic, 'std_msgs/String');
 						break;
 						case '_slider':
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
@@ -497,8 +502,13 @@ function handleRosCTS(data){
 		case '_serial':
 			if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
 		break;
+		case '_mic':
+			//console.log(data.value);
+			if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
+		break;
 	}
-	console.log('Publish Ros ' + JSON.stringify(data));
+	if(data.type == '_mic') console.log('Publish Ros Mic Data');
+	else console.log('Publish Ros ' + JSON.stringify(data));
 }
 
 

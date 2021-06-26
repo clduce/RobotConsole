@@ -47,16 +47,5 @@
        id="path819"
        d="m 4.8558733,289.68439 2.832616,-4.59343 2.7177797,2.71778 6.354245,-6.96671 4.708266,8.84236 z"
        style="fill:#525252;fill-opacity:1;stroke:none;stroke-width:0.05367441;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-    <text
-       transform="rotate(-46.411054)"
-       id="text831"
-       y="205.69766"
-       x="-201.41595"
-       style="font-style:normal;font-weight:normal;font-size:4.50323772px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#525252;fill-opacity:1;stroke:none;stroke-width:0.11258094"
-       xml:space="preserve"><tspan
-         style="fill:#525252;fill-opacity:1;stroke-width:0.11258094"
-         y="205.69766"
-         x="-201.41595"
-         id="tspan829">ROS</tspan></text>
   </g>
 </svg>

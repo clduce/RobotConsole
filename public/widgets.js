@@ -70,6 +70,7 @@ function widgetFromJson(json){
 	case '_horizon':
 	break;
 	case '_rosImage':
+		  if(json.src) tile.querySelector('#img_ap').src = json.src;
 	break;
 	case '_arm':
       var canvas = tile.querySelector('#arm_ap');
@@ -90,6 +91,10 @@ function widgetFromJson(json){
     case '_logger':
 	break;
     case '_inputbox':
+	break;
+	case  '_serial':
+	break;
+	case  '_mic':
 	break;
 	case  '_panel':
 	break;
@@ -220,7 +225,7 @@ function makeUnique(type,newWidget){
 		thisWidget['msgType'] = 'std_msgs/String';
     break;
     default:
-
+	break;
   }
   initFunctionality(type,newWidget,thisID);
   return thisWidget;
@@ -279,6 +284,37 @@ function initFunctionality(type, newWidget,thisID){
 		}
       };
     break;
+	case  '_mic':
+		var unmuteImg = new Image();
+		unmuteImg.src = 'unmute.svg';
+		var muteImg = new Image();
+		muteImg.src = 'mute.svg';
+		var ele = newWidget.querySelector('#mic_ap');
+		ele.isMuted = true;
+		ele.showMute = () => {
+			mute();
+			ele.querySelector('.imshow').style.display = 'unset';
+			ele.querySelector('.imhide').style.display = 'none';
+		};
+		ele.showUnmute = () => {
+			unmute();
+			ele.querySelector('.imshow').style.display = 'none';
+			ele.querySelector('.imhide').style.display = 'unset';
+		};
+		ele.updateImage = (muted) => {
+			if(muted) ele.showMute();
+			else ele.showUnmute();
+		};
+		ele.toggle = () => {
+			ele.isMuted = !ele.isMuted;
+			ele.updateImage(ele.isMuted);
+			console.log('toggled');
+		};
+		ele.addEventListener('mouseup',()=>{
+			ele.toggle();
+		});
+		if(!audioStream) initAudio();
+	break;
   }
 }
 //returns the widget-clone as a dragable object

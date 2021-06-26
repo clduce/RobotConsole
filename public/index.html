@@ -455,7 +455,7 @@ button:focus {outline:0;}
     <img src="resize.png" id="resize" />
   </div>
   <div class="panel source" id="_rosImage" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
-    <div id="header">ROS JPEG Image<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+    <div id="header">Image<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <img class='fsImage showOnDrive'id='img_ap'src="phImg.svg" />
     <img src="resize.png" id="resize" />
   </div>
@@ -484,9 +484,15 @@ button:focus {outline:0;}
 		<div class='showOnDrive' id='color_ap' style='background-color:#FF0'><h1 class='textDisplay' id='status' style="margin:0px;padding:0px;font-size:17px">Disconnected</h1></div>
 		<div class='showOnDrive' id='color_ap' style='background-color:#FFF;display:inline-table;width:50%'><h1 class='textDisplay' id='RX_ap' style="margin:0px;padding:0px;font-size:17px">RX</h1></div>
 		<div class='showOnDrive' id='color_ap' style='background-color:#FFF;width:50%;float:right'><h1 class='textDisplay' id='TX_ap' style="margin:0px;padding:0px;font-size:17px">TX</h1></div>
-		<img src="resize.png" id="resize"></img>
+		<img src="resize.png" id="resize" />
 	</div>
-
+		<div class="panel source" id="_mic" style="width:60px;height:75px;z-index:300" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+		<div id="header">Mic<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+		<div class='showOnDrive'id='mic_ap'>
+			<img style='cursor:pointer; width:50px'class='imshow'src="unmute.svg" />
+			<img style='cursor:pointer; width:50px; display:none'class='imhide'src="mute.svg" />
+		</div>
+  	</div>
   <h1 class="label" style="text-align:center">Non ROS</h1>
   
   <div class="panel source" id="_text" style="width:200px;height:50px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
@@ -543,6 +549,7 @@ button:focus {outline:0;}
 <script src="canvas.js" charset="utf-8" defer></script>
 <script src="widgets.js" charset="utf-8" defer></script>
 <script src="main.js" charset="utf-8" defer></script>
+<script src="streamAudio.js" charset="utf-8" defer></script>
 <script src="serial.js"></script>
 </body>
 </html>

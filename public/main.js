@@ -662,7 +662,7 @@ socket.on('cmdStopButtons',function(data){
 function openConfig(e){
   //load field values with JSON settingss
   elementOpenInConfig = e.parentElement.parentElement;
-  currentID = e.parentElement.parentElement.id;
+  currentID = elementOpenInConfig.id;
   currentIndex = indexMap[currentID];
   let WCI = widgetArray[currentIndex];
   lastChangedAxis = -1;
@@ -777,6 +777,8 @@ function openConfig(e){
     case '_rosImage':
 		createconfigInput('Label', 'label', WCI['label']);
 		createText('This widget subscribes to sensor_msgs/CompressedImage and displays a JPEG.');
+		createText('Or');
+		createconfigInput('Enter the image source (URL)', 'src', WCI['src']);
 	break;
 	case '_logger':
 		if(!configSettings.lockRos){
@@ -798,6 +800,14 @@ function openConfig(e){
 			createSelect('Baudrate', 'baud', WCI['baud'] || 9600,[2400, 4800, 9600, 19200, 38400, 57600, 115200]);
 			createSelect('ROS to USB appended line ending', 'rosLE', WCI['rosLE'] || 'None',['None','Newline (10)','Carrage Return (13)','NL and CR (10 & 13)']);
 			createSelect('USB to ROS split with', 'usbLE', WCI['usbLE'] || 'NL and/or CR (10 & 13)',['Newline (10)','Carrage Return (13)','NL and/or CR (10 & 13)']);
+	break;
+	case '_mic':
+		if(!elementOpenInConfig.querySelector('#mic_ap').isMuted) elementOpenInConfig.querySelector('#mic_ap').toggle();
+		createText('publishes base64 encoded PCM on std_msgs/String');
+		createText('Sample rate of 22050 and bit depth of 16');
+		createText('Single channel at 1024 samples per frame');
+		createconfiglinkGamepadButton(WCI);
+      	createconfiglinkKeys(WCI,['hotkey']);
 	break;
     case '_text':
 		createconfigInput('Text', 'text', WCI['text']);
@@ -1004,6 +1014,8 @@ function applyConfigChanges(){
     break;
     case '_rosImage':
 		WA['label'] = document.getElementById('label').value;
+		WA['src'] = document.getElementById('src').value;
+		if(WA.src) localWidget.querySelector('#img_ap').src = WA.src;
     break;
     case '_logger':
 		if(!configSettings.lockRos) WA['latching'] = document.getElementById('latching').checked;
@@ -1029,6 +1041,12 @@ function applyConfigChanges(){
 			}
 		}
 	break;
+	case '_mic':
+      WA['useGamepad'] = document.getElementById('useGamepad').checked;
+	  if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
+      WA['useKeys'] = document.getElementById('useKeys').checked;
+      WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
+    break;
     case '_text':
       WA['text'] = document.getElementById('text').value;
       WA['textColor'] = document.getElementById('textColor').value;
@@ -1419,13 +1437,17 @@ function getKeyboardUpdates(){
         }
       }
     }
+	if(widgetArray[w].type == '_mic' && widgetArray[w].useKeys){
+      let ck = [widgetArray[w].usekey_hotkey];
+      if(keysChanged(ck)){
+        let ele = document.getElementById(widgetArray[w].id).querySelector('#mic_ap');
+        if(keys[ck[0]]) ele.toggle();
+      }
+    }
     if(widgetArray[w].type == '_slider' && widgetArray[w].useKeys){
       let ck = [widgetArray[w].usekey_Increase,widgetArray[w].usekey_Decrease];
       if(keysChanged(ck)){
         let dat = 0;
-        //if(keys[ck[0]]) inc = setInterval(()=>{dat.v = -Number(widgetArray[w].step); updateSlider()},10);
-        //else if(keys[ck[1]]) inc = setInterval(()=>{dat.v = Number(widgetArray[w].step); updateSlider()},10);
-        //else inc = null;
         if(keys[ck[0]]){
 			if(inc)clearInterval(inc);
 			inc = setInterval(move,parseInt(widgetArray[w].repeatdelay));
@@ -1534,7 +1556,7 @@ function readGamepadLoop(){
         if(document.getElementById('replaceWithCButton')) document.getElementById('replaceWithCButton').innerText = `Paired to button: ${lastChangedButton}`;
       }
       for(let w = 0; w < widgetArray.length; w++){
-        if(widgetArray[w].screen == thisScreen && widgetArray[w].type == '_button' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
+        if(widgetArray[w].type == '_button' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
           var ele = document.getElementById(widgetArray[w].id).querySelector('#button_ap');
           if(currentGamepad.buttons[i].pressed){
             triggerMouseEvent(ele,'mousedown');
@@ -1545,7 +1567,13 @@ function readGamepadLoop(){
             ele.className = ele.className.replace(" button_apPressed", "");
           }
         }
-        if(widgetArray[w].screen == thisScreen && widgetArray[w].type == '_checkbox' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
+        if(widgetArray[w].type == '_mic' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
+          var ele = document.getElementById(widgetArray[w].id).querySelector('#mic_ap');
+          if(currentGamepad.buttons[i].pressed){
+			ele.toggle();
+          }
+        }
+		if(widgetArray[w].type == '_checkbox' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
           var ele = document.getElementById(widgetArray[w].id).querySelector('#checkbox_ap');
           if(currentGamepad.buttons[i].pressed){
             ele.checked = !ele.checked;
@@ -1553,7 +1581,7 @@ function readGamepadLoop(){
           }
         }
         let dat = 0;
-        if(widgetArray[w].screen == thisScreen && widgetArray[w].type == '_slider' && widgetArray[w].useGamepad && 'gp_Increase' in widgetArray[w] && widgetArray[w]['gp_Increase'] == i){
+        if(widgetArray[w].type == '_slider' && widgetArray[w].useGamepad && 'gp_Increase' in widgetArray[w] && widgetArray[w]['gp_Increase'] == i){
           var ele = document.getElementById(widgetArray[w].id).querySelector('#slider_ap');
           //check if the 'increase slider' button is pressed
           if(currentGamepad.buttons[i].pressed){
@@ -1566,7 +1594,7 @@ function readGamepadLoop(){
             if(inc)clearInterval(inc);
           }
         }
-        else if(widgetArray[w].screen == thisScreen && widgetArray[w].type == '_slider' && widgetArray[w].useGamepad && 'gp_Decrease' in widgetArray[w] && widgetArray[w]['gp_Decrease'] == i){
+        else if(widgetArray[w].type == '_slider' && widgetArray[w].useGamepad && 'gp_Decrease' in widgetArray[w] && widgetArray[w]['gp_Decrease'] == i){
           var ele = document.getElementById(widgetArray[w].id).querySelector('#slider_ap');
           //check if the 'decrease slider' button is pressed
           if(currentGamepad.buttons[i].pressed){
