@@ -31,7 +31,7 @@ const helpMessages = {
 	'_dropdown':toParagraph("Sends it's new value when the dropdown menu changes "+generalMsg.latch+' The uppermost option will be the default. Remove option removes from the bottom up. Add another option adds to the bottom.'),
 	'_value':toParagraph('Prefix text is put right in front of the incoming value, and the postfix text is appended to the end. No space is inserted arround the raw value.'),
 	'_indicator':toParagraph('subscribes to std_msgs/Bool.'),
-	'_guage':toParagraph('A bold tick with a value written by it appears every "big tick interval", and the area between big ticks are devided into "Subdevisions" ticks.'),
+	'_gauge':toParagraph('A bold tick with a value written by it appears every "big tick interval", and the area between big ticks are devided into "Subdevisions" ticks.'),
 	'_arm':toParagraph('If the segment is using a fixed angle, put the desired angle next to it. If the segment is using an array element, put an array index beside it. Arms are added and removed from the bottom.'),
 	'_logger':toParagraph(generalMsg.latch+'. This widget stores its data.'),
 	'_audio':toParagraph('This widget plays the sound of the recieved integer index'),
@@ -45,5 +45,6 @@ function toParagraph(s){
 }
 
 function updateHelpWindow(type){
+	console.log(type, helpMessages[type]);
 	document.getElementById('helpArea').innerHTML = helpMessages[type] || '';
 }

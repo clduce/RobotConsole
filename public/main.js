@@ -13,29 +13,18 @@ var loadedElements = false;//flag to check if elements have been constructed fro
 var madeThumbs = false;
 var readGamepadInterval,currentGamepad,oldGamepad,lastChangedAxis;
 var thisScreen = 1;
-var allow_audio = false;
 var keys = {};
 var oldKeys = {};
 var time = new Date();
 var lastwidth = 0;
-var udpReady = false;
 let sounds = ['bells.mp3','warning.mp3','message.mp3','info.mp3','xylo.mp3'];//change only this to add or remove sounds
 const THUMBWIDTH = 150;
 let mainImage = document.getElementById('mainImage');
 let gamepadCount = 0;
 //use same IP to connect to socket server as to connect to express
 socket = io(window.location.hostname + ':' + window.location.port);
-const channel = geckos({port : 3030});
 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 //get all config from server
-channel.onConnect(error => {
-	if(error) console.log(error);
-	else{
-		console.log('connected to UDP socket');
-		socket.emit('udpReady');
-		udpReady = true;
-	}
-});
 socket.on('connection',function(){
 	console.log('connect');
 });
@@ -85,9 +74,6 @@ function isMobile(){
 //on video feed recieve
 socket.on('image',function(data){
 	mainImage.src=`data:image/jpeg;base64,${_arrayBufferToBase64(data)}`;
-});
-channel.on('image',function(data){
-	mainImage.src=`data:image/jpeg;base64,${data}`;
 });
 function _arrayBufferToBase64( buffer ) {
     var binary = '';
@@ -161,9 +147,6 @@ function changePreset(cam,me){
 socket.on('telem',function(data){
 	handleTelem(data);
 });
-channel.on('telem',function(data){
-	handleTelem(data);
-});
 function handleTelem(data){
 	if(data.topic == '__consoleText'){
 		console.log(data);
@@ -227,9 +210,6 @@ function handleTelem(data){
 socket.on('fps',(fps)=>{
 	document.getElementById('fps').innerText = 'FPS: '+parseInt(fps);
 });
-channel.on('fps',(fps)=>{
-	document.getElementById('fps').innerText = 'FPS: '+parseInt(fps);
-});
 socket.on('instanceCount',function(data){
 	if(document.getElementById('instanceCount')) document.getElementById('instanceCount').innerText = 'clients: ' + data;
 });
@@ -251,7 +231,6 @@ socket.on('closeSocket',function(data){
 	showMessage('Socket was closed. Reload page to reopen');
 	console.log('manual disconnect');
 	socket.disconnect(true);
-	channel.close();
 });
 function closeOtherSockets(){
 	socket.emit('closeOtherSockets');

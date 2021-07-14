@@ -6,12 +6,7 @@
 */
 const RESET_SOCKET_AFTER_MS = 30000; //if the ping gets above this, the socket will reset
 
-//hardcode your own video paths into this array.
-//if you do this, the server will not search for additional video devices.
-//eg. ["/dev/video0", "/dev/video1"]
-const VIDEO_PATHS = [];
-
-var PORT = 3000, UDPPORT = 3030;
+var PORT = 3000;
 
 //this allows more reliable camera connection, but extends boot time by 5 seconds. It also requires the sudoers rule below
 //use 'sudo visudo' and add this line to the bottom: ubuntu ALL=(root) NOPASSWD: /home/ubuntu/catkin_ws/src/roboquest_ui/src/resetUsbCams.sh
@@ -27,9 +22,6 @@ const cp = require('child_process');
 var kill = require('tree-kill');
 const https = require('https');
 const fs = require('fs');
-const geckos = require('@geckos.io/server').default;
-const udpGeckos = geckos();
-udpGeckos.listen(UDPPORT);
 
 var cameraExists = false;
 var settingsObject,hardcoded;
@@ -46,8 +38,6 @@ var mainBrightness = 0; // -255 255
 var mainContrast = 0; // -127 127
 var resolutionStack = {};
 var shutdownFlag = false;
-var useUDPVideo = false, useUDPRos = false;
-var udpReady = false;
 var datatypeOnTopic = [];
 
 hardcoded = {
@@ -55,14 +45,16 @@ hardcoded = {
 	"show_config_settings":false,
 	"allow_edit_mode":false,
 	"reset_usb_devices_on_boot":false,
-	"allow_audio":false,
 	"use_https":false,
+	"video_paths":[],
+	"video_enabled":true
 };
 
 //get settings from json and send to client
 hardcoded = JSON.parse(fs.readFileSync(HARDCODED_SETTINGS_PATH));
 var RESET_USB_PORTS_ON_BOOT = hardcoded.reset_usb_devices_on_boot || false;
-
+var VIDEO_PATHS = hardcoded.video_paths;
+var video_enabled = hardcoded.video_enabled;
 //hosting server
 var app,server;
 app = express();
@@ -92,7 +84,7 @@ if(RESET_USB_PORTS_ON_BOOT){
 //Find and open video cameras
 console.log('FINDING ALL VIDEO PATHS...');
 let validDevices=[];
-if(VIDEO_PATHS.length == 0){
+if(VIDEO_PATHS.length == 0 && video_enabled){
 	let output = cp.execSync('v4l2-ctl --list-devices || true',{shell:true});
 	output = output.toString().split(/\r?\n/);
 	let nextIsName = true, namedDevices = {}, lastName = '';
@@ -127,20 +119,22 @@ if(VIDEO_PATHS.length == 0){
 		}
 	}
 }
-if(VIDEO_PATHS.length > 0) validDevices = VIDEO_PATHS;
-console.log('(CONNECTING TO OPENCV) VALID DEVICES',validDevices);
 let camArray = [], index = 0;
-for(let i = 0; i < validDevices.length; i++){
-	camArray[index] = new cv.VideoCapture(validDevices[i]);
-	camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,640);
-	camArray[index].set(cv.CAP_PROP_FRAME_HEIGHT,480);
-	camArray[index].set(cv.CAP_PROP_FPS,25);
-	index++;
-	console.log('camera found at index '+i);
-	cps[index]=0;
-	cameraExists = true;
+if(video_enabled){
+	if(VIDEO_PATHS.length > 0) validDevices = VIDEO_PATHS;
+	console.log('(CONNECTING TO OPENCV) VALID DEVICES',validDevices);
+	for(let i = 0; i < validDevices.length; i++){
+		camArray[index] = new cv.VideoCapture(validDevices[i]);
+		camArray[index].set(cv.CAP_PROP_FRAME_WIDTH,640);
+		camArray[index].set(cv.CAP_PROP_FRAME_HEIGHT,480);
+		camArray[index].set(cv.CAP_PROP_FPS,25);
+		index++;
+		console.log('camera found at index '+i);
+		cps[index]=0;
+		cameraExists = true;
+	}
+	console.log('total of ' + camArray.length + ' cameras found');
 }
-console.log('total of ' + camArray.length + ' cameras found');
 
 function requestResolutionSet(c,w,h,f){
 	resolutionStack[c]=[w,h,f];
@@ -158,8 +152,6 @@ function joinRosTopics(){
 		}catch(e){console.log(e);}
 		if(settingsObject){
 			let widgets = settingsObject['widgets'];
-			useUDPVideo = settingsObject.config.useUDPVideo || false;
-			useUDPRos = settingsObject.config.useUDPRos || false;
 			
 			//attatch ROS publishers and listeners
 			for(let i = 0; i < widgets.length; i++){
@@ -176,6 +168,7 @@ function joinRosTopics(){
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, datatypeOnTopic[topic],{latching:latch});
 						break;
+						case '_mouse':
 						case '_joystick':
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
@@ -274,26 +267,13 @@ function joinRosTopics(){
 	});
 }
 function sendTelem(data){
-	if(udpReady && useUDPRos){
-		udpGeckos.emit('telem',data);
-		console.log('using UDP to send ros data to client');
-	}
-	else io.emit('telem',data);
+	io.emit('telem',data);
 }
 rosnodejs.initNode('/webserver').then(() => {
 	nh = rosnodejs.nh;
 	joinRosTopics();
 }).catch((e) => {
 	console.log('Error connecting to ROS: ' + e);
-});
-
-udpGeckos.onConnection(channel => {
-	//channel.on('data', data => {
-	//	console.log(`got "${data}" from UDP transport`);
-	//});
-	channel.on('ROSCTS', function(data){
-	  	handleRosCTS(data);
-  	});
 });
 
 var lastSocketId = undefined;
@@ -307,7 +287,6 @@ io.sockets.on('connection', function(socket){
     if (err) throw err;
     settingsObject = JSON.parse(data);
     camJSON = settingsObject.config.cams;
-    socket.emit('settings',settingsObject);
 	  
     //set initial resolutions for cameras
     if(cameraExists){
@@ -317,14 +296,17 @@ io.sockets.on('connection', function(socket){
 			if(camJSON.camsettings[i].rotation == undefined) camJSON.camsettings[i].rotation = 0;
 			if(camJSON.camsettings[i].contrast == undefined) camJSON.camsettings[i].contrast = 0;
 			if(camJSON.camsettings[i].brightness == undefined) camJSON.camsettings[i].brightness = 0;
+			camJSON.camsettings[i].path = validDevices[i] || '';
 		}
 		mainQuality = parseInt(camSettings(camJSON,camindex).quality);
 		mainRotation = parseInt(camJSON.camsettings[camindex].rotation);
 		mainContrast = parseInt(camJSON.camsettings[camindex].contrast);
 		mainBrightness = parseInt(camJSON.camsettings[camindex].brightness);
     	console.log('main quality is ' + mainQuality);
+		socket.emit('settings',settingsObject);
     	socket.emit('makeThumbs',camArray.length,camindex,cps);
 	}else{
+		socket.emit('settings',settingsObject);
 		socket.emit('makeThumbs');
 	}
 
@@ -348,10 +330,6 @@ io.sockets.on('connection', function(socket){
     catch(e){
       console.log(e);
     }
-  });
-  socket.on('udpReady', ()=>{
-	  console.log('UDP IS READY');
-	  udpReady = true;
   });
 	
   //config settings client to server
@@ -411,7 +389,7 @@ io.sockets.on('connection', function(socket){
 	  else process.exit(1);
 	});
 	
-  //send a heartbeat message
+  //send ping over ros
   socket.on('hb',ping => {
 	  if(!lastSocketId) lastSocketId = socket.id;
 	  if(rospublishers.heartbeat && socket.id == lastSocketId) rospublishers.heartbeat.publish({data:ping});
@@ -494,7 +472,7 @@ function handleRosCTS(data){
 		case '_dropdown':
 		case '_inputbox':
 		case '_slider':
-			if(rospublishers[topic]) rospublishers[topic].publish({ data:data.value});
+			if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
 		break;
 		case '_joystick':
 			if(rospublishers[topic]) rospublishers[topic].publish({x:data.x,y:data.y,z:0});
@@ -503,8 +481,10 @@ function handleRosCTS(data){
 			if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
 		break;
 		case '_mic':
-			//console.log(data.value);
 			if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
+		break;
+		case '_mouse':
+			if(rospublishers[topic]) rospublishers[topic].publish({x:data.x,y:data.y,z:data.z});
 		break;
 	}
 	if(data.type == '_mic') console.log('Publish Ros Mic Data');
@@ -559,10 +539,7 @@ let retrieveCam = function(){
 			result = buf;
 
 			cv.imencodeAsync('.jpg',result,[cv.IMWRITE_JPEG_QUALITY,mainQuality]).then(function(result){
-				if(udpReady && useUDPVideo){
-					udpGeckos.emit('image',result.toString('base64'));
-				}
-				else io.emit('image',result); //encode it here result.toString('base64')
+				io.emit('image',result); //encode it here result.toString('base64')
 			}).catch((e)=>{console.log(e)});
 		}
 
@@ -587,11 +564,11 @@ let retrieveCam = function(){
 		setTimeout(retrieveCam,0);
 
 	}).catch((e)=>{console.log("can't read camera " + e);});
-	if(useUDPVideo && udpReady) udpGeckos.emit('fps',1000/(time-oldtime));
-	else io.emit('fps',1000/(time-oldtime));
+	io.emit('fps',1000/(time-oldtime));
 	oldtime = time;
 }
-if(cameraExists) setTimeout(retrieveCam,0);
+
+if(cameraExists && video_enabled) setTimeout(retrieveCam,0);
 
 function closeDownServer(){
 	for(let i = 0; i < camArray.length; i++){

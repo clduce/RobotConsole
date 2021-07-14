@@ -98,6 +98,8 @@ function widgetFromJson(json){
 	break;
 	case  '_panel':
 	break;
+	case '_mouse':
+    break;
 	default:
 		  console.log(`widget type ${type} doesn't exist in this version of UI`);
 		  return;
@@ -230,30 +232,27 @@ function makeUnique(type,newWidget){
   initFunctionality(type,newWidget,thisID);
   return thisWidget;
 }
+//##### This function only runs if a case for the widget type is also declared in widgetFromJson()
 function initFunctionality(type, newWidget,thisID){
+  var jsw = widgetArray[indexMap[thisID]];
   switch(type){
-    //update thiswidget['<custom field>'] with newWidget.childnodes
     case '_button':
       //setup brodcast functionality for element
       newWidget.querySelector('#button_ap').onmousedown = function(){
-        let jsw = widgetArray[indexMap[thisID]];
         sendToRos(jsw['topic'],{value:jsw['onPress'] || true},jsw['type']);
       };
       newWidget.querySelector('#button_ap').onmouseup = function(){
-		let jsw = widgetArray[indexMap[thisID]];
         sendToRos(jsw['topic'],{value:jsw['onRelease'] || false},jsw['type']);
       };
     break;
     case '_checkbox':
       //setup brodcast functionality for element
       newWidget.querySelector('#checkbox_ap').onchange = function(e){
-        let jsw = widgetArray[indexMap[thisID]];
         sendToRos(jsw['topic'],{value:e.target.checked ? jsw['onPress'] : jsw['onRelease']},jsw['type']);
       };
     break;
     case '_slider':
       //setup brodcast functionality for element
-       let jsw = widgetArray[indexMap[thisID]];
        if(jsw){
 		   if(jsw['vertical']){
 				newWidget.querySelector('#slider_ap').className += ' vertical';
@@ -271,7 +270,6 @@ function initFunctionality(type, newWidget,thisID){
     case '_inputbox':
       //setup brodcast functionality for element
 	  function send(){
-		  let jsw = widgetArray[indexMap[thisID]];
           sendToRos(jsw['topic'],{value:newWidget.querySelector('#input_ap').value},jsw['type']);
 		  newWidget.querySelector('#input_ap').value = '';
 	  }
@@ -283,6 +281,53 @@ function initFunctionality(type, newWidget,thisID){
         	send();
 		}
       };
+    break;
+	case '_mouse':
+		var mouseCanvas = newWidget.querySelector('#mousecanvas_ap');
+		mouseCanvas.writeText = function(text,text2){
+			let ctx = mouseCanvas.getContext('2d');
+			ctx.clearRect(0,0,mouseCanvas.width,mouseCanvas.height);
+			ctx.font = '14px serif';
+			ctx.fillText(text,2,13);
+			ctx.fillText(text2,2,24);
+		}
+		mouseCanvas.writeText('Click for','pointer lock');
+      	mouseCanvas.onmousedown = function(e){
+			mouseCanvas.requestPointerLock();
+      	};
+		mouseCanvas.plc = function(e){
+			if(document.pointerLockElement === mouseCanvas || document.mozPointerLockElement === mouseCanvas){
+				console.log('on');
+				document.onmousemove = mouseCanvas.updateMousePosition;
+				mouseCanvas.writeText('Press ESC','to exit');
+			}else{
+				console.log('off');
+				document.onmousemove = null;
+				mouseCanvas.writeText('Click for','pointer lock');
+			}
+		}
+		document.addEventListener('pointerlockchange',mouseCanvas.plc, false);
+		document.addEventListener('mozpointerlockchange',mouseCanvas.plc, false);
+		  
+		mouseCanvas.updateMousePosition = function(e){
+			mouseCanvas.send(e.movementX,e.movementY,e.buttons);
+			mouseCanvas.writeText('Press ESC',`(${e.movementX},${e.movementY})`);
+			let ctx = mouseCanvas.getContext('2d');
+			ctx.strokeStyle='#F00';
+			ctx.lineWidth=5;
+			ctx.lineCap='round';
+			ctx.beginPath();
+			ctx.moveTo(53,22);
+			ctx.lineTo(53+e.movementX/10,22+e.movementY/10);
+			ctx.stroke();
+		}
+		mouseCanvas.send = function(x,y,z){
+			sendToRos(jsw['topic'],{
+				x:x,
+				y:y,
+				z:z
+			},'_mouse');
+		}
     break;
 	case  '_mic':
 		var unmuteImg = new Image();
@@ -379,10 +424,7 @@ function sendToRos(topic,data,type){
   if(topic != undefined && topic != '/' && topic != ''){
     data.topic = topic;
     data.type = type;
-    if(configSettings.useUDPRos && udpReady){
-		channel.emit('ROSCTS',data);
-	}
-	else socket.emit('ROSCTS',data);//ros client to server
+	socket.emit('ROSCTS',data);//ros client to server
   }
 }
 

@@ -47,6 +47,7 @@ function populateConfig(data){
 		sliderChangePrevious(document.getElementsByClassName('cams_contrast')[i]);
 		document.getElementsByClassName('cams_brightness')[i].value = data.cams.camsettings[i]['brightness'] || 0;
 		sliderChangePrevious(document.getElementsByClassName('cams_brightness')[i]);
+		document.getElementsByClassName('videoPath')[i].innerHTML = data.cams.camsettings[i]['path'] || '';
 	}
 	for(let i = 0; i < document.getElementsByClassName('presets_name').length; i++){//for each preset
 		if(!data.cams.presets[i]) data.cams.presets[i] = {name:"default",width:320,height:240,quality:95,fps:20};
@@ -70,8 +71,6 @@ function populateConfig(data){
 	document.getElementsByClassName('lockRos')[0].checked = data['lockRos'];
 	document.getElementsByClassName('consoleText')[0].value = data['consoleText'] || '';
 	document.getElementsByClassName('heartbeat')[0].value = data['heartbeat'] || '';
-	document.getElementsByClassName('useUDPVideo')[0].checked = data['useUDPVideo'] || false;
-	document.getElementsByClassName('useUDPRos')[0].checked = data['useUDPRos'] || false;
 	console.log('done loading settings');
 }
 function generateConfig(){
@@ -107,8 +106,6 @@ function generateConfig(){
 	data['lockRos'] = document.getElementsByClassName('lockRos')[0].checked;
 	data['consoleText'] = guardTopicName(document.getElementsByClassName('consoleText')[0].value) || '';
 	data['heartbeat'] = guardTopicName(document.getElementsByClassName('heartbeat')[0].value) || '';
-	data['useUDPVideo'] = document.getElementsByClassName('useUDPVideo')[0].checked || false;
-	data['useUDPRos'] = document.getElementsByClassName('useUDPRos')[0].checked || false;
 	return data;
 }
 function guardTopicName(name){
@@ -135,6 +132,8 @@ function addCams(c){
 		"<p class='inputLabel'>Brightness</p>"+
 		"<p class='inputLabel'>(50%)</p>"+
 		"<input oninput='sliderChangePrevious(this)'class='cams_brightness'type='range' min='-255'max='255'/>"+
+		"<p class='inputLabel'>Path:</p>"+
+		"<p class='inputLabel videoPath'>/dev/video0</p>"+
 		"<br>";
 		document.getElementById('cams').insertAdjacentHTML('beforeend',html);
 	}
@@ -230,12 +229,14 @@ function refreshSelectPresets(){
 }
 function sendToServer(){
 	let data = generateConfig();
+	let prevHeaderText = document.getElementById('header').innerText;
 	document.getElementById('header').innerText = 'Sending...';
 	socket.emit('configSettings',data);
 	console.log('sent config to server');
 	socket.emit('WCTS',settings['widgets']);
 	console.log('sent widgets to server');
 	document.getElementById('header').innerText = 'Success';
+	setTimeout(()=>{document.getElementById('header').innerText= prevHeaderText},1000);
 	return;
 }
 function exportFile(){
@@ -273,8 +274,10 @@ function loadJsonFile(me){
 	reader.readAsText(me.files[0]);
 }
 function backToConsole(){
-	if(gotSettings) sendToServer();
 	window.location.href = window.location.href.replace('/config.html','');
+}
+function apply(){
+	if(gotSettings) sendToServer();
 }
 function showMessage(text){
 	mask.style.display = 'inline';

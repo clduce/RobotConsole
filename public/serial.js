@@ -161,7 +161,7 @@ function sleep(ms){
 	return new Promise(resolve => setTimeout(resolve,ms));
 }
 var ev;
-navigator.serial.addEventListener("disconnect", (event) => {
+if(navigator.serial) navigator.serial.addEventListener("disconnect", (event) => {
 	console.log('serial disconnected');
 	for(let i = 0; i < widgetArray.length; i++){
 		if(widgetArray[i].type == '_serial'){
