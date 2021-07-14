@@ -39,6 +39,7 @@ var mainContrast = 0; // -127 127
 var resolutionStack = {};
 var shutdownFlag = false;
 var datatypeOnTopic = [];
+var robotMuted = true;
 
 hardcoded = {
 	"show_terminal":false,
@@ -175,7 +176,13 @@ function joinRosTopics(){
 						break;
 						case '_mic':
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
-							rospublishers[topic] = nh.advertise(topic, 'std_msgs/String');
+							rospublishers[topic] = nh.advertise(topic, 'audio_common_msgs/AudioData');
+						break;
+						case '_speaker':
+							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
+							rossubscribers[topic] = nh.subscribe(topic, 'audio_common_msgs/AudioData', (msg) => {
+								if(!robotMuted) sendTelem({topic:topic,id:i,msg:msg});
+							});
 						break;
 						case '_slider':
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
@@ -202,7 +209,6 @@ function joinRosTopics(){
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, widgets[i]['msgType'], (msg) => {
 								sendTelem({topic:topic,id:i,msg:msg});
-								console.log(msg);
 							});
 						break;
 						case '_arm':
@@ -258,7 +264,7 @@ function joinRosTopics(){
 				});
 			}
 			let heartbeat = settingsObject.config.heartbeat;
-			if(heartbeat != undefined && heartbeat && heartbeat != ''){
+			if(nh && heartbeat != undefined && heartbeat && heartbeat != ''){
 				if(rospublishers.heartbeat) rospublishers.heartbeat.shutdown();
 				rospublishers.heartbeat = nh.advertise(heartbeat, 'std_msgs/Int16');
 			}
@@ -446,6 +452,14 @@ io.sockets.on('connection', function(socket){
   });
   socket.on('closeOtherSockets', function(data){
     socket.broadcast.emit('closeSocket','');
+  });
+  socket.on('muteRobotMic', function(data){
+    robotMuted = true;
+	console.log(robotMuted);
+  });
+  socket.on('unmuteRobotMic', function(data){
+    robotMuted = false;
+	console.log(robotMuted);
   });
   socket.on('disconnect', function(data){
 	socket.disconnect();

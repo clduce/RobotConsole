@@ -89,15 +89,11 @@ function widgetFromJson(json){
 		tile.querySelector('#panel_ap').style.backgroundColor = json['bkColor'];
 	break;
     case '_logger':
-	break;
     case '_inputbox':
-	break;
 	case  '_serial':
-	break;
 	case  '_mic':
-	break;
+	case  '_speaker':
 	case  '_panel':
-	break;
 	case '_mouse':
     break;
 	default:
@@ -358,7 +354,38 @@ function initFunctionality(type, newWidget,thisID){
 		ele.addEventListener('mouseup',()=>{
 			ele.toggle();
 		});
-		if(!audioStream) initAudio();
+		if(!audioStream) initMic();
+	break;
+	case  '_speaker':
+		var unmuteImg = new Image();
+		unmuteImg.src = 'unspeak.svg';
+		var muteImg = new Image();
+		muteImg.src = 'speak.svg';
+		var ele = newWidget.querySelector('#speaker_ap');
+		ele.isMuted = true;
+		ele.showMute = () => {
+			socket.emit('muteRobotMic');
+			ele.querySelector('.imshow').style.display = 'unset';
+			ele.querySelector('.imhide').style.display = 'none';
+		};
+		ele.showUnmute = () => {
+			socket.emit('unmuteRobotMic');
+			ele.querySelector('.imshow').style.display = 'none';
+			ele.querySelector('.imhide').style.display = 'unset';
+		};
+		ele.updateImage = (muted) => {
+			if(muted) ele.showMute();
+			else ele.showUnmute();
+		};
+		ele.toggle = () => {
+			ele.isMuted = !ele.isMuted;
+			ele.updateImage(ele.isMuted);
+			console.log('toggled');
+		};
+		ele.addEventListener('mouseup',()=>{
+			ele.toggle();
+		});
+		if(!playbackContext) initSpeaker();
 	break;
   }
 }

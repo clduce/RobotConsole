@@ -488,18 +488,25 @@ button:focus {outline:0;}
 	<h1 class="label" style="text-align:center">HTTPS Only</h1>
 
 	<div class="panel source" id="_serial" style="width:200px;height:90px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
-		<div id="header">Serial Communication<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+	<div id="header">Serial Communication<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
 		<div class='showOnDrive' id='color_ap' style='background-color:#FFF'><button class='textDisplay' id='button_ap' onclick='connectToSerial(this.parentElement.parentElement);'style="margin:0px;width:100%;font-size:17px">Connect</button></div>
 		<div class='showOnDrive' id='color_ap' style='background-color:#FF0'><h1 class='textDisplay' id='status' style="margin:0px;padding:0px;font-size:17px">Disconnected</h1></div>
 		<div class='showOnDrive' id='color_ap' style='background-color:#FFF;display:inline-table;width:50%'><h1 class='textDisplay' id='RX_ap' style="margin:0px;padding:0px;font-size:17px">RX</h1></div>
 		<div class='showOnDrive' id='color_ap' style='background-color:#FFF;width:50%;float:right'><h1 class='textDisplay' id='TX_ap' style="margin:0px;padding:0px;font-size:17px">TX</h1></div>
 		<img src="resize.png" id="resize" />
 	</div>
-		<div class="panel source" id="_mic" style="width:60px;height:75px;z-index:300" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+	<div class="panel source" id="_mic" style="width:60px;height:75px;z-index:300" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
 		<div id="header">Mic<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
 		<div class='showOnDrive'id='mic_ap'>
 			<img style='cursor:pointer; width:50px'class='imshow'src="unmute.svg" />
 			<img style='cursor:pointer; width:50px; display:none'class='imhide'src="mute.svg" />
+		</div>
+  	</div>
+	<div class="panel source" id="_speaker" style="width:65px;height:75px;z-index:300" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+		<div id="header">Speaker<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+		<div class='showOnDrive'id='speaker_ap'>
+			<img style='cursor:pointer; width:50px'class='imshow'src="unspeak.svg" />
+			<img style='cursor:pointer; width:50px; display:none'class='imhide'src="speak.svg" />
 		</div>
   	</div>
   <h1 class="label" style="text-align:center">Non ROS</h1>

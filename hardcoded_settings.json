@@ -3,7 +3,7 @@
 	"show_config_settings":true,
 	"allow_edit_mode":true,
 	"reset_usb_devices_on_boot":false,
-	"use_https":false,
+	"use_https":true,
 	"video_paths":[],
 	"video_enabled":true
 }

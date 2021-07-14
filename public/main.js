@@ -203,6 +203,12 @@ function handleTelem(data){
 				case '_serial':
 					if(we.serialObject) we.serialObject.writeString(data.msg.data);
 				break;
+				case '_speaker':
+					//play incoming audio chunk on browser
+					writeToAudioPlayer(data.msg.data);
+					createconfiglinkGamepadButton(WCI);
+					createconfiglinkKeys(WCI,['hotkey']);
+				break;
 			}
 		}
   }
@@ -782,9 +788,15 @@ function openConfig(e){
 	break;
 	case '_mic':
 		if(!elementOpenInConfig.querySelector('#mic_ap').isMuted) elementOpenInConfig.querySelector('#mic_ap').toggle();
-		createText('publishes base64 encoded PCM on std_msgs/String');
-		createText('Sample rate of 22050 and bit depth of 16');
-		createText('Single channel at 1024 samples per frame');
+		createText('For use with the audio_common player node, the topic name must be /audio/audio');		
+		createText('Publishes to audio_common_msgs/AudioData.msg');
+		createconfiglinkGamepadButton(WCI);
+      	createconfiglinkKeys(WCI,['hotkey']);
+	break;
+	case '_speaker':
+		if(!elementOpenInConfig.querySelector('#speaker_ap').isMuted) elementOpenInConfig.querySelector('#speaker_ap').toggle();
+		createText('For use with the audio_common capture node, the topic name must be /audio/audio');
+		createText('Subscribes to audio_common_msgs/AudioData.msg');
 		createconfiglinkGamepadButton(WCI);
       	createconfiglinkKeys(WCI,['hotkey']);
 	break;
@@ -1021,6 +1033,12 @@ function applyConfigChanges(){
 		}
 	break;
 	case '_mic':
+      WA['useGamepad'] = document.getElementById('useGamepad').checked;
+	  if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
+      WA['useKeys'] = document.getElementById('useKeys').checked;
+      WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
+    break;
+	case '_speaker':
       WA['useGamepad'] = document.getElementById('useGamepad').checked;
 	  if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
       WA['useKeys'] = document.getElementById('useKeys').checked;
@@ -1423,6 +1441,13 @@ function getKeyboardUpdates(){
         if(keys[ck[0]]) ele.toggle();
       }
     }
+	if(widgetArray[w].type == '_speaker' && widgetArray[w].useKeys){
+      let ck = [widgetArray[w].usekey_hotkey];
+      if(keysChanged(ck)){
+        let ele = document.getElementById(widgetArray[w].id).querySelector('#speaker_ap');
+        if(keys[ck[0]]) ele.toggle();
+      }
+    }
     if(widgetArray[w].type == '_slider' && widgetArray[w].useKeys){
       let ck = [widgetArray[w].usekey_Increase,widgetArray[w].usekey_Decrease];
       if(keysChanged(ck)){
@@ -1548,6 +1573,12 @@ function readGamepadLoop(){
         }
         if(widgetArray[w].type == '_mic' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
           var ele = document.getElementById(widgetArray[w].id).querySelector('#mic_ap');
+          if(currentGamepad.buttons[i].pressed){
+			ele.toggle();
+          }
+        }
+		if(widgetArray[w].type == '_speaker' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
+          var ele = document.getElementById(widgetArray[w].id).querySelector('#speaker_ap');
           if(currentGamepad.buttons[i].pressed){
 			ele.toggle();
           }
