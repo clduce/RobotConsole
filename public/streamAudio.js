@@ -29,8 +29,9 @@ function initSpeaker() {
    	  window.AudioContext = window.webkitAudioContext;
   	}
 
-    playbackContext = new AudioContext({sampleRate: 32000});
+    playbackContext = new AudioContext({sampleRate:32000});
 	console.log('audioContext',playbackContext);
+	
 }
 function setMicTopic(){
 	for(let i = 0; i < widgetArray.length; i++){
@@ -103,8 +104,22 @@ function mute(){
 
 //playing audio on the browser
 //plays arraybuffer 16000 16 bit
-function writeToAudioPlayer(soundBuffer){
-	let sound = new Int8Array(soundBuffer);
+var soundBuffers = [];
+var lastTime= 0;
+var outOfData = true;
+function writeToAudioPlayer(buffer){
+	soundBuffers.push(buffer);
+	if(soundBuffers.length > 20){
+		for(let i = 0; i < soundBuffers.length; i++){
+			if(soundBuffers[i] && playbackContext) playArrayBuffer(soundBuffers[i],playbackContext.currentTime+i*0.01,playbackContext.currentTime+(i+1)*0.01);
+		}
+		soundBuffers = [];
+	}
+}
+function playArrayBuffer(buffer,time,stime){
+	if(!playbackContext) return;
+	outOfData = false;
+	let sound = new Int8Array(buffer);
     let frameCount = sound.byteLength/2;
 	var myAudioBuffer = playbackContext.createBuffer(1, frameCount, 16000);
 	var nowBuffering = myAudioBuffer.getChannelData(0,16,16000);
@@ -114,9 +129,13 @@ function writeToAudioPlayer(soundBuffer){
 		
 		var word = (sound[i * 2] & 0xff) + ((sound[i * 2+1] & 0xff) << 8);
 		nowBuffering[i] = ((word + 32768) % 65536 - 32768) / 32768.0;
+		//nowBuffering[i] = (word / 32768.0 - 1);
+		//nowBuffering[i] = Math.sin((i/frameCount)*Math.PI*2);
+		//nowBuffering[i] = Math.random()*2-1;
 	}
 	var source = playbackContext.createBufferSource();
 	source.buffer = myAudioBuffer;
 	source.connect(playbackContext.destination);
-	source.start();
+	source.start(time);
+	source.stop(stime);
 }

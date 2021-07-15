@@ -380,12 +380,13 @@ function initFunctionality(type, newWidget,thisID){
 		ele.toggle = () => {
 			ele.isMuted = !ele.isMuted;
 			ele.updateImage(ele.isMuted);
+			soundBuffers = [];
 			console.log('toggled');
 		};
 		ele.addEventListener('mouseup',()=>{
+			if(!playbackContext) initSpeaker();
 			ele.toggle();
 		});
-		if(!playbackContext) initSpeaker();
 	break;
   }
 }

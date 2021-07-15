@@ -181,7 +181,10 @@ function joinRosTopics(){
 						case '_speaker':
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, 'audio_common_msgs/AudioData', (msg) => {
-								if(!robotMuted) sendTelem({topic:topic,id:i,msg:msg});
+								if(!robotMuted){
+									sendTelem({topic:topic,id:i,msg:msg});
+									console.log(Math.random());
+								}
 							});
 						break;
 						case '_slider':

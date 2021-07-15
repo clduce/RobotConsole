@@ -206,8 +206,6 @@ function handleTelem(data){
 				case '_speaker':
 					//play incoming audio chunk on browser
 					writeToAudioPlayer(data.msg.data);
-					createconfiglinkGamepadButton(WCI);
-					createconfiglinkKeys(WCI,['hotkey']);
 				break;
 			}
 		}
@@ -788,14 +786,14 @@ function openConfig(e){
 	break;
 	case '_mic':
 		if(!elementOpenInConfig.querySelector('#mic_ap').isMuted) elementOpenInConfig.querySelector('#mic_ap').toggle();
-		createText('For use with the audio_common player node, the topic name must be /audio/audio');		
+		createText('For use with the audio_common player node, the topic name must be /audio/audioplay');		
 		createText('Publishes to audio_common_msgs/AudioData.msg');
 		createconfiglinkGamepadButton(WCI);
       	createconfiglinkKeys(WCI,['hotkey']);
 	break;
 	case '_speaker':
 		if(!elementOpenInConfig.querySelector('#speaker_ap').isMuted) elementOpenInConfig.querySelector('#speaker_ap').toggle();
-		createText('For use with the audio_common capture node, the topic name must be /audio/audio');
+		createText('For use with the audio_common capture node, the topic name must be /audio/audiocapture');
 		createText('Subscribes to audio_common_msgs/AudioData.msg');
 		createconfiglinkGamepadButton(WCI);
       	createconfiglinkKeys(WCI,['hotkey']);
