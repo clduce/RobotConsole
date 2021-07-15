@@ -39,7 +39,7 @@ var mainContrast = 0; // -127 127
 var resolutionStack = {};
 var shutdownFlag = false;
 var datatypeOnTopic = [];
-var robotMuted = true;
+var robotMuted = [];
 
 hardcoded = {
 	"show_terminal":false,
@@ -179,11 +179,11 @@ function joinRosTopics(){
 							rospublishers[topic] = nh.advertise(topic, 'audio_common_msgs/AudioData');
 						break;
 						case '_speaker':
+							if(robotMuted[topic] == undefined) robotMuted[topic] = true;
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, 'audio_common_msgs/AudioData', (msg) => {
-								if(!robotMuted){
+								if(!robotMuted[topic]){
 									sendTelem({topic:topic,id:i,msg:msg});
-									//console.log(Math.random());
 								}
 							});
 						break;
@@ -456,29 +456,21 @@ io.sockets.on('connection', function(socket){
   socket.on('closeOtherSockets', function(data){
     socket.broadcast.emit('closeSocket','');
   });
-  socket.on('muteRobotMic', function(data){
-    robotMuted = true;
-	console.log(robotMuted);
-	let widgets = settingsObject['widgets'];
-	for(let i = 0; i < widgets.length; i++) if(widgets[i].type == '_speaker'){
-		if(widgets[i].topic) if(rossubscribers[widgets[i].topic]) rossubscribers[widgets[i].topic].shutdown();
-		break;
-	}
+  socket.on('muteRobotMic', function(topic){
+    robotMuted[topic] = true;
+	if(topic) if(rossubscribers[topic]) rossubscribers[topic].shutdown();
   });
-  socket.on('unmuteRobotMic', function(data){
-    robotMuted = false;
-	console.log(robotMuted);
+  socket.on('unmuteRobotMic', function(topic,id){
+    robotMuted[topic] = false;
 	let widgets = settingsObject['widgets'];
-	for(let i = 0; i < widgets.length; i++) if(widgets[i].type == '_speaker'){
-	  if(widgets[i].topic) if(rossubscribers[widgets[i].topic]){
-		  rossubscribers[widgets[i].topic].shutdown();
-			rossubscribers[widgets[i].topic] = nh.subscribe(widgets[i].topic, 'audio_common_msgs/AudioData', (msg) => {
-			if(!robotMuted){
-				sendTelem({topic:widgets[i].topic,id:widgets[i].id,msg:msg});
+	  if(topic) if(rossubscribers[topic]){
+		  rossubscribers[topic].shutdown();
+			rossubscribers[topic] = nh.subscribe(topic, 'audio_common_msgs/AudioData', (msg) => {
+			if(!robotMuted[topic]){
+				sendTelem({topic:topic,id:id,msg:msg});
 			}
 		});
 	  }
-	}
   });
   socket.on('disconnect', function(data){
 	socket.disconnect();
@@ -520,8 +512,6 @@ function handleRosCTS(data){
 			if(rospublishers[topic]) rospublishers[topic].publish({x:data.x,y:data.y,z:data.z});
 		break;
 	}
-	if(data.type == '_mic') console.log('Publish Ros Mic Data');
-	else console.log('Publish Ros ' + JSON.stringify(data));
 }
 
 

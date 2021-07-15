@@ -270,9 +270,15 @@ function initWidgetElements(){
 //WIDGET BOX INTERACTION
 function mouseEnterWidget(ele){
 	ele.style.zIndex = 100;
+	if(widgetArray[indexMap[ele.id]]?.type == '_rosImage'){
+	   	ele.style.zIndex = 0;
+	}
 }
 function mouseLeaveWidget(ele){
-	ele.style.zIndex = 10;
+	ele.style.zIndex = 1;
+	if(widgetArray[indexMap[ele.id]]?.type == '_rosImage'){
+	   	ele.style.zIndex = 0;
+	}
 }
 
 function dragElement(elmnt) {
@@ -762,6 +768,9 @@ function openConfig(e){
 		createText('This widget subscribes to sensor_msgs/CompressedImage and displays a JPEG.');
 		createText('Or');
 		createconfigInput('Enter the image source (URL)', 'src', WCI['src']);
+		createCheckbox('Maintain aspect ratio', 'aspr', WCI['aspr']);
+		createconfigInput('Opacity (0-100, 0 being completley transparent)', 'opac', WCI['opac']);
+		createCheckbox('Center on screen', 'center', WCI['center']);
 	break;
 	case '_logger':
 		if(!configSettings.lockRos){
@@ -788,6 +797,7 @@ function openConfig(e){
 		if(!elementOpenInConfig.querySelector('#mic_ap').isMuted) elementOpenInConfig.querySelector('#mic_ap').toggle();
 		createText('For use with the audio_common player node, the topic name must be /audio/audioplay');		
 		createText('Publishes to audio_common_msgs/AudioData.msg');
+		createconfigInput('Label', 'mclabel', WCI['label']);
 		createconfiglinkGamepadButton(WCI);
       	createconfiglinkKeys(WCI,['hotkey']);
 	break;
@@ -795,6 +805,7 @@ function openConfig(e){
 		if(!elementOpenInConfig.querySelector('#speaker_ap').isMuted) elementOpenInConfig.querySelector('#speaker_ap').toggle();
 		createText('For use with the audio_common capture node, the topic name must be /audio/audiocapture');
 		createText('Subscribes to audio_common_msgs/AudioData.msg');
+		createconfigInput('Label', 'splabel', WCI['label']);
 		createconfiglinkGamepadButton(WCI);
       	createconfiglinkKeys(WCI,['hotkey']);
 	break;
@@ -833,7 +844,7 @@ function applyConfigChanges(){
       WA['useKeys'] = document.getElementById('useKeys').checked;
       WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
       WA['fontsize'] = document.getElementById('fontsize').value;
-      localWidget.querySelector('#button_ap').style.fontSize = (Number(WA['fontsize'])<4?4:Number(WA['fontsize']))+'px';
+      localWidget.querySelector('#button_ap').style.fontSize = (parseFloat(WA['fontsize'])<4?4:parseFloat(WA['fontsize']))+'px';
       if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
     break;
     case '_checkbox':
@@ -935,8 +946,8 @@ function applyConfigChanges(){
 			if(armdivs[k].querySelector('#armmode')){
 				newArms[i] = {};
 				newArms[i].mode = parseInt(armdivs[k].querySelector('#armmode').value);
-				newArms[i].data = Number(armdivs[k].querySelector('#armdata').value);
-				newArms[i].armlength = Number(armdivs[k].querySelector('#armlength').value);
+				newArms[i].data = parseFloat(armdivs[k].querySelector('#armdata').value);
+				newArms[i].armlength = parseFloat(armdivs[k].querySelector('#armlength').value);
 				newArms[i].color = armdivs[k].querySelector('#armcolor').value;
 				i++;
 			}
@@ -1004,7 +1015,14 @@ function applyConfigChanges(){
     case '_rosImage':
 		WA['label'] = document.getElementById('label').value;
 		WA['src'] = document.getElementById('src').value;
+		WA['opac'] = Number(document.getElementById('opac').value || 100);
+		localWidget.querySelector('#img_ap').style.opacity = WA.opac+'%';
 		if(WA.src) localWidget.querySelector('#img_ap').src = WA.src;
+		WA['aspr'] = document.getElementById('aspr').checked;
+		WA['center'] = document.getElementById('center').checked;
+		centerImageWidget(localWidget,WA);
+		if(WA.aspr) localWidget.querySelector('#img_ap').className = 'showOnDrive containImage';//aspect ratio
+		else  localWidget.querySelector('#img_ap').className = 'showOnDrive stretchImage';//aspect ratio
     break;
     case '_logger':
 		if(!configSettings.lockRos) WA['latching'] = document.getElementById('latching').checked;
@@ -1035,12 +1053,16 @@ function applyConfigChanges(){
 	  if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
       WA['useKeys'] = document.getElementById('useKeys').checked;
       WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
+	  WA['label'] = document.getElementById('mclabel').value;
+      localWidget.querySelector('#label_ap').innerText = WA['label'];
     break;
 	case '_speaker':
       WA['useGamepad'] = document.getElementById('useGamepad').checked;
 	  if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
       WA['useKeys'] = document.getElementById('useKeys').checked;
       WA['usekey_hotkey'] = document.getElementById('usekey_hotkey').value;
+	  WA['label'] = document.getElementById('splabel').value;
+      localWidget.querySelector('#label_ap').innerText = WA['label'];
     break;
     case '_text':
       WA['text'] = document.getElementById('text').value;
@@ -1734,6 +1756,15 @@ window.onresize = function(){
 
 	if(window.innerWidth < 1344) document.getElementById('closeOtherSockets').style.display = 'none';
 	else document.getElementById('closeOtherSockets').style.display = 'inline';
+	
+	//center image if it is supposed to be centered
+	for(let i = 0; i < widgetArray.length;i++){
+		let WA = widgetArray[i];
+		if(WA.type == '_rosImage' && WA.center){
+			let tile = document.getElementById(WA.id);
+				centerImageWidget(tile,WA);
+		}
+	}
 }
 
 function playSound(s){

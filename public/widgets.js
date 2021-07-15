@@ -27,7 +27,7 @@ function widgetFromJson(json){
   switch (type) {
     case '_button':
       tile.querySelector('#button_ap').innerText = json['label'];
-      if(json['fontsize']) tile.querySelector('#button_ap').style.fontSize = Number(json['fontsize'])+'px';
+      if(json['fontsize']) tile.querySelector('#button_ap').style.fontSize = parseFloat(json['fontsize'])+'px';
     break;
     case '_checkbox':
       tile.querySelector('#checkbox_text_ap').innerText = json['label'];
@@ -70,7 +70,11 @@ function widgetFromJson(json){
 	case '_horizon':
 	break;
 	case '_rosImage':
-		  if(json.src) tile.querySelector('#img_ap').src = json.src;
+		  let img_ap = tile.querySelector('#img_ap');
+		  if(json.src) img_ap.src = json.src;
+		  if(json.aspr) img_ap.className = 'showOnDrive containImage';
+		  if(json.opac) img_ap.style.opacity = json.opac+'%';
+		  if(json.center) centerImageWidget(tile,json);
 	break;
 	case '_arm':
       var canvas = tile.querySelector('#arm_ap');
@@ -93,6 +97,7 @@ function widgetFromJson(json){
 	case  '_serial':
 	case  '_mic':
 	case  '_speaker':
+		  tile.querySelector('#label_ap').innerText = json['label'] || '';
 	case  '_panel':
 	case '_mouse':
     break;
@@ -121,6 +126,13 @@ function set4style(tile,json){
 		tile.style.left = '';
 		tile.style.right = json['right'];
 	}
+	if(json.type == '_rosImage' && json.center){
+		centerImageWidget(tile,json);
+	}
+}
+function centerImageWidget(tile,json){
+	tile.style.left = (window.innerWidth/2 - parseInt(tile.style.width)/2)+'px';
+	tile.style.top = (window.innerHeight/2 - parseInt(tile.style.height)/2)+'px';
 }
 function get4position(tile){
 	let index = indexMap[tile.id];
@@ -338,18 +350,24 @@ function initFunctionality(type, newWidget,thisID){
 			ele.querySelector('.imhide').style.display = 'none';
 		};
 		ele.showUnmute = () => {
-			unmute();
-			ele.querySelector('.imshow').style.display = 'none';
-			ele.querySelector('.imhide').style.display = 'unset';
+			var jsw = widgetArray[indexMap[thisID]];	
+			if(jsw) if(jsw.topic){
+				unmute(jsw.topic);
+				ele.querySelector('.imshow').style.display = 'none';
+				ele.querySelector('.imhide').style.display = 'unset';
+			}
 		};
 		ele.updateImage = (muted) => {
 			if(muted) ele.showMute();
 			else ele.showUnmute();
 		};
 		ele.toggle = () => {
-			ele.isMuted = !ele.isMuted;
-			ele.updateImage(ele.isMuted);
-			console.log('toggled');
+			var jsw = widgetArray[indexMap[thisID]];	
+			if(jsw) if(jsw.topic){
+				ele.isMuted = !ele.isMuted;
+				ele.updateImage(ele.isMuted);
+				console.log('mic toggled');
+			}
 		};
 		ele.addEventListener('mouseup',()=>{
 			ele.toggle();
@@ -364,26 +382,38 @@ function initFunctionality(type, newWidget,thisID){
 		var ele = newWidget.querySelector('#speaker_ap');
 		ele.isMuted = true;
 		ele.showMute = () => {
-			socket.emit('muteRobotMic');
-			ele.querySelector('.imshow').style.display = 'unset';
-			ele.querySelector('.imhide').style.display = 'none';
+			var jsw = widgetArray[indexMap[thisID]];	
+			if(jsw) if(jsw.topic){
+				socket.emit('muteRobotMic',jsw.topic);
+				ele.querySelector('.imshow').style.display = 'unset';
+				ele.querySelector('.imhide').style.display = 'none';
+			}
 		};
 		ele.showUnmute = () => {
-			socket.emit('unmuteRobotMic');
-			ele.querySelector('.imshow').style.display = 'none';
-			ele.querySelector('.imhide').style.display = 'unset';
+			var jsw = widgetArray[indexMap[thisID]];	
+			if(jsw) if(jsw.topic){
+				socket.emit('unmuteRobotMic',jsw.topic,jsw.id);
+				ele.querySelector('.imshow').style.display = 'none';
+				ele.querySelector('.imhide').style.display = 'unset';
+			}
 		};
 		ele.updateImage = (muted) => {
 			if(muted) ele.showMute();
 			else ele.showUnmute();
 		};
 		ele.toggle = () => {
-			ele.isMuted = !ele.isMuted;
-			ele.updateImage(ele.isMuted);
-			soundBuffers = [];
-			console.log('toggled');
+  			var jsw = widgetArray[indexMap[thisID]];		
+			console.log('jsw',jsw,jsw.topic);
+			if(jsw) if(jsw.topic){
+				ele.isMuted = !ele.isMuted;
+				ele.updateImage(ele.isMuted);
+				soundBuffers = [];
+				console.log('toggled');
+				console.log(jsw.topic);
+			}
 		};
 		ele.addEventListener('mouseup',()=>{
+			console.log('ok');
 			if(!playbackContext) initSpeaker();
 			ele.toggle();
 		});

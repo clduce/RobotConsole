@@ -1,11 +1,10 @@
 let recorder;
 let audioStream;
 let isMuted = true;
-var micTopic;
-
 var playbackContext;
 var buf;
 function initMic(){
+	audioStream = true; //make sure none of the other widgets try to init an audioStream at the same time
 	if (navigator.getUserMedia)
 	{
 	   navigator.getUserMedia({audio: true}, function(stream){
@@ -33,16 +32,21 @@ function initSpeaker() {
 	console.log('audioContext',playbackContext);
 	
 }
-function setMicTopic(){
+function muteAllMicsNotOnThisTopic(topic){
+	console.log('muting all others');
 	for(let i = 0; i < widgetArray.length; i++){
-		if(widgetArray[i].type == '_mic'){
-			micTopic = widgetArray[i].topic;
-			break;
+		let w = widgetArray[i];
+		let newWidget = document.getElementById(w.id);
+		if(w.topic) if(w.type == '_mic' && w.topic != topic){
+			let m = newWidget.querySelector('#mic_ap');
+			if(m) if(!m.isMuted) m.toggle();
 		}
 	}
 }
-function unmute(){
-	setMicTopic();
+function unmute(micTopic){
+	//mute all other mics
+	muteAllMicsNotOnThisTopic(micTopic);
+	
 	const context = window.AudioContext;
 	const audioContext = new context({sampleRate:32000});
 	const volume = audioContext.createGain();
@@ -65,7 +69,6 @@ function unmute(){
 		
 		 leftChannel[i] = tmp+256;
 	}
-	//sendToRos(micTopic,{value:arrayBufferToBase64(PCM16iSamples)},'_mic');
 	sendToRos(micTopic,{value:leftChannel},'_mic');
 	};
 	// we connect the recorder
@@ -98,7 +101,6 @@ function mute(){
   if(recorder){
 	  recorder.disconnect();
 	  audioInputBuffer = [];
-	  console.log('the mic is muted');
   }
 }
 
