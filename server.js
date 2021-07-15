@@ -183,7 +183,7 @@ function joinRosTopics(){
 							rossubscribers[topic] = nh.subscribe(topic, 'audio_common_msgs/AudioData', (msg) => {
 								if(!robotMuted){
 									sendTelem({topic:topic,id:i,msg:msg});
-									console.log(Math.random());
+									//console.log(Math.random());
 								}
 							});
 						break;
@@ -459,10 +459,26 @@ io.sockets.on('connection', function(socket){
   socket.on('muteRobotMic', function(data){
     robotMuted = true;
 	console.log(robotMuted);
+	let widgets = settingsObject['widgets'];
+	for(let i = 0; i < widgets.length; i++) if(widgets[i].type == '_speaker'){
+		if(widgets[i].topic) if(rossubscribers[widgets[i].topic]) rossubscribers[widgets[i].topic].shutdown();
+		break;
+	}
   });
   socket.on('unmuteRobotMic', function(data){
     robotMuted = false;
 	console.log(robotMuted);
+	let widgets = settingsObject['widgets'];
+	for(let i = 0; i < widgets.length; i++) if(widgets[i].type == '_speaker'){
+	  if(widgets[i].topic) if(rossubscribers[widgets[i].topic]){
+		  rossubscribers[widgets[i].topic].shutdown();
+			rossubscribers[widgets[i].topic] = nh.subscribe(widgets[i].topic, 'audio_common_msgs/AudioData', (msg) => {
+			if(!robotMuted){
+				sendTelem({topic:widgets[i].topic,id:widgets[i].id,msg:msg});
+			}
+		});
+	  }
+	}
   });
   socket.on('disconnect', function(data){
 	socket.disconnect();
