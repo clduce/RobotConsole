@@ -270,14 +270,17 @@ function initWidgetElements(){
 //WIDGET BOX INTERACTION
 function mouseEnterWidget(ele){
 	ele.style.zIndex = 100;
-	if(widgetArray[indexMap[ele.id]]?.type == '_rosImage'){
-	   	ele.style.zIndex = 0;
+	let WA = widgetArray[indexMap[ele.id]];
+	
+	if(WA?.type == '_rosImage'){
+		setImageWidgetOnMouseInteraction(true,ele,WA);
 	}
 }
 function mouseLeaveWidget(ele){
 	ele.style.zIndex = 1;
-	if(widgetArray[indexMap[ele.id]]?.type == '_rosImage'){
-	   	ele.style.zIndex = 0;
+	let WA = widgetArray[indexMap[ele.id]];
+	if(WA?.type == '_rosImage'){
+		setImageWidgetOnMouseInteraction(false,ele,WA);
 	}
 }
 
@@ -297,12 +300,16 @@ function dragElement(elmnt) {
     editing = true;
     WA = widgetArray[indexMap[elmnt.id]];
 
-	get4position(elmnt);
-	useSide(elmnt,true,true);
-	set4style(elmnt);
+	console.log(WA.type, WA.fullscreen);
+	if(!WA.fullscreen){
+		get4position(elmnt);
+		useSide(elmnt,true,true);
+		set4style(elmnt);
 
-    document.onmouseup = closeDragElement;
-    document.onmousemove = elementDrag;
+		document.onmouseup = closeDragElement;
+		//if your draging an image widget and it's in fullscreen
+		document.onmousemove = elementDrag;
+	}
   }
   function elementDrag(e) {
     e = e || window.event;
@@ -331,7 +338,7 @@ function dragElement(elmnt) {
     document.onmousemove = null;
     editing = false;
     if(parseInt(elmnt.style.left,10) < 245 && widgetHolderOpen){
-      removeWidgetFromScreen(elmnt);
+      if(!WA?.fullscreen) removeWidgetFromScreen(elmnt);
     }
     else{
 		elmnt.style.left = snapX(parseInt(elmnt.style.left)) + 'px';
@@ -360,12 +367,14 @@ function dragElement(elmnt) {
     pos3S = e.clientX-parseInt(elmnt.style.width);
     pos4S = e.clientY-parseInt(elmnt.style.height);
 
-    get4position(elmnt);
-	useSide(elmnt,true,true);
-	set4style(elmnt);
+	if(!WA.fullscreen){
+		get4position(elmnt);
+		useSide(elmnt,true,true);
+		set4style(elmnt);
 
-    document.onmouseup = closeScaleElement;
-    document.onmousemove = elementScale;
+		document.onmouseup = closeScaleElement;
+		document.onmousemove = elementScale;
+	 }
   }
   function elementScale(e) {
     e = e || window.event;
@@ -764,13 +773,17 @@ function openConfig(e){
 		openArmConfig(WCI['arms']);
     break;
     case '_rosImage':
-		createconfigInput('Label', 'label', WCI['label']);
 		createText('This widget subscribes to sensor_msgs/CompressedImage and displays a JPEG.');
-		createText('Or');
-		createconfigInput('Enter the image source (URL)', 'src', WCI['src']);
-		createCheckbox('Maintain aspect ratio', 'aspr', WCI['aspr']);
+		if(!configSettings.lockRos){
+			createText('Or');
+			createconfigInput('Enter the image source (URL)', 'src', WCI['src']);
+			createCheckbox('Maintain aspect ratio', 'aspr', WCI['aspr']);
+		}
 		createconfigInput('Opacity (0-100, 0 being completley transparent)', 'opac', WCI['opac']);
 		createCheckbox('Center on screen', 'center', WCI['center']);
+		createCheckbox('Keep behind all other widgets', 'sendtoback', WCI['sendtoback']);
+		createCheckbox('Fullscreen mode (image fills entire screen)', 'fullscreen', WCI['fullscreen']);
+		createconfigInput('Z index (only in fullscreen mode) (between -100 and 0) see info for details', 'zindex', WCI['zindex']);
 	break;
 	case '_logger':
 		if(!configSettings.lockRos){
@@ -1013,16 +1026,23 @@ function applyConfigChanges(){
       WA['label'] = document.getElementById('label').value;
     break;
     case '_rosImage':
-		WA['label'] = document.getElementById('label').value;
 		WA['src'] = document.getElementById('src').value;
-		WA['opac'] = Number(document.getElementById('opac').value || 100);
+		WA['opac'] = Math.max(0,Math.min(100,Number(document.getElementById('opac').value) || 100));
 		localWidget.querySelector('#img_ap').style.opacity = WA.opac+'%';
-		if(WA.src) localWidget.querySelector('#img_ap').src = WA.src;
+		if(!configSettings.lockRos){
+			if(!WA.src) localWidget.querySelector('#img_ap').src = 'phImg.svg';
+			else localWidget.querySelector('#img_ap').src = WA.src;
+		}
 		WA['aspr'] = document.getElementById('aspr').checked;
 		WA['center'] = document.getElementById('center').checked;
-		centerImageWidget(localWidget,WA);
+		WA['sendtoback'] = document.getElementById('sendtoback').checked;
+		  
 		if(WA.aspr) localWidget.querySelector('#img_ap').className = 'showOnDrive containImage';//aspect ratio
-		else  localWidget.querySelector('#img_ap').className = 'showOnDrive stretchImage';//aspect ratio
+		else localWidget.querySelector('#img_ap').className = 'showOnDrive stretchImage';//aspect ratio
+		WA['fullscreen'] = document.getElementById('fullscreen').checked;
+		WA['zindex'] = Math.max(-100,Math.min(0,Number(document.getElementById('zindex').value) || -51));
+		  
+		set4style(localWidget,WA);
     break;
     case '_logger':
 		if(!configSettings.lockRos) WA['latching'] = document.getElementById('latching').checked;
@@ -1659,29 +1679,34 @@ function triggerMouseEvent(node, eventType) {
 //DRIVE MODE
 function toggleDriveMode(){
   if(driveMode){
-    driveMode = false;
+    driveMode = false; //going into edit mode
     let dm = document.getElementById('driveMode');
     dm.innerText = 'Drive';
-
-    for(let i = 0; i < widgetArray.length; i++){
-      if(widgetArray[i].screen == thisScreen){
-        let ele = document.getElementById(widgetArray[i].id);
-        ele.style.visibility='visible';
-      }
-    }
+	//show all widgets
+	for(let i = 0; i < widgetArray.length; i++){
+		let ele = document.getElementById(widgetArray[i].id);
+		ele.style.visibility = 'visible';
+		if(widgetArray[i].type == '_rosImage'){
+			console.log('okok');
+			set4style(ele,widgetArray[i]);
+		}
+	}
     document.getElementsByClassName('toggleWidgetHolder')[0].style.visibility='visible';
   }else{
-    driveMode = true;
+    driveMode = true; //going into drive mode
     let dm = document.getElementById('driveMode');
     dm.innerText = 'Edit';
     hideWidgetHolder();
+	//hide all widgets
+	for(let i = 0; i < widgetArray.length; i++){
+		let ele = document.getElementById(widgetArray[i].id);
+		ele.style.visibility = 'hidden';
+		if(widgetArray[i].type == '_rosImage'){
+			console.log('jokes');
+			set4style(ele,widgetArray[i]);
+		}
+	}
 
-    for(let i = 0; i < widgetArray.length; i++){
-      if(widgetArray[i].screen == thisScreen){
-        let ele = document.getElementById(widgetArray[i].id);
-        ele.style.visibility='hidden';
-      }
-    }
     document.getElementsByClassName('toggleWidgetHolder')[0].style.visibility='hidden';
   }
 }
@@ -1760,9 +1785,9 @@ window.onresize = function(){
 	//center image if it is supposed to be centered
 	for(let i = 0; i < widgetArray.length;i++){
 		let WA = widgetArray[i];
-		if(WA.type == '_rosImage' && WA.center){
+		if(WA.type == '_rosImage'){
 			let tile = document.getElementById(WA.id);
-				centerImageWidget(tile,WA);
+			set4style(tile,WA);
 		}
 	}
 }

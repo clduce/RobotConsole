@@ -18,9 +18,7 @@ function widgetFromJson(json){
   tile.id = json['id'];
   tile.style.zIndex = 20;
   if(type == '_box') tile.style.zIndex = 5;
-  
-  set4style(tile,json);
-	
+  	
 	tile.style.width = json['w'];
 	tile.style.height = json['h'];
   
@@ -70,11 +68,10 @@ function widgetFromJson(json){
 	case '_horizon':
 	break;
 	case '_rosImage':
-		  let img_ap = tile.querySelector('#img_ap');
-		  if(json.src) img_ap.src = json.src;
-		  if(json.aspr) img_ap.className = 'showOnDrive containImage';
-		  if(json.opac) img_ap.style.opacity = json.opac+'%';
-		  if(json.center) centerImageWidget(tile,json);
+		let img_ap = tile.querySelector('#img_ap');
+		if(json.src) img_ap.src = json.src;
+		if(json.aspr) img_ap.className = 'showOnDrive containImage';
+		if(json.opac) img_ap.style.opacity = json.opac+'%';
 	break;
 	case '_arm':
       var canvas = tile.querySelector('#arm_ap');
@@ -106,12 +103,14 @@ function widgetFromJson(json){
 		  return;
 	break;
   }
+	  set4style(tile,json);
 
   initFunctionality(json['type'],tile,tile.id);
 }
 //json is the widget array for the tile widget
 function set4style(tile,json){
 	if(!json) json=widgetArray[indexMap[tile.id]];
+
 	if(json['useTop']){
 		 tile.style.top = json['top'];
 		 tile.style.bottom = '';
@@ -126,9 +125,45 @@ function set4style(tile,json){
 		tile.style.left = '';
 		tile.style.right = json['right'];
 	}
-	if(json.type == '_rosImage' && json.center){
-		centerImageWidget(tile,json);
+	tile.style.width = json['w'];
+	tile.style.height = json['h'];
+	
+	if(json.type == '_rosImage'){
+		styleImageWidget(tile,json);
 	}
+}
+function styleImageWidget(tile,json){
+	if(json.sendtoback) tile.style.zIndex = 0;
+	if(json.fullscreen){
+		makeImageWidgetFullscreen(tile,json);
+	}else{
+		if(!json.sendtoback){
+			tile.style.zIndex = 0;
+		}
+		if(json.center) centerImageWidget(tile,json);
+	}
+}
+function setImageWidgetOnMouseInteraction(isMouseEntering,tile,json){
+	if(isMouseEntering){
+		console.log('entering');
+		if(json.sendtoback){
+			tile.style.zIndex = 0;
+		}
+		else{
+			tile.style.zIndex = 100;
+		}
+	}else{
+		tile.style.zIndex = 0;
+	}
+	if(json.fullscreen) tile.style.zIndex = json.zindex || 0; 
+}
+function makeImageWidgetFullscreen(tile,json){
+	let topOffset = driveMode ? 0 : 50;
+	tile.style.left = '0px';
+	tile.style.top = topOffset + 'px';
+	tile.style.width = window.innerWidth+'px';
+	tile.style.height = (window.innerHeight-topOffset)+'px';
+	tile.style.zIndex = json.zindex;
 }
 function centerImageWidget(tile,json){
 	tile.style.left = (window.innerWidth/2 - parseInt(tile.style.width)/2)+'px';
@@ -136,6 +171,7 @@ function centerImageWidget(tile,json){
 }
 function get4position(tile){
 	let index = indexMap[tile.id];
+	if(widgetArray[index].type == '_rosImage' && widgetArray[index].fullscreen) return;
 	if(widgetArray[index]['useTop']){
 		 widgetArray[index].top = parseInt(tile.style.top) + 'px';
 		 widgetArray[index].bottom = (window.innerHeight - parseInt(tile.style.height) - parseInt(tile.style.top)) + 'px';
@@ -160,6 +196,7 @@ function useClosest(tile){
 }
 function useSide(tile,uleft,utop){
 	let index = indexMap[tile.id];
+	if(widgetArray[index].type == '_rosImage' && widgetArray[index].fullscreen) return;
 	if(uleft) widgetArray[index].useLeft = true;
 	else widgetArray[index].useLeft = false;
 	if(utop) widgetArray[index].useTop = true;
@@ -247,19 +284,23 @@ function initFunctionality(type, newWidget,thisID){
     case '_button':
       //setup brodcast functionality for element
       newWidget.querySelector('#button_ap').onmousedown = function(){
+		var jsw = widgetArray[indexMap[thisID]];
         sendToRos(jsw['topic'],{value:jsw['onPress'] || true},jsw['type']);
       };
       newWidget.querySelector('#button_ap').onmouseup = function(){
+	    var jsw = widgetArray[indexMap[thisID]];
         sendToRos(jsw['topic'],{value:jsw['onRelease'] || false},jsw['type']);
       };
     break;
     case '_checkbox':
       //setup brodcast functionality for element
       newWidget.querySelector('#checkbox_ap').onchange = function(e){
+		var jsw = widgetArray[indexMap[thisID]];
         sendToRos(jsw['topic'],{value:e.target.checked ? jsw['onPress'] : jsw['onRelease']},jsw['type']);
       };
     break;
     case '_slider':
+		var jsw = widgetArray[indexMap[thisID]];
       //setup brodcast functionality for element
        if(jsw){
 		   if(jsw['vertical']){
@@ -276,6 +317,7 @@ function initFunctionality(type, newWidget,thisID){
 		}
     break;
     case '_inputbox':
+	    var jsw = widgetArray[indexMap[thisID]];
       //setup brodcast functionality for element
 	  function send(){
           sendToRos(jsw['topic'],{value:newWidget.querySelector('#input_ap').value},jsw['type']);
@@ -291,6 +333,7 @@ function initFunctionality(type, newWidget,thisID){
       };
     break;
 	case '_mouse':
+	   var jsw = widgetArray[indexMap[thisID]];
 		var mouseCanvas = newWidget.querySelector('#mousecanvas_ap');
 		mouseCanvas.writeText = function(text,text2){
 			let ctx = mouseCanvas.getContext('2d');
