@@ -48,11 +48,13 @@ hardcoded = {
 	"reset_usb_devices_on_boot":false,
 	"use_https":false,
 	"video_paths":[],
+	"video_blacklist":[],
 	"video_enabled":true
 };
 
 //get settings from json and send to client
-hardcoded = JSON.parse(fs.readFileSync(HARDCODED_SETTINGS_PATH));
+Object.assign(hardcoded,JSON.parse(fs.readFileSync(HARDCODED_SETTINGS_PATH)));
+
 var RESET_USB_PORTS_ON_BOOT = hardcoded.reset_usb_devices_on_boot || false;
 var VIDEO_PATHS = hardcoded.video_paths;
 var video_enabled = hardcoded.video_enabled;
@@ -106,10 +108,11 @@ if(VIDEO_PATHS.length == 0 && video_enabled){
 	console.log(namedDevices);
 
 	console.log('CHECKING VALIDITY OF V4l2 DEVICES...');
+	console.log('blacklist:',hardcoded.video_blacklist);
 	let dkeys = Object.keys(namedDevices);
 	for(let i = 0; i < dkeys.length; i++){
 		let devices = namedDevices[dkeys[i]];
-		if(!dkeys[i].includes('bcm2835-codec')){	//make sure camera is real
+		if(!dkeys[i].includes('bcm2835-codec')){//make sure camera is real
 			for(let d = 0; d < devices.length; d++){
 				let output = cp.execSync('v4l2-ctl -d '+devices[d]+' --get-fmt-video || true',{shell:true}).toString().split(/\r?\n/);
 				if(!output[0].includes('Invalid Argument')){ //make sure v4l pixel format is valid
@@ -123,6 +126,8 @@ if(VIDEO_PATHS.length == 0 && video_enabled){
 let camArray = [], index = 0;
 if(video_enabled){
 	if(VIDEO_PATHS.length > 0) validDevices = VIDEO_PATHS;
+	//remove all blacklisted videopaths
+	validDevices = validDevices.filter((el)=> !hardcoded.video_blacklist.includes(el));
 	console.log('(CONNECTING TO OPENCV) VALID DEVICES',validDevices);
 	for(let i = 0; i < validDevices.length; i++){
 		camArray[index] = new cv.VideoCapture(validDevices[i]);

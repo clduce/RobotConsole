@@ -1,5 +1,4 @@
 //Provides help messages for widgets and other things
-//Created by Mark Skinner, May 2021
 
 function showHelp(){
 	document.getElementById('configWindow').style.left = '48%';

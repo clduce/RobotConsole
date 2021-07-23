@@ -1,38 +1,96 @@
-var editing = false;//this is true when you drag elements
+/*
+	Created by Mark Skinner, 2020-2021
+	
+	This file manipulates index.html, creating and removing elements dynamically.
+	It also connects to the server using a socket connection. In short this is how it works:
+	
+	1. A socket connection is esablished
+	2. Info about widgets + other settings are retireved
+	3. Widgets are constructed from that info, and their functionality is initialized,
+	   making it possible for users to interact with the widgets to send info back to the server
+	4. A handler is set up to listen to incoming telemetry from the server.
+	   When telem recieved, the widgets or other html elements are updated.
+	   
+*/
+
+//this becomes true when an element is being dragged
+var editing = false;
+
+//keep track of whether the window is in full screen mode or not
 var fullScreen=false;
+
+//a semi-transparent div overlay used in showing the user messages
 var mask = document.getElementById('mask');
+
+//divs for config window and terminal window
 var configWindow = document.getElementById('configWindow');
 var terminal = document.getElementById('terminal');
-var configIsOpen = false,elementOpenInConfig, terminalIsOpen = false;
-var driveMode = false, widgetHolderOpen = true;
-var currentID, currentIndex;
-var widgetArray = [],configSettings;
+
+//states for open windows
+var configIsOpen = false,
+	elementOpenInConfig,
+	terminalIsOpen = false,
+	widgetHolderOpen = true;
+
+//becomes true if the UI is in drive mode
+var driveMode = false;
+
+//the ID and index of the widget that has it's config window open
+var currentID,
+	currentIndex;
+
+//containers for the server-sent settings.json
+var widgetArray = [],
+	configSettings;
+
 var snapWidgets = false;
-var socket, connected = false;
-var loadedElements = false;//flag to check if elements have been constructed from json sent from server
-var madeThumbs = false;
-var readGamepadInterval,currentGamepad,oldGamepad,lastChangedAxis;
-var thisScreen = 1;
-var keys = {};
-var oldKeys = {};
-var time = new Date();
-var lastwidth = 0;
-let sounds = ['bells.mp3','warning.mp3','message.mp3','info.mp3','xylo.mp3'];//change only this to add or remove sounds
+
+//flags to check if elements have been constructed from json sent from server
+var loadedElements = false,
+	madeThumbs = false;
+
+//all gamepad related variables
+var readGamepadInterval,
+	currentGamepad,
+	oldGamepad,
+	lastChangedAxis,
+	gamepadCount = 0;
+
+//all keyboard related variables
+var keys = {},
+	oldKeys = {};
+
+
+//to add a sound to the audio widget, simply add the audio file to the server directory, and add the name of the file in here. Nothing else has to be done.
+let sounds = [
+	'bells.mp3',
+	'warning.mp3',
+	'message.mp3',
+	'info.mp3',
+	'xylo.mp3'
+];
+
+//width of the thumbnail element
 const THUMBWIDTH = 150;
+
+//video stream
 let mainImage = document.getElementById('mainImage');
-let gamepadCount = 0;
+
+//the last width of the videostream image, used to reposition the video thumbnails
+var lastwidth = 0;
+
 //use same IP to connect to socket server as to connect to express
+var socket, connected = false;
 socket = io(window.location.hostname + ':' + window.location.port);
-var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-//get all config from server
-socket.on('connection',function(){
-	console.log('connect');
-});
+
+//a handler for when the entire settings.json file is retrieved from the server
 socket.on('settings',function(data){
+	
+	//remove all tiles for running processes in the terminal
 	let p = document.getElementsByClassName('pbutton');
 	for(let i = 0; i < p.length; i++) p[i].remove();
+	
 	if(!loadedElements){
-		socket.emit('setScreen1');
 		console.log(data);
 		configSettings = data['config'];
 		widgetArray = data['widgets'];
@@ -47,7 +105,7 @@ socket.on('settings',function(data){
 		updateIndexMap();
 		for (let a of widgetArray){
 			//generate HTML element for each widget
-			if(a.screen == thisScreen) widgetFromJson(a);
+			widgetFromJson(a);
 		}
 		if(!data.config['loadInEditMode'] || isMobile()) toggleDriveMode();
 		else showWidgetHolder();
@@ -60,6 +118,8 @@ socket.on('settings',function(data){
 	}
 	if(!configIsOpen && !terminalIsOpen) hideMessage();
 });
+
+//recieves hardcoded settings and removes elements from the UI that are not in compliance
 socket.on('hardcoded_settings',function(data){
 	hardcoded = data;
 	if(data.allow_edit_mode && !isMobile()) document.getElementById('driveMode').style.display = 'inline';
@@ -68,10 +128,13 @@ socket.on('hardcoded_settings',function(data){
 	if(isMobile()) document.getElementById('togFullScreen').style.display = 'none';
 	if(isMobile()) document.getElementById('gpselect').style.display = 'none';
 });
+
+//are we on a touchscreen?
 function isMobile(){
 	return 'ontouchend' in document;
 }
-//on video feed recieve
+
+// ====== MAIN VIDEO =======
 socket.on('image',function(data){
 	mainImage.src=`data:image/jpeg;base64,${_arrayBufferToBase64(data)}`;
 });
@@ -84,6 +147,8 @@ function _arrayBufferToBase64( buffer ) {
     }
     return window.btoa( binary );
 }
+
+//delete all resolution options for the thumbnails and recreate them from the configSettings
 function refreshSelectPresets(){
 	let selects = document.getElementsByClassName('cam_presets');
 	for(let i = 0; i < selects.length; i++){
@@ -96,6 +161,8 @@ function refreshSelectPresets(){
 		else selects[i].value = 0;
 	}
 }
+
+//creates the html button for a macro with name and cmd to be run
 function addMacro(name,cmd){
 	if(name != undefined && name && cmd != undefined && cmd){
 		let html = '<button class="macroButton"onmouseup="runMacro(\''+cmd+'\')">'+name+'</button>';
@@ -107,7 +174,9 @@ function runMacro(cmd){
 	document.getElementById('cmdValue').value = cmd;
 	runCmdFromInput();
 }
+
 //data is how many cameras, ind is current camera selected, cps is presets for each camera
+//this handler will generate all thumbnails
 socket.on('makeThumbs',function(data,ind,cps){
 	if(data || ind || cps){
 		if(madeThumbs){
@@ -115,6 +184,7 @@ socket.on('makeThumbs',function(data,ind,cps){
 			for(let i = all.length-1; i >= 0; i--) all[i].remove();
 			madeThumbs = false;
 		}
+		
 		//use camSelect(number 0-max cams) to switch the camera
 		let tiles = document.getElementsByClassName('imageTile');
 		for(let i = 0; i < tiles.length; i++) tiles[i].remove();
@@ -141,9 +211,12 @@ socket.on('makeThumbs',function(data,ind,cps){
 		}
 	}
 });
+
 function changePreset(cam,me){
 	socket.emit('setPreset',{c:cam,v:me.value});
 }
+
+//========== HANDLE INCOMING TELEMETRY FROM SERVER ==========
 socket.on('telem',function(data){
 	handleTelem(data);
 });
@@ -211,35 +284,51 @@ function handleTelem(data){
 		}
   }
 };
+
+//fps = fps of the main video
 socket.on('fps',(fps)=>{
 	document.getElementById('fps').innerText = 'FPS: '+parseInt(fps);
 });
+
+//data = number of clients connected to the server
 socket.on('instanceCount',function(data){
 	if(document.getElementById('instanceCount')) document.getElementById('instanceCount').innerText = 'clients: ' + data;
 });
+
+//ms = ping in milliseconds from the server
 socket.on('pong',function(ms){
 	document.getElementById('ping').innerText = 'ping '+('000'+ms).slice(-4)+'ms';
 	if(configSettings.heartbeat) socket.emit('hb',ms); //emit ping as a ros message if applicable
 	if(ms > 400){
-		document.getElementById('ping').style.color = "#F00";
-	}else {
-		document.getElementById('ping').style.color = "#FFF";
+		document.getElementById('ping').style.color = "#F00"; //red
+	}
+	else if(ms > 200){
+		document.getElementById('ping').style.color = "#FE0"; //yellow
+	}
+	else {
+		document.getElementById('ping').style.color = "#FFF"; //white
 	}
 	if(mainImage.width != lastwidth){
 		repositionThumbs();
 	}
 	lastwidth = mainImage.width;
 });
+
+//used to close the socket from the server side
 socket.on('closeSocket',function(data){
 	connected = false;
 	showMessage('Socket was closed. Reload page to reopen');
 	console.log('manual disconnect');
 	socket.disconnect(true);
 });
+
+//sends request to close all other clients
 function closeOtherSockets(){
 	socket.emit('closeOtherSockets');
 }
-//initalize all graphical Widgets in source bar
+
+//====== INITIALIZE ALL ELEMENTS IN THE WIDGET PANEL
+
 var canvas = document.getElementById('_joystick').querySelector('#canvas_ap');
 initJoystick(canvas, true);
 drawJoystick(canvas,0,0);
@@ -256,7 +345,7 @@ for (let a of tempList) {
   sourceElement(a);
 }
 
-//initalize javascript for all dragable elements:
+//initalize javascript for all dragable source elements:
 initWidgetElements();
 
 function initWidgetElements(){
@@ -267,7 +356,8 @@ function initWidgetElements(){
 }
 
 
-//WIDGET BOX INTERACTION
+//WIDGET MOUSEOVER INTERACTION
+//change the z index of the widgets to allow editing
 function mouseEnterWidget(ele){
 	ele.style.zIndex = 100;
 	let WA = widgetArray[indexMap[ele.id]];
@@ -603,7 +693,7 @@ function overlaps(x,y,w,h,  x2,y2,w2,h2){
 	return false;
 }
 
-//ONBOARD TERMINAL
+// ============================== ONBOARD TERMINAL ==============================
 const outputele = document.getElementById('cmdOutput');
 socket.on('cmdOut',function(data){
 	outputele.value = outputele.value + data;
@@ -655,7 +745,9 @@ socket.on('cmdStopButtons',function(data){
 	}
 });
 
-//===================================WIDGET CONFIGURATION PANEL============================================
+//=================================== WIDGET CONFIGURATION PANEL============================================
+//This is opened when you click the gear on a widget
+
 //open configuration settings panel for each widget
 function openConfig(e){
   //load field values with JSON settingss
@@ -834,7 +926,8 @@ function openConfig(e){
   configWindow.style.display='inline';
   configIsOpen = true;
 }
-//====================================apply=config=changes=============================
+
+//==================================== APPLY CONFIG CHANGES =============================
 function applyConfigChanges(){
   //the widget were applying settings on
   var localWidget = document.getElementById(currentID);
@@ -1124,7 +1217,8 @@ function guardTopicName(ele){
 	}
 	ele.value = str;
 }
-//============================================Specific config javascript-generated html
+
+//===================== FUNCTIONS TO GENERATE HTML ELEMENTS FOR CONFIG PANEL ======================
 function generateSelectorOptions(opts = [{text:'Option 1',value:'Option 1'},{text:'Option 2',value:'Option 2'}]){
 	var html = '';
 	for(let i = 0; i < opts.length; i++){
@@ -1411,7 +1505,7 @@ function createRange(array){
   configWindow.appendChild(p);
 }
 
-//==================================================KEYBOARD INTERFACING
+//====================== KEYBOARD INTERFACING ====================
 var inc; //interval id. also used in gamepad loop
 document.addEventListener('keydown', (e) => {
 	if(!configIsOpen && !terminalIsOpen){
@@ -1531,7 +1625,7 @@ function setSliderDirection(value,arr){
 }
 
 let gamepad_index = 0;
-//=========================================================GAMEPAD INTERFACING
+//================= GAMEPAD INTERFACING ============================
 window.addEventListener("gamepadconnected", function(e) {
 	if(gamepadCount == 0) document.getElementById('gpselect').innerHTML = '';
 	gamepadCount++;
@@ -1542,7 +1636,6 @@ window.addEventListener("gamepadconnected", function(e) {
 	if(readGamepadInterval) clearInterval(readGamepadInterval);
 	readGamepadInterval = setInterval(readGamepadLoop,30);
 });
-
 window.addEventListener("gamepaddisconnected", function(e) {
 	clearInterval(readGamepadInterval);
 	gamepadCount--;
@@ -1587,7 +1680,7 @@ function readGamepadLoop(){
         lastChangedAxis = Math.floor(i/2);
       }
       for(let w = 0; w < widgetArray.length; w++){
-        if(widgetArray[w].screen == thisScreen && widgetArray[w].type == '_joystick' && widgetArray[w].useGamepad && 'useAxis' in widgetArray[w] && widgetArray[w].useAxis == Math.floor(i/2))
+        if(widgetArray[w].type == '_joystick' && widgetArray[w].useGamepad && 'useAxis' in widgetArray[w] && widgetArray[w].useAxis == Math.floor(i/2))
         drawJoystick(document.getElementById(widgetArray[w].id).querySelector('#canvas_ap'),currentGamepad.axes[widgetArray[w].useAxis*2],currentGamepad.axes[widgetArray[w].useAxis*2+1],false);
       }
     }
@@ -1763,6 +1856,7 @@ function camSelect(me){
   }
   socket.emit('setCam',me);
 }
+
 //align small previews of image to left side of main image
 function repositionThumbs(){
 	let tileArray = document.getElementsByClassName('imageTile');
@@ -1824,11 +1918,15 @@ function closeFullscreen() {
   }
 }
 
+//toggle window fullscreen
 function toggleFullscreen(){
 	if(fullScreen) closeFullscreen();
 	else openFullscreen();
 	fullScreen = !fullScreen;
 }
+
+//stop the server.
+//because of the service, the server will be restarted. Thats why the 'restarting server' message is shown
 function exitServer(d){
 	console.log('exiting server...');
 	socket.emit('exit',d);

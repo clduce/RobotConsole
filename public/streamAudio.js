@@ -1,8 +1,8 @@
 let recorder;
 let audioStream;
-let isMuted = true;
 var playbackContext;
-var buf;
+
+//called once to initialize the microphone
 function initMic(){
 	audioStream = true; //make sure none of the other widgets try to init an audioStream at the same time
 	if (navigator.getUserMedia)
@@ -19,6 +19,8 @@ function initMic(){
 	   alert('getUserMedia not supported in this browser.');
 	}
 }
+
+//called once to initialize the speaker
 function initSpeaker() {
 	if (!window.AudioContext) {
   	  if (!window.webkitAudioContext) {
@@ -32,6 +34,8 @@ function initSpeaker() {
 	console.log('audioContext',playbackContext);
 	
 }
+
+//scans through every mic widget and toggles it if it's on
 function muteAllMicsNotOnThisTopic(topic){
 	console.log('muting all others');
 	for(let i = 0; i < widgetArray.length; i++){
@@ -43,6 +47,10 @@ function muteAllMicsNotOnThisTopic(topic){
 		}
 	}
 }
+
+//called by a mic widget
+//mutes all other mic widgets
+//starts immediatly sending audio messages to ros
 function unmute(micTopic){
 	//mute all other mics
 	muteAllMicsNotOnThisTopic(micTopic);
@@ -75,28 +83,9 @@ function unmute(micTopic){
 	volume.connect(recorder);
 	// start recording
 	recorder.connect(audioContext.destination);
-	console.log('the mic is unmuted');
 }
-function playByteArray(byteArray){
-}
-function arrayBufferToBase64( buffer ) {
-	var binary = '';
-	var bytes = new Uint8Array( buffer );
-	var len = bytes.byteLength;
-	for (var i = 0; i < len; i++) {
-		binary += String.fromCharCode( bytes[ i ] );
-	}
-	return window.btoa( binary );
-}
-function base64ToArrayBuffer(base64) {
-    var binary_string =  window.atob(base64);
-    var len = binary_string.length;
-    var bytes = new Uint8Array( len );
-    for (var i = 0; i < len; i++)        {
-        bytes[i] = binary_string.charCodeAt(i);
-    }
-    return bytes.buffer;
-}
+
+//shut down the mic
 function mute(){
   if(recorder){
 	  recorder.disconnect();
@@ -106,9 +95,10 @@ function mute(){
 
 //playing audio on the browser
 //plays arraybuffer 16000 16 bit
+//audio is stored in a circular buffer, when the buffer is full, the audio is scheduled and played back async.
+//writeToAudioPlayer is called when a new packet of audio arives in main.js socket.on('telem')
 var soundBuffers = [];
 var lastTime= 0;
-var outOfData = true;
 function writeToAudioPlayer(buffer){
 	soundBuffers.push(buffer);
 	if(soundBuffers.length > 20){
@@ -120,20 +110,14 @@ function writeToAudioPlayer(buffer){
 }
 function playArrayBuffer(buffer,time,stime){
 	if(!playbackContext) return;
-	outOfData = false;
 	let sound = new Int8Array(buffer);
     let frameCount = sound.byteLength/2;
 	var myAudioBuffer = playbackContext.createBuffer(1, frameCount, 16000);
 	var nowBuffering = myAudioBuffer.getChannelData(0,16,16000);
 	for (var i = 0; i < frameCount; i++) {
-		//var word = (sound[i * 2] & 0xff) + ((sound[i * 2 + 1] & 0xff) << 8);
-		//nowBuffering[i] = ((word + 32768) % 65536 - 32768) / 32768.0;
-		
 		var word = (sound[i * 2] & 0xff) + ((sound[i * 2+1] & 0xff) << 8);
 		nowBuffering[i] = ((word + 32768) % 65536 - 32768) / 32768.0;
 		//nowBuffering[i] = (word / 32768.0 - 1);
-		//nowBuffering[i] = Math.sin((i/frameCount)*Math.PI*2);
-		//nowBuffering[i] = Math.random()*2-1;
 	}
 	var source = playbackContext.createBufferSource();
 	source.buffer = myAudioBuffer;

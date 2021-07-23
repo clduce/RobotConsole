@@ -7,9 +7,6 @@
 </head>
 
 <style>
-body{
-  /* overflow: hidden; */
-}
 .label{
   font-family: Tahoma, Geneva, sans-serif;
   font-weight: normal;
@@ -105,7 +102,7 @@ body{
 </div>
 <div class='settings'>
 	<button onclick='exportFile()'>Export</button>
-	<input type='file' accept='.json' onchange='loadJsonFile(this)'></input>
+	<input type='file' accept='.json' onchange='loadJsonFile(this)' />
   <div id='cams' class='div' style='background-color:beige'>
 	<h1 class='cat' id='camcount'>Cameras</h1>
 	<p style="margin:5px">It's best to set the default resolution low.</p>
@@ -123,24 +120,28 @@ body{
   <div class='div' style='background-color:antiquewhite'>
 	<h1 class='cat'>Console Settings</h1>
 	<p class="inputLabel">Console name</p>
-	<input class='consoleName'></input><br>
+	<input class='consoleName' /><br>
 	<p class="inputLabel">Start in edit mode</p>
-	<input type='checkbox'class='loadInEditMode'></input><br>
+	<input type='checkbox'class='loadInEditMode' /><br>
 	<p class="inputLabel">Background color</p>
-	<input type='color' class='background'></input><br>
+	<input type='color' class='background' /><br>
 	<p class="inputLabel">Snap widgets to grid</p>
-	<input checked type='checkbox'class='snaptogrid'></input><br>
+	<input checked type='checkbox'class='snaptogrid' /><br>
 	<p class="inputLabel">Save widget positions on reload</p>
-	<input checked type='checkbox'class='saveWidgets'></input><br>
+	<input checked type='checkbox'class='saveWidgets' /><br>
   </div>
   <div class='div' style='background-color:skyblue'>
 	<h1 class='cat'>ROS Settings</h1>
 	<p class="inputLabel">Lock all ros settings</p>
-	<input type='checkbox'class='lockRos'></input><br>
+	<input type='checkbox'class='lockRos' /><br>
 	<p class="inputLabel">ROS topic name for topbar (subs to string)</p>
-	<input class='consoleText'></input><br>
+	<input class='consoleText' /><br>
 	<p class="inputLabel">ROS topic name for ping (publishes ping to std_msgs/Int16)</p>
-	<input class='heartbeat'></input><br>
+	<input class='heartbeat' /><br>
+  </div>
+  <div id='noteholder' class='div' style='background-color:beige'>
+	<h1 class='cat' id='camcount'>Notes</h1>
+	<textarea id='notes'style='resize:none;width:calc(100% - 5px); height:100px'></textarea>
   </div>
 </div>
 <div id='mask' style="position: fixed; z-index: 120; background-color:rgba(0, 0, 0, 0.6); width:100%; height:100%; top:0px; left:0px;"></div>

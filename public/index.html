@@ -399,7 +399,7 @@ button:focus {outline:0;}
   
   <div class="panel source" id="_checkbox" style="width:200px;height:52px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Checkbox<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <input id='checkbox_ap' class='checkbox showOnDrive' type='checkbox'><span id='checkbox_text_ap' class='checkboxLabel showOnDrive'>Label</span></input>
+    <input id='checkbox_ap' class='checkbox showOnDrive' type='checkbox'><span id='checkbox_text_ap' class='checkboxLabel showOnDrive'>Label</span>
     <img src="resize.png" id="resize" />
   </div>
 
@@ -411,13 +411,13 @@ button:focus {outline:0;}
   
   <div class="panel source" id="_slider" style="width:200px;height:52px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Slider<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <input min="0" max="100" step="1" id='slider_ap' type='range' class='slider showOnDrive'></input>
+    <input min="0" max="100" step="1" id='slider_ap' type='range' class='slider showOnDrive' />
     <img src="resize.png" id="resize" />
   </div>
   
   <div class="panel source" id="_inputbox" style="width:200px;height:57px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Input Box<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <input placeholder='type something...' id='input_ap' class='showOnDrive'></input><button id='inputboxbutton' class='showOnDrive'>Send</button>
+    <input placeholder='type something...' id='input_ap' class='showOnDrive' /><button id='inputboxbutton' class='showOnDrive'>Send</button>
     <img src="resize.png" id="resize" />
   </div>
 
@@ -538,7 +538,7 @@ button:focus {outline:0;}
 <div spellcheck="false" id='terminal' class="panel" style="display: none; z-index: 121;width:80%; height:90%; left:10%; top:5%; overflow-y:auto">
 	<div style="position:absolute;width:65%; height:100%; left:0%; top:0px; overflow-y:auto">
 		<h1>Terminal</h1>
-		<input id='cmdValue'style='width:calc(70% - 77px);height:40px; font-size:25px'></input><button onclick='runCmdFromInput()'style='margin:0px;margin-left:10px;height:46px; width:80px; transform:translateY(-3px)'>Run</button><button onclick='clearTerminal()'style='margin:0px;margin-left:10px;height:46px; width:80px; transform:translateY(-3px)'>Clear</button>
+		<input id='cmdValue'style='width:calc(70% - 77px);height:40px; font-size:25px' /><button onclick='runCmdFromInput()'style='margin:0px;margin-left:10px;height:46px; width:80px; transform:translateY(-3px)'>Run</button><button onclick='clearTerminal()'style='margin:0px;margin-left:10px;height:46px; width:80px; transform:translateY(-3px)'>Clear</button>
 		<textarea id='cmdOutput'style='resize:none;width:calc(70% + 105px);height:calc(100% - 235px); margin-top:10px'></textarea>
 	</div>
 	<div style="position:absolute;width:35%; height:100%; left:65%; top:0px; overflow-y:auto">
@@ -556,7 +556,7 @@ button:focus {outline:0;}
 <!-- config settins panel -->
 <div id='configWindow' class="panel" style="display: none;z-index: 121;width:50%; height:80%; left:25%; top:10%; overflow-y:auto">
   <h1 class='settingsLabel' id='topiclabel' style="margin-top: 20px;">ROS Topic Name</h1>
-  <input class="settingInput" id='topicTitle' onchange='guardTopicName(this)'></input>
+  <input class="settingInput" id='topicTitle' onchange='guardTopicName(this)' />
   <button onclick="toggleHelp()" class="label darken" style="font-size: 20px;background-color:gainsboro; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:140px;">Info</button>
   <button onclick="applyConfigChanges();removeWidgetFromScreen(elementOpenInConfig);hideHelp();" class="label darken" style="font-size: 20px;background-color:#fc9d9d; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;left:10px;">Delete</button>
   <button onclick="applyConfigChanges();hideHelp()" class="label darken" style="font-size: 20px;background-color:#9de7fc; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:10px;">Done</button>

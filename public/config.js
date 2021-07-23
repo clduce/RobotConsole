@@ -1,17 +1,20 @@
+//this script is responsible for loading data into and out of config.html
+//it communicates its changes to the server
+
 socket = io(window.location.hostname + ':' + window.location.port);
 var mask = document.getElementById('mask');
 let settings = {};
 let camcount = 1;
 let gotSettings = false, gotThumbs = false;
+
 socket.on('settings', (data) => {
 	if(!gotSettings){
 		settings = data;
 		gotSettings = true;
-		//addPresets(settings.config.cams.presets.length);
-		//addMacros(settings.config.macros.length);
 	}
 	hideMessage();
 });
+
 socket.on('hardcoded_settings',function(data){
 	if(!data.show_config_settings) document.body.innerHTML = '';
 });
@@ -33,6 +36,7 @@ socket.on('makeThumbs',(data) => {
 	document.getElementById('header').innerText = 'Robot Settings';
 });
 
+//put data from (data) in the html
 function populateConfig(data){
 	if(!data['cams']) data['cams'] = {};
 	addPresets(data.cams.presets.length);
@@ -71,8 +75,11 @@ function populateConfig(data){
 	document.getElementsByClassName('lockRos')[0].checked = data['lockRos'];
 	document.getElementsByClassName('consoleText')[0].value = data['consoleText'] || '';
 	document.getElementsByClassName('heartbeat')[0].value = data['heartbeat'] || '';
+	document.getElementById('notes').value = data['notes'] || '';
 	console.log('done loading settings');
 }
+
+//does the opposite of populateConfig, grabbing info from the html and returning it
 function generateConfig(){
 	let data = settings.config;
 	for(let i = 0; i < document.getElementsByClassName('cams_name').length; i++){
@@ -106,8 +113,11 @@ function generateConfig(){
 	data['lockRos'] = document.getElementsByClassName('lockRos')[0].checked;
 	data['consoleText'] = guardTopicName(document.getElementsByClassName('consoleText')[0].value) || '';
 	data['heartbeat'] = guardTopicName(document.getElementsByClassName('heartbeat')[0].value) || '';
+	data['notes'] = document.getElementById('notes').value;
 	return data;
 }
+
+//make sure a ros topic name is not going to break ros
 function guardTopicName(name){
 	let fstr = name.trim();
 	str='';
@@ -117,13 +127,14 @@ function guardTopicName(name){
 	}
 	return str;
 }
+
 //theese functions add the DOM for the dynamic settings. c is number of doms to add
 function addCams(c){
 	for(let i = 0; i < c; i++){
 		let html = "<p class='inputLabel'>Default preset</p>"+
 		"<select class='cams_preset'></select>"+
 		"<p class='inputLabel'>Camera name</p>"+
-		"<input class='cams_name'></input>"+
+		"<input class='cams_name' />"+
 		"<p class='inputLabel'>Rotation</p>"+
 		"<select class='cams_rotation'><option value='0'>0&deg</option><option value='1'>90&deg</option><option value='2'>180&deg</option><option value='3'>270&deg</option></select>"+
 		"<p class='inputLabel'>Contrast</p>"+
@@ -148,15 +159,15 @@ function addPresets(c){
 	for(let i = 0; i < allDivs.length; i++) allDivs[i].remove();
 	for(let i = 0; i < c; i++){
 		let html = "<div class='presetdiv'><p class='inputLabel'>Preset name</p>"+
-		"<input class='presets_name'onkeyup='onPresetNameChage()'></input>"+
+		"<input class='presets_name'onkeyup='onPresetNameChage()' />"+
 		"<p class='inputLabel'>Width (px)</p>"+
-		"<input class='presets_width'style='width:50px'></input>"+
+		"<input class='presets_width'style='width:50px' />"+
 		"<p class='inputLabel'>Height (px)</p>"+
-		"<input class='presets_height'style='width:50px'></input>"+
+		"<input class='presets_height'style='width:50px' />"+
 		"<p class='inputLabel'>Quality (0-100)</p>"+
-		"<input class='presets_quality'style='width:50px'></input>"+
+		"<input class='presets_quality'style='width:50px' />"+
 		"<p class='inputLabel'>Max Framerate</p>"+
-		"<input class='presets_fps'style='width:50px'></input>"+
+		"<input class='presets_fps'style='width:50px' />"+
 		"<button style='margin-left:5px;width:50px'class='presets_delete'onclick='deletePreset(this)'>delete</button>"+
 		"<br></div>";
 		document.getElementById('presets').insertAdjacentHTML('beforeend',html);
@@ -167,9 +178,9 @@ function addMacros(c){
 	for(let i = 0; i < allDivs.length; i++) allDivs[i].remove();
 	for(let i = 0; i < c; i++){
 		let html = "<div class='macrodiv'><p class='inputLabel'>Macro name</p>"+
-		"<input class='macro_name'></input>"+
+		"<input class='macro_name' />"+
 		"<p class='inputLabel'>Command</p>"+
-		"<input class='macro_cmd'style='width:650px'></input>"+
+		"<input class='macro_cmd'style='width:650px' />"+
 		"<button style='margin-left:5px;width:50px'class='presets_delete'onclick='deletePreset(this)'>delete</button>"+
 		"<br></div>";
 		document.getElementById('macros').insertAdjacentHTML('beforeend',html);
@@ -177,15 +188,15 @@ function addMacros(c){
 }
 function addPreset(){
 	let html = "<div class='presetdiv'><p class='inputLabel'>Preset name</p>"+
-	"<input class='presets_name'value='default'onkeyup='onPresetNameChage()'></input>"+
+	"<input class='presets_name'value='default'onkeyup='onPresetNameChage()' />"+
 	"<p class='inputLabel'>Width (px)</p>"+
-	"<input class='presets_width'value='320'style='width:50px'></input>"+
+	"<input class='presets_width'value='320'style='width:50px' />"+
 	"<p class='inputLabel'>Height (px)</p>"+
-	"<input class='presets_height'value='240'style='width:50px'></input>"+
+	"<input class='presets_height'value='240'style='width:50px' />"+
 	"<p class='inputLabel'>Quality (0-100)</p>"+
-	"<input class='presets_quality'value='95'style='width:50px'></input>"+
+	"<input class='presets_quality'value='95'style='width:50px' />"+
 	"<p class='inputLabel'>Max Framerate</p>"+
-	"<input class='presets_fps'value='20'style='width:50px'></input>"+
+	"<input class='presets_fps'value='20'style='width:50px' />"+
 	"<button style='margin-left:5px;width:50px'class='presets_delete'onclick='deletePreset(this)'>delete</button>"+
 	"<br></div>";
 	document.getElementById('presets').insertAdjacentHTML('beforeend',html);
@@ -193,9 +204,9 @@ function addPreset(){
 }
 function addMacro(){
 	let html = "<div class='macrodiv'><p class='inputLabel'>Macro name</p>"+
-	"<input class='macro_name'></input>"+
+	"<input class='macro_name' />"+
 	"<p class='inputLabel'>Command</p>"+
-	"<input class='macro_cmd'style='width:650px'></input>"+
+	"<input class='macro_cmd'style='width:650px' />"+
 	"<button style='margin-left:5px;width:50px'class='presets_delete'onclick='deletePreset(this)'>delete</button>"+
 	"<br></div>";
 	document.getElementById('macros').insertAdjacentHTML('beforeend',html);
@@ -291,7 +302,5 @@ function hideMessage(){
 function exitServer(d){
 	console.log('exiting server...');
 	socket.emit('exit',d);
-	//uncomment below to reset the web page too
 	showMessage('Restarting Server...');
-	//location.reload();
 }

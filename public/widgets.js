@@ -1,9 +1,14 @@
-//parses json into widgets
-//contains functionality for all Widgets
+//This file contains all the functions for creating and styling widgets
+
+
 //a hashtable like array that stores indexes at different id's
 var indexMap, topicMapIndex;
-// TODO: add details for all types of widgets
+
+//takes in a json object representing a widget and generates the html and javascript functionality for that widget
 function widgetFromJson(json){
+	
+  //make sure it is possible to create the widget
+  //if it is, duplicate one of the same type from the widget menu
   var type = json['type'];
   if(!type){
 	  console.log(json,'widget does not have a type and cannot be created');
@@ -15,13 +20,16 @@ function widgetFromJson(json){
 	  console.log(`widget type ${type} doesn't exist in this version of UI`);
 	  return;
   }
+  
+  //assign some properties
   tile.id = json['id'];
   tile.style.zIndex = 20;
   if(type == '_box') tile.style.zIndex = 5;
   	
-	tile.style.width = json['w'];
-	tile.style.height = json['h'];
+  tile.style.width = json['w'];
+  tile.style.height = json['h'];
   
+  //customize the widget with information from the json array
   switch (type) {
     case '_button':
       tile.querySelector('#button_ap').innerText = json['label'];
@@ -63,10 +71,6 @@ function widgetFromJson(json){
       canvas.setAttribute("data-config",JSON.stringify({min:json.min,max:json.max,bigtick:json.bigtick,smalltick:json.smalltick, title:json.label}));
       drawGauge(canvas,json.min,json);
     break;
-	case '_compass':
-	break;
-	case '_horizon':
-	break;
 	case '_rosImage':
 		let img_ap = tile.querySelector('#img_ap');
 		if(json.src) img_ap.src = json.src;
@@ -89,25 +93,20 @@ function widgetFromJson(json){
 	case '_box':
 		tile.querySelector('#panel_ap').style.backgroundColor = json['bkColor'];
 	break;
-    case '_logger':
-    case '_inputbox':
-	case  '_serial':
-	case  '_mic':
 	case  '_speaker':
-		  tile.querySelector('#label_ap').innerText = json['label'] || '';
-	case  '_panel':
-	case '_mouse':
+		tile.querySelector('#label_ap').innerText = json['label'] || '';
     break;
-	default:
-		  console.log(`widget type ${type} doesn't exist in this version of UI`);
-		  return;
-	break;
   }
-	  set4style(tile,json);
+	
+  //set the widget's position and style from it's json object
+  set4style(tile,json);
 
   initFunctionality(json['type'],tile,tile.id);
 }
+
 //json is the widget array for the tile widget
+//tile is the html element of the widget
+//based on the json file, the widget will either use the top or the left to align itself
 function set4style(tile,json){
 	if(!json) json=widgetArray[indexMap[tile.id]];
 
@@ -132,6 +131,9 @@ function set4style(tile,json){
 		styleImageWidget(tile,json);
 	}
 }
+
+//==== IMAGE WIDGET FUNCTIONS ====
+//specfic styling for the image widget
 function styleImageWidget(tile,json){
 	if(json.sendtoback) tile.style.zIndex = 0;
 	if(json.fullscreen){
@@ -143,6 +145,8 @@ function styleImageWidget(tile,json){
 		if(json.center) centerImageWidget(tile,json);
 	}
 }
+//sets the z index of the image widget
+//this is different from other widgets because of the nature of the image widget
 function setImageWidgetOnMouseInteraction(isMouseEntering,tile,json){
 	if(isMouseEntering){
 		console.log('entering');
@@ -169,6 +173,9 @@ function centerImageWidget(tile,json){
 	tile.style.left = (window.innerWidth/2 - parseInt(tile.style.width)/2)+'px';
 	tile.style.top = (window.innerHeight/2 - parseInt(tile.style.height)/2)+'px';
 }
+
+
+//retrieves the positinon of the widget on the screen and saves it to the widgetArray
 function get4position(tile){
 	let index = indexMap[tile.id];
 	if(widgetArray[index].type == '_rosImage' && widgetArray[index].fullscreen) return;
@@ -187,6 +194,7 @@ function get4position(tile){
 		widgetArray[index].left = (window.innerWidth - parseInt(tile.style.width) - parseInt(tile.style.right)) + 'px';
 	}
 }
+//have the html widget (tile) use the closest edges of the window to align to
 function useClosest(tile){
 	let index = indexMap[tile.id];
 	if(parseInt(widgetArray[index].left) < parseInt(widgetArray[index].right)) widgetArray[index].useLeft = true;
@@ -202,6 +210,7 @@ function useSide(tile,uleft,utop){
 	if(utop) widgetArray[index].useTop = true;
 	else widgetArray[index].useTop = false;
 }
+
 //returns json from widget
 //assigns the newWidget an id and functionality
 function makeUnique(type,newWidget){
@@ -277,7 +286,9 @@ function makeUnique(type,newWidget){
   initFunctionality(type,newWidget,thisID);
   return thisWidget;
 }
-//##### This function only runs if a case for the widget type is also declared in widgetFromJson()
+
+//any functionality for a widget should be implemented here.
+//making all functions properties of the actual html element works very well in this case, as there is almost always a reference to the element
 function initFunctionality(type, newWidget,thisID){
   var jsw = widgetArray[indexMap[thisID]];
   switch(type){
@@ -293,7 +304,6 @@ function initFunctionality(type, newWidget,thisID){
       };
     break;
     case '_checkbox':
-      //setup brodcast functionality for element
       newWidget.querySelector('#checkbox_ap').onchange = function(e){
 		var jsw = widgetArray[indexMap[thisID]];
         sendToRos(jsw['topic'],{value:e.target.checked ? jsw['onPress'] : jsw['onRelease']},jsw['type']);
@@ -301,7 +311,6 @@ function initFunctionality(type, newWidget,thisID){
     break;
     case '_slider':
 		var jsw = widgetArray[indexMap[thisID]];
-      //setup brodcast functionality for element
        if(jsw){
 		   if(jsw['vertical']){
 				newWidget.querySelector('#slider_ap').className += ' vertical';
@@ -318,7 +327,6 @@ function initFunctionality(type, newWidget,thisID){
     break;
     case '_inputbox':
 	    var jsw = widgetArray[indexMap[thisID]];
-      //setup brodcast functionality for element
 	  function send(){
           sendToRos(jsw['topic'],{value:newWidget.querySelector('#input_ap').value},jsw['type']);
 		  newWidget.querySelector('#input_ap').value = '';
@@ -463,7 +471,10 @@ function initFunctionality(type, newWidget,thisID){
 	break;
   }
 }
-//returns the widget-clone as a dragable object
+
+//finds the widget element from the widget menu and duplicates it
+//returning a new widget-clone as a dragable half-functional widget
+//functionality is added later
 function widgetFromId(id){
   let itm = document.getElementById(id);
   if(!itm){
@@ -497,18 +508,25 @@ function widgetFromId(id){
   document.getElementById("body").appendChild(cln);
   return cln;
 }
+
+//the index map is an array that takes the widget id, and returns the index of that widget in the widgetArray
 function updateIndexMap(){
   indexMap=[];
   for(let i = 0; i < widgetArray.length; i++){
     indexMap[widgetArray[i].id] = i;
   }
 }
+
+//similar to the indexMap, topicMapIndex takes in a widget's topic and returns it's id
 function updateTopicMapIndex(){
   topicMapIndex=[];
   for(let i = 0; i < widgetArray.length; i++){
     topicMapIndex[widgetArray[i].topic] = widgetArray[i].id;
   }
 }
+
+//when generating an id for the html element of the widget,
+//a unique one is found by looking for the lowest available number
 function generateUniqueId(index){
   for(let i = 0; i < 500; i++){
     if(typeof indexMap[i] === "undefined"){
@@ -520,6 +538,8 @@ function generateUniqueId(index){
   }
 }
 
+//final destination for a outbound ros message on the client side
+//sendToRos checks and combines the topic, data, and type before sending it to the server
 function sendToRos(topic,data,type){
 	//console.log('ros out',topic,data,type);
   if(topic != undefined && topic != '/' && topic != ''){
@@ -529,15 +549,27 @@ function sendToRos(topic,data,type){
   }
 }
 
-//widgetArray methods
+
+//-------- widgetArray methods
+
+//sends the entire widget array to the server
+// WCTS -> Widgets Client To Server
+function sendWidgetsArray(){
+  socket.emit('WCTS',widgetArray);
+}
+
+//adds a widget object to the widgetArray and syncs with the server
+//THIS DOES NOT ADD AN HTML REPRESENTATION OF THE WIDGET
 function addWidget(data){
   widgetArray.push(data);
   updateIndexMap();
   updateTopicMapIndex();
   sendWidgetsArray();
 };
+
+//ONLY CALLED ON END DRAG
+//updates the widget's position based on it's json object (data)
 function moveWidget(data){
-  //data is an object of the element's position
   for(let i = 0; i < widgetArray.length; i++){
     if(widgetArray[i]['id'] == data.id){
       widgetArray[i]['left'] = data.x;
@@ -545,8 +577,10 @@ function moveWidget(data){
       break;
     }
   }
-  //sendWidgetsArray();
 }
+
+//does the same things as moveWidget, but with width and height
+//sends the widgetArray after
 function resizeWidget(data){
   //data is an object of the element's position
   for(let i = 0; i < widgetArray.length; i++){
@@ -558,8 +592,10 @@ function resizeWidget(data){
   }
   sendWidgetsArray();
 }
+
+//removes a widget only from the json array, then syncs with the server
+//DOES NOT REMOVE THE ACTUAL HTML WIDGET
 function deleteWidget(data){
-  //data is the json object of the new widget
   for(let i = 0; i < widgetArray.length; i++){
     if(widgetArray[i]['id'] == data){
       widgetArray.splice(i,1);
@@ -569,7 +605,4 @@ function deleteWidget(data){
   updateIndexMap();
   updateTopicMapIndex();
   sendWidgetsArray();
-}
-function sendWidgetsArray(){
-  socket.emit('WCTS',widgetArray);//widgets client to server
 }
