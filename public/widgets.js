@@ -358,10 +358,14 @@ function initFunctionality(type, newWidget,thisID){
 			if(document.pointerLockElement === mouseCanvas || document.mozPointerLockElement === mouseCanvas){
 				console.log('on');
 				document.onmousemove = mouseCanvas.updateMousePosition;
+				document.onmousedown = mouseCanvas.updateMousePosition;
+				document.onmouseup = mouseCanvas.updateMousePosition;
 				mouseCanvas.writeText('Press ESC','to exit');
 			}else{
 				console.log('off');
 				document.onmousemove = null;
+				document.onmousedown = null;
+				document.onmouseup = null;
 				mouseCanvas.writeText('Click for','pointer lock');
 			}
 		}

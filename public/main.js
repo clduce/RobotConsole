@@ -472,6 +472,7 @@ function dragElement(elmnt) {
     pos1S = pos3S - e.clientX;
     pos2S = pos4S - e.clientY;
 
+	//widgets must be bigger than 76 wide and 61 tall
     if(pos1S > -76) pos1S = -76;
     if(pos2S > -61) pos2S = -61;
 
@@ -793,6 +794,10 @@ function openConfig(e){
 	  if(!configSettings.lockRos) createText('geometry_msgs/Vector3');
       createconfiglinkGamepadAxis(WCI);
       createconfiglinkKeys(WCI,['up','left','down','right']);
+    break;
+	case '_mouse':
+	  if(!configSettings.lockRos) createText('geometry_msgs/Vector3');
+      createText('The z component is the mouse state. 0 is nothing. 1 is left mouse. 2 is right mouse');
     break;
     case '_checkbox':
       createconfigInput('Label', 'label', WCI['label']);
