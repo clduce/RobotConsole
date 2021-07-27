@@ -4,6 +4,7 @@ var playbackContext;
 
 //called once to initialize the microphone
 function initMic(){
+	if(window.location.protocol !== "https:") return;
 	audioStream = true; //make sure none of the other widgets try to init an audioStream at the same time
 	if (navigator.getUserMedia)
 	{

@@ -6,8 +6,6 @@
 */
 const RESET_SOCKET_AFTER_MS = 30000; //if the ping gets above this, the socket will reset
 
-var PORT = 3000;
-
 //this allows more reliable camera connection, but extends boot time by 5 seconds. It also requires the sudoers rule below
 //use 'sudo visudo' and add this line to the bottom: ubuntu ALL=(root) NOPASSWD: /home/ubuntu/catkin_ws/src/roboquest_ui/src/resetUsbCams.sh
 
@@ -42,18 +40,37 @@ var datatypeOnTopic = [];
 var robotMuted = [];
 
 hardcoded = {
-	"show_terminal":false,
-	"show_config_settings":false,
-	"allow_edit_mode":false,
+	"default_port":3000,
+	"show_terminal":true,
+	"show_config_settings":true,
+	"allow_edit_mode":true,
 	"reset_usb_devices_on_boot":false,
 	"use_https":false,
 	"video_paths":[],
 	"video_blacklist":[],
-	"video_enabled":true
+	"video_enabled":false
 };
 
 //get settings from json and send to client
 Object.assign(hardcoded,JSON.parse(fs.readFileSync(HARDCODED_SETTINGS_PATH)));
+
+var PORT = hardcoded.default_port;
+for(let i = 0; i < process.argv.length; i++){
+	if(process.argv[i] === '-p' || process.argv[i] === '--port'){
+		let raw_val = process.argv[i+1];
+		if(typeof raw_val !== 'undefined'){
+			let num = Number(raw_val);
+			if(typeof num === 'number') if(Number.isInteger(num)){
+				PORT = num;
+				console.log(`@PARAM setting PORT to ${PORT}`);
+			}else{
+				console.log(`@PARAM using default port`);
+			}
+		}else{
+			console.log(`@PARAM using default port`);
+		}
+	}
+}
 
 var RESET_USB_PORTS_ON_BOOT = hardcoded.reset_usb_devices_on_boot || false;
 var VIDEO_PATHS = hardcoded.video_paths;
@@ -230,7 +247,7 @@ function joinRosTopics(){
 						case '_rosImage':
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, 'sensor_msgs/CompressedImage', (msg) => {
-								sendTelem({topic:topic,id:i,msg:msg.data});
+								sendTelem({topic:topic,id:i,msg:msg.data,isPng:msg.format==='png'});
 							});
 						break;
 						case '_light':
@@ -283,7 +300,7 @@ function joinRosTopics(){
 function sendTelem(data){
 	io.emit('telem',data);
 }
-rosnodejs.initNode('/webserver').then(() => {
+rosnodejs.initNode('/webserver_'+PORT).then(() => {
 	nh = rosnodejs.nh;
 	joinRosTopics();
 }).catch((e) => {

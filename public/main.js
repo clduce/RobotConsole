@@ -253,7 +253,8 @@ function handleTelem(data){
 				break;
 				break;
 				case '_rosImage':
-					var blob = new Blob([new Uint8Array(data.msg)],{type:"image/jpeg"});
+					console.log('gotimage',data);
+					var blob = new Blob([new Uint8Array(data.msg)],{type:data.isPng?'image/png':'image/jpeg'});
 					var urlCreator = window.URL || window.webkitURL;
 					var imageURL = urlCreator.createObjectURL(blob);
 					we.querySelector('#img_ap').src=imageURL;
@@ -1128,7 +1129,7 @@ function applyConfigChanges(){
 		WA['opac'] = Math.max(0,Math.min(100,Number(document.getElementById('opac').value) || 100));
 		localWidget.querySelector('#img_ap').style.opacity = WA.opac+'%';
 		if(!configSettings.lockRos){
-			if(!WA.src) localWidget.querySelector('#img_ap').src = 'phImg.svg';
+			if(!WA.src) localWidget.querySelector('#img_ap').src = 'phImg.jpg';
 			else localWidget.querySelector('#img_ap').src = WA.src;
 		}
 		WA['aspr'] = document.getElementById('aspr').checked;
