@@ -23,6 +23,7 @@ function initMic(){
 
 //called once to initialize the speaker
 function initSpeaker() {
+	if(window.location.protocol !== "https:") return;
 	if (!window.AudioContext) {
   	  if (!window.webkitAudioContext) {
    	     alert("AudioContext is not supported on this browser");
@@ -53,6 +54,7 @@ function muteAllMicsNotOnThisTopic(topic){
 //mutes all other mic widgets
 //starts immediatly sending audio messages to ros
 function unmute(micTopic){
+	if(window.location.protocol !== "https:") return;
 	//mute all other mics
 	muteAllMicsNotOnThisTopic(micTopic);
 	
@@ -88,6 +90,7 @@ function unmute(micTopic){
 
 //shut down the mic
 function mute(){
+  if(window.location.protocol !== "https:") return;
   if(recorder){
 	  recorder.disconnect();
 	  audioInputBuffer = [];

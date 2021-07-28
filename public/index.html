@@ -409,6 +409,13 @@ button:focus {outline:0;}
     <canvas class='joystickCanvas showOnDrive' id='canvas_ap' width="100px" height="100px"></canvas>
     <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
+	
+  <div class="panel source" id="_paddle" style="width:200px;height:57px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
+    <div id="header">Paddle<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
+	<div class='showOnDrive' id='paddle_background' style="width:100%; height:calc(100% - 22px); background:#FFF"></div>
+    <div class='showOnDrive' id='paddle_ap' style="position:absolute;top:22px;left:0px;width:0%; height:calc(100% - 22px); background:#71ea71"></div>
+    <img src="res/resize.png" id="resize" loading='lazy'/>
+  </div>
   
   <div class="panel source" id="_slider" style="width:200px;height:52px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Slider<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
@@ -571,7 +578,7 @@ button:focus {outline:0;}
 <div id='messagePanel' class="panel" style="z-index: 121;width:500px; height:150px; left:calc(50% - 250px); top:calc(50% - 75px); overflow-y:auto; display:flex;align-items:center;justify-content:center">
   <h1 class='settingsLabel' id='messagePanelText' style="margin: 0px;font-size:25px;">Waiting for Socket Connection...</h1>
   <div id='pb'><div id='pbm'></div></div>
-  <img id='restartToCockpit'src='res/cockpit.svg' onclick="window.open('https://'+window.location.hostname+':9090/system/services#/roboQuestUI.service')" style='display:none;transform:translate(250px,-20px);cursor:pointer;position:absolute;width:57px;border:none;bottom:50%;right:50%;filter:contrast(0)' loading='lazy'/>
+  <img id='restartToCockpit'src='res/cockpit.svg' onclick="window.open('https://'+window.location.hostname+':9090/system/services#/roboQuestUI.service')" style='display:none;transform:translate(250px,-20px);cursor:pointer;position:absolute;width:57px;border:none;bottom:50%;right:50%;filter:contrast(0)'/>
 </div>
 <script src="help.js" charset="utf-8" defer></script>
 <script src="canvas.js" charset="utf-8" defer></script>

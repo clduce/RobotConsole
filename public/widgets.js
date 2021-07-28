@@ -47,6 +47,10 @@ function widgetFromJson(json){
       canvas.width = parseInt(json['w']);
       drawJoystick(canvas,0,0);
     break;
+	case '_paddle':
+	  tile.querySelector('#paddle_background').style.background = json.back;
+	  tile.querySelector('#paddle_ap').style.background = json.bar;
+	break;
     case '_slider':
       tile.querySelector('#slider_ap').min = json['min'];
       tile.querySelector('#slider_ap').max = json['max'];

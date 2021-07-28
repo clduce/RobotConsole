@@ -475,9 +475,17 @@ function dragElement(elmnt) {
     pos1S = pos3S - e.clientX;
     pos2S = pos4S - e.clientY;
 
-	//widgets must be bigger than 76 wide and 61 tall
-    if(pos1S > -76) pos1S = -76;
-    if(pos2S > -61) pos2S = -61;
+
+    let minWidth = 76,
+	    minHeight = 61;
+
+	if(WA.type == '_paddle'){
+		minWidth = 30,
+	    minHeight = 30;
+	}
+	  
+    if(pos1S > -minWidth) pos1S = -minWidth;
+    if(pos2S > -minHeight) pos2S = -minHeight;
 
     let newHeight = snapY(-pos2S) + "px";
     let newWidth = snapX(-pos1S) + "px";
@@ -798,6 +806,14 @@ function openConfig(e){
       createconfiglinkGamepadAxis(WCI);
       createconfiglinkKeys(WCI,['up','left','down','right']);
     break;
+	case '_paddle':
+	  if(!configSettings.lockRos) createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64','std_msgs/Float32']);
+      createText('To use, make sure the gamepad is in XInput mode (X), not DirectInput (x)');
+      createconfiglinkGamepadPaddle(WCI);
+	  createColorSelect('Bar color','bar',WCI.bar==undefined?'#71ea71':WCI.bar);
+	  createColorSelect('Background color','back',WCI.back==undefined?'#FFFFFF':WCI.back);
+	  createSelect('Extend from edge', 'edge', WCI['edge'] ,['Left','Right','Top','Bottom']);
+    break;
 	case '_mouse':
 	  if(!configSettings.lockRos) createText('geometry_msgs/Vector3');
       createText('The z component is the mouse state. 0 is nothing. 1 is left mouse. 2 is right mouse');
@@ -987,6 +1003,18 @@ function applyConfigChanges(){
       WA['usekey_down'] = document.getElementById('usekey_down').value;
       WA['usekey_right'] = document.getElementById('usekey_right').value;
       if(lastChangedAxis != -1) WA['useAxis'] = lastChangedAxis;
+    break;
+	case '_paddle':
+      WA['useGamepad'] = document.getElementById('useGamepad').checked;
+	  if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
+	  if(!configSettings.lockRos){
+		WA['msgType'] = document.getElementById('msgType').value;
+  	  }
+	  WA.bar = document.getElementById('bar').value;
+	  WA.back = document.getElementById('back').value;
+	  WA.edge = document.getElementById('edge').value;
+	  localWidget.querySelector('#paddle_background').style.background = WA.back;
+	  localWidget.querySelector('#paddle_ap').style.background = WA.bar;
     break;
     case '_slider':
       WA['min'] = document.getElementById('min').value;
@@ -1428,6 +1456,22 @@ function createconfiglinkGamepadButton(array, opts){
   }
   document.getElementById('useGamepad').checked = array["useGamepad"];
 }
+function createconfiglinkGamepadPaddle(array){
+	var label = document.createElement("h1");
+	label.className = 'settingsLabel specific';
+	label.style.margin = '20px 0px 0px 0px';
+	label.innerHTML = 'Use gamepad input <input id="useGamepad" type="checkbox" />';
+	label.style.margin.bottom = '0px';
+	configWindow.appendChild(label);
+	var buttonText = document.createElement("p");
+	buttonText.className = 'specific';
+	buttonText.id='replaceWithPButton';
+	buttonText.style.margin = '0px';
+	if(array["useButton"] == -1) buttonText.innerHTML = 'Press a paddle on the gamepad to link...';
+	else buttonText.innerHTML = 'Paired to paddle: '+array['useButton'];
+	configWindow.appendChild(buttonText);
+	document.getElementById('useGamepad').checked = array["useGamepad"];
+}
 function createconfiglinkKeys(array,keylabels=['hotkey']){
   var label = document.createElement("h1");
   label.className = 'settingsLabel specific';
@@ -1694,13 +1738,13 @@ function readGamepadLoop(){
     }
   }
   for(let i = 0; i < currentGamepad.buttons.length; i++){
-    if(currentGamepad.buttons[i].pressed != oldGamepad.buttons[i].pressed){
+    if(currentGamepad.buttons[i].pressed !== oldGamepad.buttons[i].pressed){
       if(configIsOpen){
         lastChangedButton = i;
         if(document.activeElement.className.includes('gamepad')) document.activeElement.value = lastChangedButton;
         if(document.getElementById('replaceWithCButton')) document.getElementById('replaceWithCButton').innerText = `Paired to button: ${lastChangedButton}`;
       }
-      for(let w = 0; w < widgetArray.length; w++){
+      else for(let w = 0; w < widgetArray.length; w++){
         if(widgetArray[w].type == '_button' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
           var ele = document.getElementById(widgetArray[w].id).querySelector('#button_ap');
           if(currentGamepad.buttons[i].pressed){
@@ -1768,6 +1812,59 @@ function readGamepadLoop(){
 		}
       }
     }
+	if(currentGamepad.buttons[i].value !== oldGamepad.buttons[i].value){
+      if(configIsOpen){
+		if(currentGamepad.buttons[i].value % 1 !== 0){
+			lastChangedButton = i;
+			if(document.activeElement.className.includes('gamepad')) document.activeElement.value = lastChangedButton;
+			if(document.getElementById('replaceWithPButton')) document.getElementById('replaceWithPButton').innerText = `Paired to paddle: ${lastChangedButton}`;
+		}
+      }
+      else for(let w = 0; w < widgetArray.length; w++){
+        if(widgetArray[w].type == '_paddle' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
+          var ele = document.getElementById(widgetArray[w].id).querySelector('#paddle_ap');
+		  sendToRos(widgetArray[w]['topic'],{value:currentGamepad.buttons[i].value},widgetArray[w]['type']);
+			
+          switch(widgetArray[w].edge){
+			case 'Right':
+			  ele.style.right = '0px';
+			  ele.style.left = 'unset';
+			  ele.style.top = '22px';
+			  ele.style.bottom = 'unset';
+			  ele.style.width = (currentGamepad.buttons[i].value*100)+'%';
+			  ele.style.height = 'calc(100% - 22px)';
+			  break;
+
+			case 'Top':
+			  ele.style.left = '0px';
+			  ele.style.top = '22px';
+			  ele.style.bottom = 'unset';
+			  ele.style.right = 'unset';
+			  ele.style.height = 'calc('+currentGamepad.buttons[i].value*100 + '% - 22px)';
+			  ele.style.width = '100%';
+			  break;
+				  
+			case 'Bottom':
+			  ele.style.left = '0px';
+			  ele.style.bottom = '0px';
+			  ele.style.top = 'unset';
+			  ele.style.right = 'unset';
+			  ele.style.width = '100%';
+			  ele.style.height = 'calc('+currentGamepad.buttons[i].value*100 + '% - 22px)';
+			  break;
+				  
+		    default: //case: Left
+			  ele.style.left = '0px';
+			  ele.style.right = 'unset';
+			  ele.style.top = '22px';
+			  ele.style.bottom = 'unset';
+			  ele.style.height = 'calc(100% - 22px)';
+			  ele.style.width = (currentGamepad.buttons[i].value*100)+'%';
+			  break;
+		  }
+		}
+	  }
+	}
   }
   oldGamepad = currentGamepad;
 }

@@ -196,6 +196,11 @@ function joinRosTopics(){
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
 						break;
+						case '_paddle':
+							datatypeOnTopic[topic] = widgets[i]['msgType'] || 'std_msgs/Float64';
+							if(rospublishers[topic]) rospublishers[topic].shutdown();
+							rospublishers[topic] = nh.advertise(topic, datatypeOnTopic[topic],{latching:latch});
+						break;
 						case '_mic':
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, 'audio_common_msgs/AudioData');
@@ -519,6 +524,7 @@ function handleRosCTS(data){
 		case '_dropdown':
 		case '_inputbox':
 		case '_slider':
+		case '_paddle':
 			if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
 		break;
 		case '_joystick':
