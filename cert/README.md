@@ -1,0 +1,1 @@
+Theese certificates are self-signed. For a more secure connection you can replace with your own self signed one, or even use an actual recognized certificate.
