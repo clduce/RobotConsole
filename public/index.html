@@ -3,7 +3,7 @@
 <head>
   <meta name="viewport" content="initial-scale=1, user-scalable=no">
   <meta charset="utf-8">
-  <link rel="icon"href="icon.ico"type="image/x-icon">
+  <link rel="icon"href="res/icon.ico"type="image/x-icon">
   <title id='title'>Robot Console</title>
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -395,31 +395,31 @@ button:focus {outline:0;}
   <div class="panel source" id="_button" style="width:200px;height:80px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Button<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <button id='button_ap' class="button_ap showOnDrive" type="button">Example Button</button>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   
   <div class="panel source" id="_checkbox" style="width:200px;height:52px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Checkbox<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <input id='checkbox_ap' class='checkbox showOnDrive' type='checkbox'><span id='checkbox_text_ap' class='checkboxLabel showOnDrive'>Label</span>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
 
   <div class="panel source" id="_joystick" style="width:200px;height:150px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Joystick<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <canvas class='joystickCanvas showOnDrive' id='canvas_ap' width="100px" height="100px"></canvas>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   
   <div class="panel source" id="_slider" style="width:200px;height:52px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Slider<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <input min="0" max="100" step="1" id='slider_ap' type='range' class='slider showOnDrive' />
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   
   <div class="panel source" id="_inputbox" style="width:200px;height:57px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Input Box<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <input placeholder='type something...' id='input_ap' class='showOnDrive' /><button id='inputboxbutton' class='showOnDrive'>Send</button>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
 
   <div class="panel source" id="_dropdown" style="width:200px;height:49px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
@@ -428,7 +428,7 @@ button:focus {outline:0;}
 		<option value='Demo Option 1'>Demo Option 1</option>
 		<option value='Demo Option 2'>Demo Option 2</option>
 	</select>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
 
 <div class="panel source" id="_mouse" style="width:70px;height:50px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
@@ -441,19 +441,19 @@ button:focus {outline:0;}
   <div class="panel source" id="_value" style="width:200px;height:50px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Value<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <h1 id='text_ap' class='textDisplay showOnDrive' style="margin:0px;padding:0px;font-size:20px">ex. 14cm</h1>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   
   <div class="panel source" id="_light" style="width:200px;height:45px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Indicator<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <div class='showOnDrive' id='color_ap'><h1 class='textDisplay' id='text_ap' style="margin:0px;padding:0px;font-size:20px">label</h1></div>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   
   <div class="panel source" id="_gauge" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Gauge<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <canvas class='canvas showOnDrive' id='gauge_ap' width="200px" height="180px" data-config='{"min":0,"max":100,"bigtick":20,"smalltick":4,"title":"CPU temp"}'></canvas>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   
   <div class="panel source" id="_compass" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
@@ -461,7 +461,7 @@ button:focus {outline:0;}
     <img class='fsImage showOnDrive'id='heading_ap'src="compass/heading.svg" />
     <img class='fsImage showOnDrive'id='cirlce_ap'src="compass/circle.svg" />
     <div id="header">Compass<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   <div class="panel source" id="_horizon" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <img class='fsImage showOnDrive'id='bkg_ap'src="horizon/back.svg" />
@@ -470,28 +470,28 @@ button:focus {outline:0;}
     <img class='fsImage showOnDrive'src="horizon/mech.svg" />
     <img class='fsImage showOnDrive'src="horizon/ring.svg" />
     <div id="header">Artificial Horizon<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   <div class="panel source" id="_rosImage" style="width:200px;height:200px;background:#f2f2f247" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Image<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <img class='showOnDrive stretchImage'id='img_ap'src="phImg.jpg" />
-    <img src="resize.png" id="resize" />
+    <img class='showOnDrive stretchImage'id='img_ap'src="res/phImg.jpg" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   <div class="panel source" id="_arm" style="width:200px;height:200px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Robot Arm<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
 	  <canvas class='canvas showOnDrive' id='arm_ap' width="200px" height="180px"></canvas>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   <div class="panel source" id="_logger" style="width:200px;height:100px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Logger<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <textarea id='textarea_ap'class='showOnDrive' style='resize:none;padding:0px; margin:0px; width:calc(100% - 0px); height:calc(100% - 22px);'></textarea>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   
   <div class="panel source" id="_audio" style="width:200px;height:70px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Audio Indicator<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
-    <image id='speaker_ap' class='showOnDrive' src='speaker.svg' style='height:40px;position:absolute:left:0px;top:26px'></image>
-    <img src="resize.png" id="resize" />
+    <image id='speaker_ap' class='showOnDrive' src='res/speaker.svg' style='height:40px;position:absolute:left:0px;top:26px'></image>
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
 
 	<h1 class="label" style="text-align:center">HTTPS Only</h1>
@@ -502,21 +502,21 @@ button:focus {outline:0;}
 		<div class='showOnDrive' id='color_ap' style='background-color:#FF0'><h1 class='textDisplay' id='status' style="margin:0px;padding:0px;font-size:17px">Disconnected</h1></div>
 		<div class='showOnDrive' id='color_ap' style='background-color:#FFF;display:inline-table;width:50%'><h1 class='textDisplay' id='RX_ap' style="margin:0px;padding:0px;font-size:17px">RX</h1></div>
 		<div class='showOnDrive' id='color_ap' style='background-color:#FFF;width:50%;float:right'><h1 class='textDisplay' id='TX_ap' style="margin:0px;padding:0px;font-size:17px">TX</h1></div>
-		<img src="resize.png" id="resize" />
+		<img src="res/resize.png" id="resize" loading='lazy'/>
 	</div>
 	<div class="panel source" id="_mic" style="width:60px;height:75px;z-index:300" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
 		<div id="header">Mic<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
 		<div class='showOnDrive'id='mic_ap'>
-			<img style='cursor:pointer; width:50px'class='imshow'src="unmute.svg" />
-			<img style='cursor:pointer; width:50px; display:none'class='imhide'src="mute.svg" />
+			<img style='cursor:pointer; width:50px'class='imshow'src="res/unmute.svg" loading='lazy'/>
+			<img style='cursor:pointer; width:50px; display:none'class='imhide'src="res/mute.svg" loading='lazy'/>
 		</div>
 		<h3 style='position:absolute;top:53px;width:100%; text-align:center'class='showOnDrive'id='label_ap'></h3>
   	</div>
 	<div class="panel source" id="_speaker" style="width:65px;height:75px;z-index:300" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
 		<div id="header">Speaker<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
 		<div class='showOnDrive'id='speaker_ap'>
-			<img style='cursor:pointer; width:50px'class='imshow'src="unspeak.svg" />
-			<img style='cursor:pointer; width:50px; display:none'class='imhide'src="speak.svg" />
+			<img style='cursor:pointer; width:50px'class='imshow'src="res/unspeak.svg" loading='lazy'/>
+			<img style='cursor:pointer; width:50px; display:none'class='imhide'src="res/speak.svg" loading='lazy'/>
 		</div>
 		<h3 style='position:absolute;top:53px;width:100%; text-align:center'class='showOnDrive'id='label_ap'></h3>
   	</div>
@@ -525,13 +525,13 @@ button:focus {outline:0;}
   <div class="panel source" id="_text" style="width:200px;height:50px;" onmouseenter='mouseEnterWidget(this)' onmouseleave='mouseLeaveWidget(this)'>
     <div id="header">Text<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <h1 id='text_ap' class='textDisplay showOnDrive' style="margin:0px;padding:0px;font-size:20px">some text</h1>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
   
   <div class="panel source" id="_box" style="z-index:2;width:200px;height:100px;background:rgba(0,0,0,0)">
     <div id="header">Panel<button onclick="openConfig(this)" id="configButton">⚙️</button></div>
     <div id='panel_ap' class='showOnDrive' style="opacity:0.5; position:absolute;left:0px;top:22px;width:100%;height:calc(100% - 22px);background-color:#DDD"></div>
-    <img src="resize.png" id="resize" />
+    <img src="res/resize.png" id="resize" loading='lazy'/>
   </div>
 </div>
 <!-- mask that blocks interaction, for the config settings panel etc. -->
@@ -551,7 +551,7 @@ button:focus {outline:0;}
 	<div id='macroHolder'style="text-align:left;position:absolute;width:calc(100% - 200px); height:80px; left:0px; bottom:0px; padding:0px;overflow-x:auto; white-space:nowrap;">
 		<h1 style='text-align:left;margin:8px 20px 0px 20px;display:inline-block'>Macros</h1>
 	</div>
-	<img src='cockpit.svg' onclick="window.open('https://'+window.location.hostname+':9090/system/services#/roboQuestUI.service')" style='cursor:pointer;position:absolute;width:57px;border:none;bottom:10px;right:135px;filter:contrast(0)' loading='lazy'/>
+	<img src='res/cockpit.svg' onclick="window.open('https://'+window.location.hostname+':9090/system/services#/roboQuestUI.service')" style='cursor:pointer;position:absolute;width:57px;border:none;bottom:10px;right:135px;filter:contrast(0)' loading='lazy'/>
 	<button onclick="closeTerminal();" class="label darken" style="font-size: 20px;background-color:#9de7fc; position:absolute; width:120px;height:55px;border:none;border-radius:5px;bottom:10px;right:10px">Exit</button>
 </div>
 <!-- config settins panel -->
@@ -570,7 +570,8 @@ button:focus {outline:0;}
 <!-- socket Connection -->
 <div id='messagePanel' class="panel" style="z-index: 121;width:500px; height:150px; left:calc(50% - 250px); top:calc(50% - 75px); overflow-y:auto; display:flex;align-items:center;justify-content:center">
   <h1 class='settingsLabel' id='messagePanelText' style="margin: 0px;font-size:25px;">Waiting for Socket Connection...</h1>
-	<div id='pb'><div id='pbm'></div></div>
+  <div id='pb'><div id='pbm'></div></div>
+  <img id='restartToCockpit'src='res/cockpit.svg' onclick="window.open('https://'+window.location.hostname+':9090/system/services#/roboQuestUI.service')" style='display:none;transform:translate(250px,-20px);cursor:pointer;position:absolute;width:57px;border:none;bottom:50%;right:50%;filter:contrast(0)' loading='lazy'/>
 </div>
 <script src="help.js" charset="utf-8" defer></script>
 <script src="canvas.js" charset="utf-8" defer></script>

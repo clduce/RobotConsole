@@ -80,8 +80,8 @@ var app,server;
 app = express();
 if(hardcoded.use_https){
 		server = https.createServer({
-		key:fs.readFileSync(__dirname + '/key.pem'),
-		cert:fs.readFileSync(__dirname + '/cert.pem'),
+		key:fs.readFileSync(__dirname + '/cert/key.pem'),
+		cert:fs.readFileSync(__dirname + '/cert/cert.pem'),
 	},app).listen(PORT);
 }
 else{

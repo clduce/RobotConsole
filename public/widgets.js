@@ -394,9 +394,9 @@ function initFunctionality(type, newWidget,thisID){
     break;
 	case  '_mic':
 		var unmuteImg = new Image();
-		unmuteImg.src = 'unmute.svg';
+		unmuteImg.src = 'res/unmute.svg';
 		var muteImg = new Image();
-		muteImg.src = 'mute.svg';
+		muteImg.src = 'res/mute.svg';
 		var ele = newWidget.querySelector('#mic_ap');
 		ele.isMuted = true;
 		ele.showMute = () => {
@@ -431,9 +431,9 @@ function initFunctionality(type, newWidget,thisID){
 	break;
 	case  '_speaker':
 		var unmuteImg = new Image();
-		unmuteImg.src = 'unspeak.svg';
+		unmuteImg.src = 'res/unspeak.svg';
 		var muteImg = new Image();
-		muteImg.src = 'speak.svg';
+		muteImg.src = 'res/speak.svg';
 		var ele = newWidget.querySelector('#speaker_ap');
 		ele.isMuted = true;
 		ele.showMute = () => {

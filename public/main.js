@@ -362,13 +362,15 @@ function initWidgetElements(){
 function mouseEnterWidget(ele){
 	ele.style.zIndex = 100;
 	let WA = widgetArray[indexMap[ele.id]];
-	
-	if(WA?.type == '_rosImage'){
+	if(WA?.type == '_panel'){
+	   ele.style.zIndex = 6;
+	}
+	else if(WA?.type == '_rosImage'){
 		setImageWidgetOnMouseInteraction(true,ele,WA);
 	}
 }
 function mouseLeaveWidget(ele){
-	ele.style.zIndex = 1;
+	ele.style.zIndex = 6;
 	let WA = widgetArray[indexMap[ele.id]];
 	if(WA?.type == '_rosImage'){
 		setImageWidgetOnMouseInteraction(false,ele,WA);
@@ -1129,7 +1131,7 @@ function applyConfigChanges(){
 		WA['opac'] = Math.max(0,Math.min(100,Number(document.getElementById('opac').value) || 100));
 		localWidget.querySelector('#img_ap').style.opacity = WA.opac+'%';
 		if(!configSettings.lockRos){
-			if(!WA.src) localWidget.querySelector('#img_ap').src = 'phImg.jpg';
+			if(!WA.src) localWidget.querySelector('#img_ap').src = 'res/phImg.jpg';
 			else localWidget.querySelector('#img_ap').src = WA.src;
 		}
 		WA['aspr'] = document.getElementById('aspr').checked;
@@ -1815,6 +1817,7 @@ function showMessage(text,showBar){
 	document.getElementById('messagePanel').style.display = 'flex';
 	document.getElementById('messagePanelText').innerHTML = text;
 	if(showBar){
+		document.getElementById('restartToCockpit').style.display = 'unset';
 		document.getElementById('pb').style.display = 'flex';
 		document.getElementById('pbm').style.width = '1%';
 		setTimeout(()=>{
@@ -1824,6 +1827,7 @@ function showMessage(text,showBar){
 }
 function hideMessage(){
 	mask.style.display = 'none';
+	document.getElementById('restartToCockpit').style.display = 'none';
 	document.getElementById('messagePanel').style.display = 'none';
 	document.getElementById('pbm').style.width = '1%';
 }
