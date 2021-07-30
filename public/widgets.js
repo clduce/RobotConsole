@@ -47,15 +47,14 @@ function widgetFromJson(json){
       canvas.width = parseInt(json['w']);
       drawJoystick(canvas,0,0);
     break;
-	case '_paddle':
+	case '_trigger':
 	  tile.querySelector('#paddle_background').style.background = json.back;
 	  tile.querySelector('#paddle_ap').style.background = json.bar;
 	break;
     case '_slider':
       tile.querySelector('#slider_ap').min = json['min'];
       tile.querySelector('#slider_ap').max = json['max'];
-      tile.querySelector('#slider_ap').value= (parseInt(json['min']) + parseInt(json['max'])
-      )/2;
+      tile.querySelector('#slider_ap').value= (parseInt(json['min']) + parseInt(json['max']))/2;
       tile.querySelector('#slider_ap').step = json['step'];
     break;
     case '_value':
@@ -258,6 +257,9 @@ function makeUnique(type,newWidget){
       thisWidget["usekey_down"] = "s";
       thisWidget["usekey_right"] = "d";
     break;
+	  case '_inputbox':
+		  thisWidget['erase'] = true;
+	  break;
     case '_value':
 		thisWidget['msgType'] = 'std_msgs/String';
 	break;
@@ -315,14 +317,16 @@ function initFunctionality(type, newWidget,thisID){
     break;
     case '_slider':
 		var jsw = widgetArray[indexMap[thisID]];
-       if(jsw){
-		   if(jsw['vertical']){
+		  console.log(thisID,indexMap[thisID],jsw);
+		 if(jsw){
+		   if(jsw.vertical){
 				newWidget.querySelector('#slider_ap').className += ' vertical';
 				newWidget.querySelector('#slider_ap').style.width =(parseInt(jsw['h'])-27) + 'px';
 			}
 			newWidget.querySelector('#slider_ap').value = parseFloat(setSliderDirection(jsw['default'],jsw));
 			sendToRos(jsw['topic'],{value:parseFloat(jsw['default'])},jsw['type']);
 			newWidget.querySelector('#slider_ap').oninput = function(e){
+				var jsw = widgetArray[indexMap[thisID]];
 				sendToRos(jsw['topic'],{
 					value:setSliderDirection(e.target.value,jsw)
 				},jsw['type']);
@@ -330,10 +334,14 @@ function initFunctionality(type, newWidget,thisID){
 		}
     break;
     case '_inputbox':
-	    var jsw = widgetArray[indexMap[thisID]];
 	  function send(){
-          sendToRos(jsw['topic'],{value:newWidget.querySelector('#input_ap').value},jsw['type']);
-		  newWidget.querySelector('#input_ap').value = '';
+		  var jsw = widgetArray[indexMap[thisID]];
+		  console.log(thisID,indexMap[thisID],jsw);
+          if(jsw?.topic){
+			sendToRos(jsw['topic'],{value:newWidget.querySelector('#input_ap').value},jsw['type']);
+		  	console.log('sending');
+	  	  }
+		  if(!jsw || jsw?.erase) newWidget.querySelector('#input_ap').value = '';
 	  }
       newWidget.querySelector('#inputboxbutton').onmousedown = function(e){
         send();

@@ -7,5 +7,5 @@
 	"use_https":false,
 	"video_paths":[],
 	"video_blacklist":[],
-	"video_enabled":false
+	"video_enabled":true
 }

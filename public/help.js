@@ -40,6 +40,7 @@ const helpMessages = {
 	'_speaker':(toParagraph('You can launch the capture.launch file from the audio_capture package to publish microphone data to this widget. Its topic is always /audio/audiocapture. From this node, incoming audio data is mono with a sample rate of 16000')+toParagraph('You can publish any WAVE audio (pcm) to this topic and the browser will play it if the widget is unmuted.')),
 	'_mouse':(toParagraph('When you click on the white box, your mouse will be locked. You will need to hit escape to stop your mouse from being locked.')+toParagraph('This widget publishes a vector3 message where x and y are the mouse velocities, z is the mouse button. 0 being no buttons, 1 being the left mouse button, and 2 being the right mouse button.')+toParagraph('On the robot, you can keep track of a the mouse position by adding the velocities to a stored position vector every time a new message is recieved.')),
 }
+loadhelpMessagesFromText();
 
 //returns string as pagargraph element
 function toParagraph(s){
@@ -47,6 +48,44 @@ function toParagraph(s){
 }
 
 function updateHelpWindow(type){
-	console.log(type, helpMessages[type]);
 	document.getElementById('helpArea').innerHTML = helpMessages[type] || '';
+}
+
+var helpIsCalled = false;
+function loadhelpMessagesFromText(){
+	if(helpIsCalled) return;
+	helpIsCalled = true;
+	var xhttp = new XMLHttpRequest();
+	xhttp.onreadystatechange = function(){
+		if(this.readyState == 4 && this.status == 200){
+			let lines = xhttp.responseText.split('\n');
+			cvtLinesToHelp(lines);
+		}
+	}
+	xhttp.open("GET","widgetHelp.txt",true);
+	xhttp.send();
+}
+
+
+function cvtLinesToHelp(lines){
+	let currentWidget = '';
+	let currentMessage = '';
+	for(let i = 0; i < lines.length; i++){
+		if(lines[i][0] == '_'){
+			console.log('widget',lines[i]);
+			if(currentWidget){
+				helpMessages[currentWidget] = toParagraph(currentMessage.trimRight('<br>'));
+				console.log(helpMessages[currentWidget]);
+			}
+			currentWidget = lines[i];
+			currentMessage = '';
+		}else{
+			currentMessage += lines[i]+'<br>';
+			console.log('message',lines[i]);
+		}
+	}
+	if(currentWidget){
+		helpMessages[currentWidget] = toParagraph(currentMessage.trimRight('<br>'));
+		helpMessages[currentWidget].replace('\n','<br>');
+	}
 }

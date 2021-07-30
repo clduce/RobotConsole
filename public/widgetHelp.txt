@@ -1,0 +1,129 @@
+_button
+<b>Topic</b>: the ROS topic name of this publisher.
+
+<b>Button label</b>: the text being displayed on the front of the button.
+
+<b>Message type</b>: the ROS topic message that will be published on topic.
+
+<b>Value to send on press</b>: when pressed, the button will send this value as parsed into message type.
+
+<b>Value to send on release</b>: same as above, just on release.
+
+
+
+_checkbox
+<b>Topic</b>: the ROS topic name of this publisher
+
+<b>Label</b>: the text being displayed on the side of the checkbox.
+
+<b>Message type</b>: the ROS topic message that will be published on topic.
+
+<b>Value to send when checked</b>: when checked, the checkbox will send this value as parsed into message type.
+
+<b>Value to send when unchecked</b>: same as above, just on uncheck.
+
+<b>Initial State</b>: when checked, this widget will start out checked.
+
+<b>ROS Latching</b>: When a late subscriber connects to this widget, if latching is enabled the subscriber will recieve the current state of this widget.
+
+_joystick
+Sends a geometry_msgs/Vector3 message where X is the horizontal joystic value from -1 to 1, and Y is the vertical joystick value from -1 to 1. the Z component is not used. A message is only sent when the joystick moves.
+
+_trigger
+This widget publishes a number between 0 and 1 of how far the trigger is pressed.
+
+<b>Message type</b>: Select either Float64 or Float32, whatever works for you.
+
+<b>MAKE SURE THE GAMEPAD IS IN XINPUT MODE</b>: (just a little switch on the back usually)
+
+
+_slider
+<b>Topic</b>: the ROS topic name of this publisher.
+
+<b>Widget Name</b>: not shown, just for organization.
+
+<b>Min Max Step</b>: lowest value, highest value, interval of the change
+
+<b>ROS Latching</b>: When a late subscriber connects to this widget, if latching is enabled the subscriber will recieve the current state of this widget.
+
+<b>Default/inital value</b>: When the widget loads in, it's value will be set to this value. it will be parsed to a float.
+
+<b>Repeat Delay</b>: number of milliseconds to wait before moving the slider again when a button/key is held down.
+
+_inputbox
+<b>Topic</b>: the ROS topic name of this publisher.
+
+<b>Message type</b>: the ROS topic message that will be published on topic.
+
+This widget will publish the parsed version of whatever you type into it. It will also send if you press enter.
+
+_dropdown
+<b>Topic</b>: the ROS topic name of this publisher.
+
+<b>Widget Name</b>: not shown, just for organization.
+
+<b>ROS Latching</b>: When a late subscriber connects to this widget, if latching is enabled the subscriber will recieve the current state of this widget.
+
+When you click on the white box, your mouse will be locked. You will need to hit escape to stop your mouse from being locked.
+
+This widget publishes a vector3 message where x and y are the mouse velocities, z is the mouse button. 0 being no buttons, 1 being the left mouse button, and 2 being the right mouse button.
+
+On the robot, you can keep track of a the mouse position by adding the velocities to a stored position vector every time a new message is recieved.
+
+_value
+<b>Topic</b>: the ROS topic name of this subscriber.
+
+<b>Prefix + Postfix</b>: the incoming message will be padded with the text in these fields.
+
+<b>Message type</b>: the ROS topic message must match the publisher.
+
+_light
+<b>Topic</b>: the ROS topic name of this subscriber.
+
+<b>Message type</b>: Bool 
+
+When a message comes in, the text on the widget will be replaced by the True/False label, and the color will be replaced by the True/False color.
+
+_gauge
+<b>Topic</b>: the ROS topic name of this subscriber.
+
+<b>Label</b>: the text being displayed on the top of the gauge.
+
+<b>Message type</b>: the ROS topic message must match the publisher.
+
+A bold tick with a value written by it appears every <b>big tick interval</b>.
+
+The area between big ticks are devided into <b>Subdevisions</b> ticks.
+
+_rosImage
+<b>Topic</b>: the ROS topic name of this subscriber.
+
+<b>URL</b>: if a URL is present, it will act as a the default static image. If this widget recieves a ROS message and has a url image loaded, the ROS message will overwrite the image.
+
+<b>Maintain Aspect Ratio</b>: leave unchecked if you want the image to stretch
+
+<b>Fullscreen mode</b> if this is checked, the widget will apear behind all widgets and will be centered on screen automatically. 
+
+<b>Z Index</b> In fullscreen mode, the image will apear behind the main video if the value is less than -50. If the value is greater than -50, it will apear in front. If you have multiple fullscreen image widgets, they can be ordered with this
+
+_arm
+<b>Topic</b>: the ROS topic name of this subscriber.
+
+<b>Message type</b>: the ROS topic message must match the publisher.
+
+_logger
+<b>Topic</b>: the ROS topic name of this subscriber.
+
+<b>Message type</b>: the ROS topic message must match the publisher.
+
+<b>ROS Latching</b>: If checked, this widget will pick up the last message that were sent before the widget itself was loaded.
+
+Stores up 4000 characters
+
+_audio
+When an Int message is recieved, a the sound of the corresponding index will play.
+
+_serial
+<b>ROS to USB topic</b>: if you publish to this topic, your string message will append the <b>ROS to USB appended line ending</b> and will be sent out the serial port.
+
+<b>USB to ROS topic</b>: if you subscribe to this topic, you will recieve a message

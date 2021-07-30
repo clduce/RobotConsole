@@ -196,16 +196,21 @@ function joinRosTopics(){
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, 'geometry_msgs/Vector3');
 						break;
-						case '_paddle':
+						case '_trigger':
 							datatypeOnTopic[topic] = widgets[i]['msgType'] || 'std_msgs/Float64';
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
 							rospublishers[topic] = nh.advertise(topic, datatypeOnTopic[topic],{latching:latch});
 						break;
 						case '_mic':
-							if(rospublishers[topic]) rospublishers[topic].shutdown();
-							rospublishers[topic] = nh.advertise(topic, 'audio_common_msgs/AudioData');
+							try{
+								if(rospublishers[topic]) rospublishers[topic].shutdown();
+								rospublishers[topic] = nh.advertise(topic, 'audio_common_msgs/AudioData');
+							} catch(err){
+								console.log("Can't create mic (_mic) publisher",err);
+							}
 						break;
 						case '_speaker':
+							try{
 							if(robotMuted[topic] == undefined) robotMuted[topic] = true;
 							if(rossubscribers[topic]) rossubscribers[topic].shutdown();
 							rossubscribers[topic] = nh.subscribe(topic, 'audio_common_msgs/AudioData', (msg) => {
@@ -213,6 +218,9 @@ function joinRosTopics(){
 									sendTelem({topic:topic,id:i,msg:msg});
 								}
 							});
+							} catch(err){
+								console.log("Can't create audio (_speaker) subscriber",err);
+							}
 						break;
 						case '_slider':
 							if(rospublishers[topic]) rospublishers[topic].shutdown();
@@ -524,7 +532,7 @@ function handleRosCTS(data){
 		case '_dropdown':
 		case '_inputbox':
 		case '_slider':
-		case '_paddle':
+		case '_trigger':
 			if(rospublishers[topic]) rospublishers[topic].publish({data:data.value});
 		break;
 		case '_joystick':

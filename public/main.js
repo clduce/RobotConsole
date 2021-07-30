@@ -393,7 +393,6 @@ function dragElement(elmnt) {
     editing = true;
     WA = widgetArray[indexMap[elmnt.id]];
 
-	console.log(WA.type, WA.fullscreen);
 	if(!WA.fullscreen){
 		get4position(elmnt);
 		useSide(elmnt,true,true);
@@ -479,7 +478,7 @@ function dragElement(elmnt) {
     let minWidth = 76,
 	    minHeight = 61;
 
-	if(WA.type == '_paddle'){
+	if(WA.type == '_trigger'){
 		minWidth = 30,
 	    minHeight = 30;
 	}
@@ -762,7 +761,7 @@ socket.on('cmdStopButtons',function(data){
 
 //open configuration settings panel for each widget
 function openConfig(e){
-  //load field values with JSON settingss
+  //load field values with JSON settings
   elementOpenInConfig = e.parentElement.parentElement;
   currentID = elementOpenInConfig.id;
   currentIndex = indexMap[currentID];
@@ -806,7 +805,7 @@ function openConfig(e){
       createconfiglinkGamepadAxis(WCI);
       createconfiglinkKeys(WCI,['up','left','down','right']);
     break;
-	case '_paddle':
+	case '_trigger':
 	  if(!configSettings.lockRos) createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/Float64','std_msgs/Float32']);
       createText('To use, make sure the gamepad is in XInput mode (X), not DirectInput (x)');
       createconfiglinkGamepadPaddle(WCI);
@@ -845,7 +844,8 @@ function openConfig(e){
     break;
     case '_inputbox':
 	  if(!configSettings.lockRos) createSelect('Message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
-    break;
+		createCheckbox('Erase value after send', 'erase', WCI['erase']);
+	break;
 	case '_dropdown':
 		if(!configSettings.lockRos) createSelect('Subscribe to message type', 'msgType', WCI['msgType'] ,['std_msgs/String','std_msgs/Float32','std_msgs/Float64','std_msgs/Int16','std_msgs/Int32','std_msgs/Int64']);
 		if(!configSettings.lockRos) createCheckbox('ROS Latching', 'latching', WCI['latching']);
@@ -889,7 +889,7 @@ function openConfig(e){
 		openArmConfig(WCI['arms']);
     break;
     case '_rosImage':
-		createText('This widget subscribes to sensor_msgs/CompressedImage and displays a JPEG.');
+		createText('This widget subscribes to sensor_msgs/CompressedImage.');
 		if(!configSettings.lockRos){
 			createText('Or');
 			createconfigInput('Enter the image source (URL)', 'src', WCI['src']);
@@ -1004,7 +1004,7 @@ function applyConfigChanges(){
       WA['usekey_right'] = document.getElementById('usekey_right').value;
       if(lastChangedAxis != -1) WA['useAxis'] = lastChangedAxis;
     break;
-	case '_paddle':
+	case '_trigger':
       WA['useGamepad'] = document.getElementById('useGamepad').checked;
 	  if(lastChangedButton != -1) WA['useButton'] = lastChangedButton;
 	  if(!configSettings.lockRos){
@@ -1099,6 +1099,7 @@ function applyConfigChanges(){
 	break;
     case '_inputbox':
       if(!configSettings.lockRos) WA['msgType'] = document.getElementById('msgType').value;
+	  WA['erase'] = document.getElementById('erase').checked;
     break;
     case '_value':
       WA['prefix'] = document.getElementById('textInput1').value;
@@ -1821,7 +1822,7 @@ function readGamepadLoop(){
 		}
       }
       else for(let w = 0; w < widgetArray.length; w++){
-        if(widgetArray[w].type == '_paddle' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
+        if(widgetArray[w].type == '_trigger' && widgetArray[w].useGamepad && 'useButton' in widgetArray[w] && widgetArray[w]['useButton'] == i){
           var ele = document.getElementById(widgetArray[w].id).querySelector('#paddle_ap');
 		  sendToRos(widgetArray[w]['topic'],{value:currentGamepad.buttons[i].value},widgetArray[w]['type']);
 			
