@@ -124,6 +124,28 @@ _audio
 When an Int message is recieved, a the sound of the corresponding index will play.
 
 _serial
-<b>ROS to USB topic</b>: if you publish to this topic, your string message will append the <b>ROS to USB appended line ending</b> and will be sent out the serial port.
+<b>Baudrate</b>: make sure this matches your firmware
 
-<b>USB to ROS topic</b>: if you subscribe to this topic, you will recieve a message
+<b>ROS to USB topic</b>: if you publish to this topic, the <b>ROS to USB appended line ending</b> will be appended to your message, and it will be sent out the serial port as characters.
+
+<b>USB to ROS topic</b>: all serial data that makes it into the UI is stored in a buffer. When a <b>USB to ROS split with</b> character is detected, the buffer is flushed and sent out as a ROS string message which you can subscribe to on this topic.
+
+_mic
+This widget allows you to open your <b>computer microphone</b> and send data from your mic to the robot.
+
+This widget needs the audio_common ROS package to be installed, or it will not work.
+
+to enable the speaker pipeline on the robot, launch the audio player node with this: <code>roslaunch audio_play play.launch</code>
+
+_speaker
+When this widget is unmuted, the browser plays all incoming audio data on it's topic. This data can come from a mic on the robot.
+
+This widget needs the audio_common ROS package to be installed, or it will not work.
+
+you can start the mic stream on the robot by launching the audio capture node with this: <code>roslaunch audio_capture capture.launch</code>
+
+_text
+This is just for organizational purposes
+
+_box
+Any widget that is moved into a panel widget will become a child of the panel. When the panel is deleted, all children will also be deleted. When the panel is moved, all children will move with it.
