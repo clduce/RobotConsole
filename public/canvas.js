@@ -205,7 +205,7 @@ function drawGauge(c,v,format){
     ctx.fillStyle = "#5c5c5c";
     ctx.textAlign = 'center';
 
-    for(let i = 0; i <= nt; i++){
+    for(let i = 0; i <= Math.min(nt,200); i++){
       ctx.beginPath();
       if(i%(opts.smalltick) == 0){
         ctx.moveTo(x+Math.cos(-i*sth+ofst)*(r-or),y+Math.sin(-i*sth+ofst)*(r-or));

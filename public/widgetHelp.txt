@@ -104,6 +104,7 @@ A bold tick with a value written by it appears every <b>big tick interval</b>.
 
 The area between big ticks are devided into <b>Subdevisions</b> ticks.
 
+For preformance reasons, up to 200 ticks can be rendered (big ticks + small ticks <= 200). It is ok to have more, but they won't be rendered.
 _rosImage
 <b>Topic</b>: the ROS topic name of this subscriber.
 

@@ -1135,7 +1135,7 @@ function applyConfigChanges(){
 	  }
       WA['bigtick'] = document.getElementById('bigtick').value;
       if(Number(WA.bigtick) > Number(WA.max) - Number(WA.min)) WA['bigtick'] = Number(WA.max) - Number(WA.min);
-      if(Number(WA.bigtick) < 1) WA['bigtick'] = 1;
+      if(Number(WA.bigtick) < 0) WA['bigtick'] = 0.05;
       WA['smalltick'] = document.getElementById('smalltick').value;
       if(Number(WA.smalltick) > 100) WA['smalltick'] = 100;
       if(Number(WA.smalltick) < 0) WA['smalltick'] = 0;
