@@ -57,6 +57,15 @@ _inputbox
 
 This widget will publish the parsed version of whatever you type into it. It will also send if you press enter.
 
+_mouse
+<b>Topic</b>: the ROS topic name of this publisher.
+
+When you click on the white box, your mouse will be locked. You will need to hit escape to stop your mouse from being locked.
+
+This widget publishes a vector3 message where x and y are the mouse velocities, z is the mouse button. 0 being no buttons, 1 being the left mouse button, and 2 being the right mouse button.
+
+On the robot, you can keep track of a the mouse position by adding the velocities to a stored position vector every time a new message is recieved.
+
 _dropdown
 <b>Topic</b>: the ROS topic name of this publisher.
 

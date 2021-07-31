@@ -289,7 +289,7 @@ function makeUnique(type,newWidget){
     default:
 	break;
   }
-  initFunctionality(type,newWidget,thisID);
+//  initFunctionality(type,newWidget,thisID);
   return thisWidget;
 }
 
@@ -581,6 +581,7 @@ function addWidget(data){
   updateIndexMap();
   updateTopicMapIndex();
   sendWidgetsArray();
+  initFunctionality(data.type,document.getElementById(data.id),data.id);
 };
 
 //ONLY CALLED ON END DRAG
