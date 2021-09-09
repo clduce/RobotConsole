@@ -206,7 +206,7 @@ function joinRosTopics(){
 								if(rospublishers[topic]) rospublishers[topic].shutdown();
 								rospublishers[topic] = nh.advertise(topic, 'audio_common_msgs/AudioData');
 							} catch(err){
-								console.log("Can't create mic (_mic) publisher",err);
+								console.log("Can't create mic (_mic) publisher");
 							}
 						break;
 						case '_speaker':
@@ -219,7 +219,7 @@ function joinRosTopics(){
 								}
 							});
 							} catch(err){
-								console.log("Can't create audio (_speaker) subscriber",err);
+								console.log("Can't create audio (_speaker) subscriber");
 							}
 						break;
 						case '_slider':
