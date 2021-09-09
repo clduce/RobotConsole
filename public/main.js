@@ -1739,6 +1739,9 @@ function readGamepadLoop(){
     }
   }
   for(let i = 0; i < currentGamepad.buttons.length; i++){
+  	if(oldGamepad.buttons.length != currentGamepad.buttons.length){
+  		oldGamepad = currentGamepad;
+  	}
     if(currentGamepad.buttons[i].pressed !== oldGamepad.buttons[i].pressed){
       if(configIsOpen){
         lastChangedButton = i;
