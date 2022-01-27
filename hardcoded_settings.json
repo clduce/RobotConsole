@@ -5,7 +5,7 @@
 	"allow_edit_mode":true,
 	"reset_usb_devices_on_boot":true,
 	"use_https":false,
-	"video_paths":[],
+	"video_paths":["/dev/video0"],
 	"video_blacklist":[],
-	"video_enabled":false
+	"video_enabled":true
 }
