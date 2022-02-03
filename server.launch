@@ -29,7 +29,7 @@
     name="server"
     output="log"
     respawn="true"
-    respawn_delay="30"/>
+    respawn_delay="5"/>
 
   <node
     pkg="roboquest_core"
