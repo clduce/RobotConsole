@@ -1,4 +1,4 @@
 # Set default ROS log level
-log4j.logger.ros=DEBUG
-log4j.logger.ros.rosserial_server=DEBUG
-log4j.logger.ros.rosserial_python=DEBUG
+log4j.logger.ros=INFO
+log4j.logger.ros.rosserial_server=INFO
+log4j.logger.ros.rosserial_python=INFO
