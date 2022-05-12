@@ -1,13 +1,13 @@
 <launch>
 
   <env name="ROSCONSOLE_CONFIG_FILE"
-       value="$(find roboquest_ui)/src/RobotConsole/rosconsole_config"/>
+       value="$(find roboquest_ui)/rosconsole_config"/>
 
   <env name="ROSCONSOLE_FORMAT"
        value="${time} ${severity} ${node}-${function}: ${message}"/>
 
   <env name="ROS_PYTHON_LOG_CONFIG_FILE"
-       value="$(find roboquest_ui)/src/RobotConsole/rospython_config"/>
+       value="$(find roboquest_ui)/rospython_config"/>
 
   <arg name="hat_port" default="/dev/ttyS0"/>
   <arg name="hat_data_rate" default="57600"/>
