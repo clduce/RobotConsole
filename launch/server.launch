@@ -9,7 +9,7 @@
   <env name="ROS_PYTHON_LOG_CONFIG_FILE"
        value="$(find roboquest_ui)/rospython_config"/>
 
-  <arg name="hat_port" default="/dev/ttyS0"/>
+  <arg name="hat_port" default="/dev/ttyTHS1"/>
   <arg name="hat_data_rate" default="57600"/>
 
   <node
