@@ -10,7 +10,7 @@
        value="$(find roboquest_ui)/rospython_config"/>
 
   <arg name="hat_port" default="/dev/ttyTHS1"/>
-  <arg name="hat_data_rate" default="57600"/>
+  <arg name="hat_data_rate" default="9600"/>
 
   <node
     pkg="roboquest_core"
